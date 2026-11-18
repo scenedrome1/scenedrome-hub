@@ -162,7 +162,7 @@ td input,td select{padding:5px 8px;font-size:12.5px}
 .covers{display:flex;gap:8px}.covers a{width:34px;height:22px;border-radius:6px;cursor:pointer;border:2px solid transparent}.covers a.on{border-color:var(--gold2)}
 .tag{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:2px 10px;font-size:12px;margin:0 6px 6px 0}
 .lock{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--faint)}
-.kv{display:grid;grid-template-columns:150px 1fr;gap:7px 12px;font-size:13px;margin:0}.kv dt{color:var(--faint)}.kv dd{margin:0}
+.kv{display:grid;grid-template-columns:minmax(90px,150px) minmax(0,1fr);gap:7px 12px;font-size:13px;margin:0}.kv dt{color:var(--faint)}.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .switch{width:36px;height:20px;border-radius:99px;background:#12302a;border:1px solid var(--line2);position:relative;cursor:pointer;display:inline-block;transition:background .2s;vertical-align:middle;flex:none}
 .switch::after{content:"";position:absolute;width:14px;height:14px;border-radius:50%;background:#9fb9b0;top:2px;left:2px;transition:left .2s,background .2s}
 .switch.on{background:#5a4520;border-color:var(--gold)}.switch.on::after{left:18px;background:var(--gold2)}.switch.fixed{opacity:.45;cursor:not-allowed}
@@ -194,12 +194,58 @@ td input,td select{padding:5px 8px;font-size:12.5px}
 #cfLayer iframe{flex:1;border:0;width:100%;background:#03100c}
 @media (max-width:1100px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(2,minmax(0,1fr))}.ep-row{grid-template-columns:52px 1fr 48px 90px 18px}.ep-row .hide-s{display:none}}
 @media (max-width:860px){
-.shell{grid-template-columns:1fr}.side{position:fixed;bottom:0;top:auto;left:0;right:0;height:auto;flex-direction:row;border-right:0;border-top:1px solid var(--line)}
+.shell{grid-template-columns:minmax(0,1fr)}.side{position:fixed;bottom:0;top:auto;left:0;right:0;height:auto;flex-direction:row;border-right:0;border-top:1px solid var(--line)}
 .brand,.side-foot,.draftnote,.nav h6{display:none}.nav{display:flex;flex-direction:row;width:100%;overflow-x:auto;padding:4px}.nav a{flex-direction:column;gap:2px;font-size:10px;padding:6px 8px;min-width:68px;text-align:center}
 .g2,.g3,.g4{grid-template-columns:1fr}.span2{grid-column:auto}.login{grid-template-columns:1fr}.login-art{min-height:260px;padding:28px}.login-side{border-left:0}
 .top{padding:12px 14px}.content{padding:14px 14px 110px}.viewas .lbl{display:none}.msg{max-width:92%}.formgrid{grid-template-columns:1fr}.bellpanel{position:fixed;left:12px;right:12px;width:auto;top:64px}
 .steps .s{grid-template-columns:26px 1fr}.steps .s .who{grid-column:2}
 }
+
+/* ===== responsive: tablet & mobile ===== */
+.grow{min-width:0}.grid>*{min-width:0}main{min-width:0}
+.top>div:first-child{min-width:0}.top h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sec>.sh .grow{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+img,video,iframe{max-width:100%}
+@media (pointer:coarse){.chk{width:28px;height:28px}.btn.sm{min-height:34px}.iconbtn{min-width:40px;min-height:40px}}
+@media (min-width:861px) and (max-width:1180px){
+.shell{grid-template-columns:212px minmax(0,1fr)}.brand{padding:16px 14px 12px}.nav a{padding:9px 12px}
+.content{padding:18px}.top{padding:12px 18px}.content .item{flex-wrap:wrap}
+.kanban{grid-template-columns:repeat(4,minmax(200px,1fr))}
+.shot{grid-template-columns:54px 1fr 72px 1fr 1fr;row-gap:6px}.shot>span.row,.shot>a{justify-self:end}
+.hello{flex-wrap:wrap}
+}
+@media (max-width:860px){
+body{-webkit-text-size-adjust:100%}
+input,select,textarea{font-size:16px}
+td input,td select,.shot input,.shot select{font-size:15px}
+.side{padding-bottom:env(safe-area-inset-bottom)}.nav{scrollbar-width:none}.nav::-webkit-scrollbar{display:none}
+.top{gap:10px}.top .row{flex-wrap:nowrap;gap:8px}.viewas select{max-width:150px}
+.content .row,.content .item{flex-wrap:wrap}.content .row>.right{margin-left:auto}
+.hello{flex-wrap:wrap;padding:16px}.hello h1{font-size:22px}.hello .col{align-items:flex-start!important;flex-direction:row;flex-wrap:wrap;width:100%}
+.phead{gap:12px}.phead h1{font-size:22px}.phead>.grow,.hello>.grow{flex:1 1 calc(100% - 90px)}.content .row>.grow,.content .item>.grow{flex:1 1 150px}
+.card{padding:14px}
+.kanban{display:grid;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:82%;scroll-snap-type:x mandatory}.kanban>.kcol{scroll-snap-align:start}
+.modal-bg{padding:10px!important;align-items:flex-end!important}.modal,.modal.wide{width:100%;max-height:92vh;border-radius:16px;padding:16px}
+.tablewrap table{min-width:560px}
+.ep-row{gap:8px;padding:10px 12px}.ep-body{padding:10px}
+.ep-row.br{display:flex;flex-wrap:wrap;row-gap:4px}.ep-row.br>span:nth-child(2){flex-basis:100%;order:5}
+.sec>.sb{padding:10px}.sub{padding:10px}
+.shot{grid-template-columns:52px 1fr 76px;row-gap:6px}.shot>select{grid-column:span 3}.shot>span.row{grid-column:span 2}.shot>a{justify-self:end}
+.perm{gap:10px}
+#toasts{bottom:calc(84px + env(safe-area-inset-bottom));width:calc(100% - 24px)}.toast{max-width:100%}
+.stages span{display:none}
+.scn table{min-width:0}.scn thead{display:none}.scn tbody,.scn tr{display:block}
+.scn tr.item{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:8px 4px;border-bottom:1px solid var(--line)}
+.scn tr.item>td{border:0;padding:0}.scn tr.item>td:nth-child(1){width:30px}.scn tr.item>td:nth-child(2){flex:1 1 calc(100% - 70px);min-width:0}.scn tr.item>td:nth-child(7){order:2}
+.scn tr.item>td:nth-child(3){order:3;margin-left:38px}.scn tr.item>td:nth-child(n+4):nth-child(-n+6){order:3}
+.scn tr:not(.item)>td{display:block;padding:0}
+}
+@media (max-width:860px){.cfbar{flex-wrap:wrap;gap:8px;padding:8px 10px}#cfNote{display:none}.cfbar .btn{margin-left:auto}}
+@media (max-width:420px){
+.content{padding:12px 10px 110px}.top h2{font-size:17px}.kpi .v{font-size:19px}
+.tabs a{padding:10px 10px;letter-spacing:.08em}
+}
+@media (min-width:600px) and (max-width:860px){.g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.formgrid{grid-template-columns:1fr 1fr}.kanban{grid-auto-columns:46%}.modal,.modal.wide{width:min(680px,100%)}.modal-bg{align-items:center!important}}
 </style>
 </head>
 <body>
@@ -715,7 +761,7 @@ return sec(k,'Checkpoints',`${done}/${n} done`,body,false)}
 
 function epSceneSec(p,e,ce,mg){const T=TYPES[p.type];const k='sc'+p.id+e.n;const u=T.unit;
 const tools=`<div class="row wrap" style="margin-bottom:10px;align-items:flex-end">${ce?`<a class="btn sm pri" data-act="addScene" data-arg="${e.n}">${ic('plus',14)}Add ${u.toLowerCase()}</a><label class="btn sm" style="letter-spacing:normal;text-transform:none;color:var(--text)">${ic('upload',14)}Import EDL / CSV<input type="file" hidden accept=".edl,.csv,.txt,.xml" data-change="importEDL" data-arg="${e.n}"></label>`:''}${mg?`<label style="width:150px" class="tiny">Target runtime<input value="${mmss(e.target)}" data-change="bk" data-arg="e${e.n}.target"></label>`:''}<span class="tiny faint right">Runtime counts the selected version of each ${u.toLowerCase()}.</span></div>`;
-const rows=e.scenes.length?`<div class="tablewrap"><table><thead><tr><th style="width:52px">${u.slice(0,2)}</th><th>Characters</th><th style="width:90px">VFX</th><th style="width:80px">Version</th><th style="width:80px">Duration</th><th style="width:110px">Status</th><th style="width:20px"></th></tr></thead><tbody>${e.scenes.map(s=>sceneRow(p,e,s,ce,mg)).join('')}</tbody></table></div>`:`<div class="empty tiny" style="padding:18px">No ${u.toLowerCase()}s yet${ce?` — use <b>＋ Add ${u.toLowerCase()}</b> to start`:''}.</div>`;
+const rows=e.scenes.length?`<div class="tablewrap scn"><table><thead><tr><th style="width:52px">${u.slice(0,2)}</th><th>Characters</th><th style="width:90px">VFX</th><th style="width:80px">Version</th><th style="width:80px">Duration</th><th style="width:110px">Status</th><th style="width:20px"></th></tr></thead><tbody>${e.scenes.map(s=>sceneRow(p,e,s,ce,mg)).join('')}</tbody></table></div>`:`<div class="empty tiny" style="padding:18px">No ${u.toLowerCase()}s yet${ce?` — use <b>＋ Add ${u.toLowerCase()}</b> to start`:''}.</div>`;
 return sec(k,u+'s',`${e.scenes.length} · ${mmss(epRun(e))}`,tools+rows,true)}
 
 function sceneRow(p,e,s,ce,mg){const k='sn'+s.id;const open=V.open[k];const v=s.versions.find(x=>x.id===s.sel);const sh=s.vfx!=='none'?s.shots:[];const ap=sh.filter(h=>h.status==='approved').length;
@@ -754,7 +800,7 @@ const snd=p.episodes.filter(e=>e.sound&&(e.sound.items.length||e.sound.brief)&&(
 const stSel=(e,kind,id,cur,map)=>{const opts=ext?VEND_ST.concat(VEND_ST.includes(cur)?[]:[cur]):Object.keys(map).filter(k=>appr||!['approved','rejected'].includes(k)||k===cur);return`<select data-change="vst" data-arg="${e.n}|${kind}|${id}" style="width:130px">${opts.map(k=>`<option value="${k}" ${cur===k?'selected':''}>${(map[k]||[k])[0]}</option>`).join('')}</select>`};
 return`<div class="row" style="margin-bottom:12px"><div class="tiny faint grow">${ext?'The VFX shots and sound work handed to you on this project — update your status and leave a note for the team.':'Every VFX shot and sound brief on this project, with who has it and where it stands.'}</div>${!ext&&editTeam(p)?`<a class="btn sm ghost" data-act="tog" data-arg="bmine${p.id}|0">${V.open['bmine'+p.id]?'Show all':'Only mine'}</a>`:''}</div>
 <div class="sec-title"><h2>VFX shots</h2><span class="tiny faint right">${items.length} · ${mmss(items.reduce((a,x)=>a+(+x.h.dur||0),0))}</span></div>
-${items.length?items.map(({e,s,h})=>{const k='bb'+h.id;const open=V.open[k]!==false;const mine=h.assignee===u.id;return`<div class="ep ${open?'open':''}"><div class="ep-row" style="grid-template-columns:auto 1fr auto auto 18px" data-act="tog" data-arg="${k}|1"><b style="font-family:var(--display)">EP${pad2(e.n)} · ${TYPES[p.type].unit.slice(0,2)} ${s.n} · #${esc(h.n)}</b><span>${esc(h.name)||'—'} <span class="tiny faint">· ${mmss(h.dur)} · ${s.vfx==='ai'?'AI VFX':'VFX'}</span></span><span class="tiny hide-s">${ext?'':who(h.assignee)}</span>${stChip(SHOT_ST,h.status)}<span class="faint">${open?'▾':'▸'}</span></div>
+${items.length?items.map(({e,s,h})=>{const k='bb'+h.id;const open=V.open[k]!==false;const mine=h.assignee===u.id;return`<div class="ep ${open?'open':''}"><div class="ep-row br" style="grid-template-columns:auto 1fr auto auto 18px" data-act="tog" data-arg="${k}|1"><b style="font-family:var(--display)">EP${pad2(e.n)} · ${TYPES[p.type].unit.slice(0,2)} ${s.n} · #${esc(h.n)}</b><span>${esc(h.name)||'—'} <span class="tiny faint">· ${mmss(h.dur)} · ${s.vfx==='ai'?'AI VFX':'VFX'}</span></span><span class="tiny hide-s">${ext?'':who(h.assignee)}</span>${stChip(SHOT_ST,h.status)}<span class="faint">${open?'▾':'▸'}</span></div>
 ${open?`<div class="ep-body"><div class="eyebrow" style="margin-bottom:4px">Brief</div><div style="white-space:pre-wrap">${esc(h.brief)||'<span class="faint">No brief yet</span>'}</div>${h.status==='rejected'&&h.reason?`<div class="tiny" style="color:var(--bad);margin-top:8px">Rejected: ${esc(h.reason)}</div>`:h.status==='approved'?'<div class="tiny" style="color:var(--ok);margin-top:8px">Approved ✓</div>':''}
 ${mine||(!ext&&editTeam(p))?`<div class="row wrap" style="margin-top:10px;align-items:flex-end">${h.status==='approved'&&ext?'':`<label class="tiny" style="width:150px">Status${stSel(e,'shot',h.id,h.status,SHOT_ST)}</label>`}<label class="tiny grow">Note to the team<input value="${esc(h.vnote||'')}" data-change="vnote" data-arg="${e.n}|shot|${h.id}" placeholder="e.g. v2 uploaded to Frame.io"></label></div>`:h.vnote?`<div class="tiny faint" style="margin-top:6px">Note: ${esc(h.vnote)}</div>`:''}</div>`:''}</div>`}).join(''):'<div class="card empty">No VFX shots here yet</div>'}
 <div class="sec-title"><h2>Sound</h2></div>
