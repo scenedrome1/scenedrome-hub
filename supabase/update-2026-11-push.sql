@@ -29,3 +29,9 @@ begin
 end $$;
 drop trigger if exists hub_push_notify on public.notifications;
 create trigger hub_push_notify after insert on public.notifications for each row execute function public.hub_push_notify();
+
+-- table permissions (new tables don't get them automatically)
+grant select, insert, update, delete on public.push_subs to authenticated, service_role;
+grant select, insert, update, delete on public.push_config to service_role;
+grant select, update on public.notifications to service_role;
+grant select on public.settings to service_role;
