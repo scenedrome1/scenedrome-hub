@@ -53,7 +53,8 @@ async function sendPush(sub, payloadObj, vapid, subject) {
   return res;
 }
 
-const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const firstKey = (name) => { try { const o = JSON.parse(Deno.env.get(name) ?? '{}'); return o.default ?? Object.values(o)[0]; } catch { return undefined; } };
+const sb = createClient(Deno.env.get('SUPABASE_URL'), Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? firstKey('SUPABASE_SECRET_KEYS'), { auth: { persistSession: false } });
 const SUBJECT = Deno.env.get('PUSH_CONTACT') || 'mailto:hub@scenedrome.com';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' };
 const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...cors, 'Content-Type': 'application/json' } });
@@ -64,7 +65,7 @@ async function vapid() {
   const k = await generateVapid();
   await sb.from('push_config').upsert({ id: 'vapid', data: k }, { onConflict: 'id', ignoreDuplicates: true });
   const { data: again } = await sb.from('push_config').select('data').eq('id', 'vapid').single();
-  return again!.data;
+  return again.data;
 }
 
 Deno.serve(async (req) => {
