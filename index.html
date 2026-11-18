@@ -574,7 +574,7 @@ const withPerm=k=>S.users.filter(u=>!u.suspended&&can(k,u)).map(u=>u.id);
 function finRowsFor(u){u=u||me();return S.fin.rows.filter(r=>{if(u.role==='owner')return true;if(isExt(u))return false;if((r.share||[]).includes(u.id))return true;if(can('fin.budgetsAll',u)||can('fin.receivables',u)&&can('proj.all',u))return true;const p=P(r.link);return p&&((can('fin.budgetsOwn',u)&&p.producer===u.id)||(can('fin.receivables',u)&&onProject(p,u)))})}
 
 /* ================= helpers ================= */
-function av(u,s){s=s||36;if(!u)return'';const init=u.name.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();const st=u.photo?`background-image:url('${u.photo}');`:`background:${u.color};`;return`<span class="av" style="width:${s}px;height:${s}px;font-size:${Math.round(s*.34)}px;${st}" title="${esc(u.name)}">${u.photo?'':esc(init)}</span>`}
+function av(u,s){s=s||36;if(!u)return'';const init=String(u.name||'?').split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();const st=u.photo?`background-image:url('${u.photo}');`:`background:${u.color};`;return`<span class="av" style="width:${s}px;height:${s}px;font-size:${Math.round(s*.34)}px;${st}" title="${esc(u.name)}">${u.photo?'':esc(init)}</span>`}
 function statusChip(u){const s=STATUS[u.status]||STATUS.available;return`<span class="chip ${s[1]}"><span class="dot"></span>${s[0]}</span>`}
 const STG=p=>TYPES[p.type].stages;const lastStage=p=>STG(p).length-1;
 function epProg(p,e){const T=TYPES[p.type],n=T.stages.length;if((e.statuses||[]).includes('delivered')||(!e.statuses&&e.stage>=n-1))return 100;
@@ -586,7 +586,7 @@ function ring(pct,s){s=s||56;const r=(s-8)/2,c=2*Math.PI*r;return`<svg width="${
 function stagesBar(p,cur,done){return`<div class="stages">${STG(p).map((s,i)=>`<div class="st ${done||i<cur?'done':i===cur?'cur':''}" title="${esc(s)}"><i></i><span>${esc(s)}</span></div>`).join('')}</div>`}
 const bar=(pct,cls)=>`<div class="bar ${cls||''}"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div>`;
 function greet(){const h=new Date().getHours();return h<12?'Good morning':h<17?'Good afternoon':'Good evening'}
-const first=u=>u.name.split(' ')[0];
+const first=u=>u&&u.name?String(u.name).split(' ')[0]:'Former member';
 const tierOf=paid=>paid>=1000000?['Gold',3000000,'Platinum']:paid>=250000?['Silver',1000000,'Gold']:['Bronze',250000,'Silver'];
 function mentionHTML(t){return esc(t).replace(/@([A-Za-z]+)/g,(m,n)=>S.users.some(u=>first(u).toLowerCase()===n.toLowerCase())?`<span class="mention">@${n}</span>`:m)}
 function unread(){return S.notifs.filter(n=>n.to===meId&&!n.read).length}
@@ -615,7 +615,7 @@ const ops=[];if(can('storage.view'))ops.push(['storage','Storage & devices','dri
 if(mg.length){g('Management');N.push(...mg)}g('Studio');N.push(...ops);if(can('admin.users')||isOwner()){g('Admin');if(can('admin.users'))N.push(['admin','Users & access','shield']);if(isOwner())N.push(['branding','Branding','star'])}}
 g('You');N.push(['profile','My profile','user']);return N}
 function shellHTML(){const u=me();const titles={branding:'Branding',home:u.role==='partner'?'Collab hub':u.role==='client'?'Home':'Dashboard',projects:u.role==='partner'?'Our collabs':u.role==='client'?'My projects':'Projects',messages:'Messages',dm:(U(V.p)||{}).name||'Message',team:'Team',finance:'Finance',clients:'Clients',partners:'Partner studios',admin:'Users & access',profile:V.p&&V.p!==u.id?'Profile':'My profile',project:(P(V.p)||{}).name||'Project',rewards:'Offers & rewards',storage:'Storage & devices',marketing:'Marketing',handbook:'Studio handbook',access:'Access'};
-const body=(VIEWS[V.v]||VIEWS.home)();const un=unread();const my=S.notifs.filter(n=>n.to===u.id).slice(0,30);
+let body;try{body=(VIEWS[V.v]||VIEWS.home)()}catch(err){console.error('[hub] view',V.v,err);body=`<div class="card empty">This page hit a snag and couldn’t load (${esc(err.message)}). The rest of the Hub still works — try another page, or reload.</div>`}const un=unread();const my=S.notifs.filter(n=>n.to===u.id).slice(0,30);
 const nav=navItems().map(([k,l,i])=>k==='__'?`<h6>${l}</h6>`:`<a class="${V.v===k||(k==='projects'&&V.v==='project')||(k==='admin'&&V.v==='access')||(k==='profile'&&V.v==='profile'&&(!V.p||V.p===u.id))?'on':''}" data-act="go" data-arg="${k}">${ic(i)}<span>${l}</span></a>`).join('');
 return`<div class="shell"><aside class="side"><div class="brand"><img src="${esc(B().logo)}" alt="${esc(B().studio)}"><div class="sub">${esc(B().hubName)}</div></div><nav class="nav">${nav}</nav>
 ${LIVE?'':'<div class="draftnote">Draft · demo data lives in this browser only.</div>'}<div class="side-foot" data-act="go" data-arg="profile">${av(u,34)}<div class="grow"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500">${esc(u.name)}</b><span class="tiny faint">${esc(u.company||u.title)}</span></div></div></aside>
@@ -1368,7 +1368,7 @@ document.addEventListener('dragover',e=>{const z=e.target.closest('[data-drop]')
 document.addEventListener('dragleave',e=>{const z=e.target.closest('[data-drop]');if(z)z.classList.remove('over')});
 document.addEventListener('drop',e=>{const z=e.target.closest('[data-drop]');if(!z)return;e.preventDefault();z.classList.remove('over');uploadTo(z.dataset.drop,e.dataTransfer.files)});
 document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('.composer textarea')){e.target.style.height='auto';e.target.style.height=Math.min(140,e.target.scrollHeight)+'px'}});
-if(LIVE){meId='…';render();liveBoot().catch(e=>{console.error(e);bootMsg='Couldn’t reach the Hub database: '+e.message;booted=false;meId=null;render()});sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){booted=false;meId=null;render()}})}else render();
+if(LIVE){meId='…';render();liveBoot().catch(e=>{console.error(e);if(booted){toast('Something didn’t load: '+e.message,'bad');return}bootMsg='Couldn’t reach the Hub database: '+e.message;booted=false;meId=null;render()});sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){booted=false;meId=null;render()}})}else render();
 })();
 </script>
 </body>
