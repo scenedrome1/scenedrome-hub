@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/app/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SCENEDROME">
+<meta name="application-name" content="SCENEDROME Hub">
 <meta name="theme-color" content="#03100c">
 <title>SCENEDROME Hub</title>
 <link rel="icon" id="brandIcon" href="assets/s.png">
@@ -246,6 +253,7 @@ td input,td select,.shot input,.shot select{font-size:15px}
 .tabs a{padding:10px 10px;letter-spacing:.08em}
 }
 @media (min-width:600px) and (max-width:860px){.g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.formgrid{grid-template-columns:1fr 1fr}.kanban{grid-auto-columns:46%}.modal,.modal.wide{width:min(680px,100%)}.modal-bg{align-items:center!important}}
+@media (display-mode: standalone){.top{padding-top:calc(12px + env(safe-area-inset-top))}.login{padding-top:env(safe-area-inset-top)}#modal .modal-bg{padding-top:calc(10px + env(safe-area-inset-top))!important}}
 </style>
 </head>
 <body>
@@ -506,7 +514,7 @@ const[fr,fp,fm]=await Promise.all([fetchAll('fin_rows').catch(()=>[]),sb.from('f
 S.fin={source:fm?fm.data.source:'none',pulledAt:fm?fm.data.pulledAt:null,rows:fr.map(r=>r.data),salaries:fp?fp.data.salaries||[]:[],totals:fm?fm.data.totals:null};
 SYNCED.fin_rows=new Map(fr.map(r=>[r.id,JSON.stringify({id:r.id,link:r.link,share:r.share,data:r.data})]));
 if(isOwner()){SYNCED.fin_private=new Map(fp?[['salaries',JSON.stringify({id:'salaries',data:fp.data})]]:[]);SYNCED.fin_meta=new Map(fm?[['main',JSON.stringify({id:'main',data:fm.data})]]:[]);SYNCED.settings=new Map(brandRow?[['brand',JSON.stringify({id:'brand',data:BRAND})]]:[])}
-booted=true;V={v:'home',p:null,tab:'overview',ch:null,open:{}};render();liveRealtime()}
+booted=true;V={v:'home',p:null,tab:'overview',ch:null,open:{}};render();liveRealtime();appBooted()}
 let rtCh=null,rtPending=false;
 function liveRealtime(){if(rtCh)sb.removeChannel(rtCh);rtCh=sb.channel('hub-live').on('postgres_changes',{event:'*',schema:'public'},pl=>{const tb=pl.table;
  if(tb==='settings'){if(pl.new&&pl.new.data){BRAND=Object.assign({},BRAND0,pl.new.data);applyBrand();SYNCED.settings&&SYNCED.settings.set('brand',JSON.stringify({id:'brand',data:BRAND}));softRender()}return}
@@ -1274,6 +1282,51 @@ function vendorSet(a,chg){const[n,kind,id]=a.split('|');const p=P(V.p);const e=e
    const d=TB.find(x=>x[0]==='projects');SYNCED.projects&&SYNCED.projects.set(p.id,JSON.stringify(d[2](p)));notify([p.producer],msg,{v:'project',p:p.id,tab:'briefs'});save();toast('Updated — the team can see it','ok');render()});return}
  notify([p.producer],msg,{v:'project',p:p.id,tab:'briefs'});bkSave(p,e)}
 Object.assign(FORM,{shotReject:(fd,a)=>{const[n,sid,hid]=a.split('|');const p=bkPrep();if(!canApprove(p))return;const e=epFind(p,n);const h=e.scenes.find(x=>x.id===sid).shots.find(x=>x.id===hid);h.status='rejected';h.reason=String(fd.get('reason')||'').trim();h.by=meId;h.ts=Date.now();notify([h.assignee],`${p.name} EP${pad2(e.n)} shot #${h.n} rejected: ${h.reason}`,{v:'project',p:p.id,tab:'briefs'});closeModal();bkSave(p,e);toast(`Shot #${h.n} rejected — note sent`,'ok')}});
+
+/* ================= phone app: install, push notifications, app badge ================= */
+if(location.protocol==='http:'&&!/^(localhost|127\.)/.test(location.hostname))location.replace('https://'+location.host+location.pathname+location.search+location.hash);
+const APP={reg:null,prompt:null,sub:null,state:'unknown'};
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const isAndroid=/android/i.test(navigator.userAgent);
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const pushSupported=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+const ub64=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),c=>c.charCodeAt(0))};
+function goLink(l){if(!me())return;l=l||{};if(l.v==='project')go('project',l.p,l.tab,l.ch);else go(l.v||'home',l.p)}
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){navigator.serviceWorker.register('sw.js').then(r=>{APP.reg=r;pushRefresh()}).catch(e=>{console.warn('[hub] sw',e);APP.state='unsupported'});navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='go')goLink(e.data.link)})}else APP.state='unsupported';
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();APP.prompt=e;if(me())softRender()});
+addEventListener('appinstalled',()=>{APP.prompt=null;toast('SCENEDROME Hub is on your home screen 📱','ok');if(me())softRender()});
+async function pushRefresh(){if(!APP.reg||!pushSupported()){APP.state='unsupported';return}try{APP.sub=await APP.reg.pushManager.getSubscription()}catch(e){APP.sub=null}APP.state=Notification.permission==='denied'?'denied':APP.sub?'on':'off';if(APP.sub&&LIVE&&meId&&booted)pushSave(APP.sub).catch(()=>{});if(me())softRender()}
+async function subKey(ep){const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(ep));return[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,40)}
+async function pushSave(sub){const j=sub.toJSON();const{error}=await sb.from('push_subs').upsert({id:await subKey(j.endpoint),user_id:meId,data:{endpoint:j.endpoint,keys:j.keys,ua:navigator.userAgent.slice(0,160)}});if(error)throw error}
+async function pushDrop(){if(!APP.sub||!LIVE)return;try{await sb.from('push_subs').delete().eq('id',await subKey(APP.sub.endpoint))}catch(e){}}
+function badgeSync(){try{if(!navigator.setAppBadge||!me())return;const n=unread();(n?navigator.setAppBadge(n):navigator.clearAppBadge()).catch(()=>{})}catch(e){}}
+function appBooted(){pushRefresh();badgeSync();const q=new URLSearchParams(location.search);const g=q.get('go');if(g){try{goLink(JSON.parse(g))}catch(e){}}if(g||q.get('source'))history.replaceState(null,'',location.pathname)}
+function appHelpHTML(){return`<div class="col" style="gap:14px"><div class="card"><h3>iPhone / iPad (Safari)</h3><ol style="margin:0;padding-left:18px;line-height:1.9"><li>Open <b>${esc(location.host)}</b> in <b>Safari</b></li><li>Tap <b>Share</b> (square with an arrow) → <b>Add to Home Screen</b> → <b>Add</b></li><li>Open the Hub from the new icon on your home screen and sign in</li><li>Go to <b>My profile</b> → <b>Turn on notifications</b> → <b>Allow</b></li></ol><div class="tiny faint" style="margin-top:8px">Needs iOS 16.4 or newer. iPhones only send web app notifications to the installed app, not to a Safari tab. If you blocked them: Settings → Notifications → SCENEDROME → Allow.</div></div>
+<div class="card"><h3>Android (Chrome)</h3><ol style="margin:0;padding-left:18px;line-height:1.9"><li>Open <b>${esc(location.host)}</b> in <b>Chrome</b></li><li>Tap <b>Install app</b> on your profile — or Chrome’s <b>⋮</b> menu → <b>Install app</b> / <b>Add to Home screen</b></li><li>Open the Hub from its icon and sign in</li><li><b>My profile</b> → <b>Turn on notifications</b> → <b>Allow</b></li></ol><div class="tiny faint" style="margin-top:8px">If you blocked them: long-press the app icon → App info → Notifications → Allow.</div></div>
+<div class="card"><h3>Computer</h3><div class="tiny">Chrome or Edge: the install icon in the address bar. Notifications can be turned on straight from <b>My profile</b>.</div></div></div>`}
+function appCard(){const inst=isStandalone();const st=APP.state;const iosTab=isIOS&&!inst;
+return`<div class="card" style="margin-bottom:14px"><div class="row"><img src="assets/app/icon-192.png" alt="" style="width:46px;height:46px;border-radius:12px;flex:none"><div class="grow"><h3 style="margin:0">Phone app & notifications</h3><div class="tiny faint">${inst?'You’re in the installed app.':'Put the Hub on your home screen — it opens full screen, like an app.'} Notifications reach this device even when the Hub is closed.</div></div></div>
+<div class="row wrap" style="margin-top:12px;gap:8px">${inst?'':APP.prompt?`<a class="btn pri sm" data-act="appInstall">${ic('plus',14)}Install app</a>`:`<a class="btn sm" data-act="appHelp">How to install</a>`}
+${st==='on'?`<span class="chip ok">🔔 Notifications on for this device</span><a class="btn sm ghost" data-act="pushTest">Send a test</a><a class="btn sm ghost" data-act="pushOff">Turn off</a>`:st==='denied'?`<span class="chip bad">Notifications are blocked on this device</span><a class="btn sm ghost" data-act="appHelp">How to allow them</a>`:st==='unsupported'&&!iosTab?`<span class="chip">This browser can’t receive notifications</span>`:`<a class="btn sm ${iosTab?'':'pri'}" data-act="pushOn">🔔 Turn on notifications</a>`}</div>
+${iosTab?'<div class="tiny faint" style="margin-top:8px">On iPhone, notifications work from the installed app: Share → Add to Home Screen, open the Hub from the icon, then turn them on here.</div>':''}</div>`}
+function appBanner(){const small=matchMedia('(max-width:860px)').matches;let dis=false;try{dis=localStorage.getItem('sd-app-tip')==='1'}catch(e){}if(dis||!small||!LIVE)return'';const inst=isStandalone();if(inst&&APP.state!=='off')return'';
+return`<div class="card row" style="margin-bottom:14px;gap:12px;border-color:var(--gold)"><img src="assets/app/icon-192.png" alt="" style="width:40px;height:40px;border-radius:10px;flex:none"><div class="grow"><b style="font-weight:600">${inst?'Turn on notifications':'Get the Hub app'}</b><div class="tiny faint">${inst?'Know the moment something needs you.':'Home-screen app with notifications — free, no store needed.'}</div></div>${inst?`<a class="btn pri sm" data-act="pushOn">Turn on</a>`:APP.prompt?`<a class="btn pri sm" data-act="appInstall">Install</a>`:`<a class="btn pri sm" data-act="appHelp">How</a>`}<a class="faint" data-act="appTipOff" style="cursor:pointer">${ic('x',15)}</a></div>`}
+const _vProfile=VIEWS.profile;VIEWS.profile=()=>{const v=me();const u=U(V.p)||v;return(u&&v&&u.id===v.id?appCard():'')+_vProfile()};
+const _vHome=VIEWS.home;VIEWS.home=()=>appBanner()+_vHome();
+const _render=render;render=function(){_render();badgeSync()};
+const _logout=ACT.logout;
+Object.assign(ACT,{
+appInstall:async()=>{if(!APP.prompt){ACT.appHelp();return}APP.prompt.prompt();try{await APP.prompt.userChoice}catch(e){}APP.prompt=null;render()},
+appHelp:()=>modal('Install the Hub on your phone',appHelpHTML()),
+appTipOff:()=>{try{localStorage.setItem('sd-app-tip','1')}catch(e){}render()},
+pushOn:async()=>{if(!LIVE){toast('Notifications work on the live Hub','bad');return}if(isIOS&&!isStandalone()){ACT.appHelp();return}if(!pushSupported()||!APP.reg){toast('This browser can’t receive notifications','bad');return}
+ try{const perm=await Notification.requestPermission();if(perm!=='granted'){APP.state=perm==='denied'?'denied':'off';render();toast(perm==='denied'?'Notifications are blocked — see “How to allow them”':'Notifications not turned on','bad');return}
+  const r=await fetch(CFG.url+'/functions/v1/hub-push?key=1',{headers:{apikey:CFG.anon}});const k=await r.json();if(!k.publicKey)throw new Error(k.error||'push service not set up yet');
+  APP.sub=await APP.reg.pushManager.getSubscription()||await APP.reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:ub64(k.publicKey)});
+  await pushSave(APP.sub);APP.state='on';render();toast('Notifications are on for this device 🔔','ok')}catch(e){console.warn('[hub] push',e);toast('Couldn’t turn on notifications: '+(e.message||e),'bad')}},
+pushOff:async()=>{await pushDrop();try{if(APP.sub)await APP.sub.unsubscribe()}catch(e){}APP.sub=null;APP.state='off';render();toast('Notifications off for this device')},
+pushTest:()=>{S.notifs.unshift({id:uid('n'),to:meId,text:'Test from the Hub — notifications work on this device ✓',link:{v:'profile'},ts:Date.now(),read:false});save();render();toast('Test sent — it should pop up in a few seconds','ok')},
+logout:async(...a)=>{await pushDrop();return _logout(...a)}});
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
