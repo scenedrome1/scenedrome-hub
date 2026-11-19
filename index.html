@@ -1786,6 +1786,20 @@ const _vTeam=VIEWS.team;VIEWS.team=()=>{let h=_vTeam();S.users.filter(isMock).fo
 const _vProfile3=VIEWS.profile;VIEWS.profile=()=>{let h=_vProfile3();const u=U(V.p)||me();if(isMock(u))h=h.replace(`<h1>${esc(u.name)}</h1>`,`<h1>${esc(u.name)}</h1><div class="tiny" style="color:var(--warn)">Mock-up profile — no login yet</div>`);return h.replace(/Invalid Date/g,'—')};
 const _fUserEdit2=FORM.userEdit;FORM.userEdit=(fd,id)=>{const x=U(id);const em=String(fd.get('email')||'').trim().toLowerCase();if(x&&isMock(x)&&em&&!em.startsWith('mockup.')){const done=()=>{if(x.email&&!String(x.email).startsWith('mockup.')){x.mock=false;histLog(x,'Activated with a real email');save();render();toast(`${first(x)} is a real account now — set their password with the lock button`,'ok')}};setTimeout(done,1500)}return _fUserEdit2(fd,id)};
 
+/* ================= project details: edit name, type, format, client, producer, brief ================= */
+const canEditProj=p=>!!p&&isStaff()&&canManage(p);
+ACT.projEdit=pid=>{const p=P(pid);if(!canEditProj(p))return;const prods=S.users.filter(u=>u.role!=='client'&&u.role!=='partner'&&!u.removed);
+ modal('Project details · '+esc(p.name),`<form data-form="projEdit" data-arg="${p.id}" class="formgrid"><label class="full">Name<input name="name" required value="${esc(p.name)}"></label><label>Type<select name="type">${Object.entries(TYPES).map(([k,T])=>`<option value="${k}" ${p.type===k?'selected':''}>${esc(T.label)}</option>`).join('')}</select></label><label>Format line<input name="format" value="${esc(p.format||'')}" placeholder="e.g. 30 episodes × 42 min"></label><label>Client<select name="client"><option value="">— internal / no client yet —</option>${S.users.filter(u=>u.role==='client').map(c=>`<option value="${c.id}" ${p.client===c.id?'selected':''}>${esc(c.company||c.name)}</option>`).join('')}</select></label><label>Producer<select name="producer">${prods.map(c=>`<option value="${c.id}" ${c.id===p.producer?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><label class="full">Brief<textarea name="brief" rows="3">${esc(p.brief||'')}</textarea></label><div class="full tiny faint">Dates, status, airing, tax and delivery guidelines are in <b>Project specs</b> on the Overview tab.</div><div class="full row"><button class="btn pri right" type="submit">Save</button></div></form>`)};
+FORM.projEdit=(fd,pid)=>{const p=P(pid);if(!canEditProj(p))return;const g=k=>String(fd.get(k)||'').trim();const old={type:p.type,producer:p.producer,client:p.client};
+ p.name=g('name')||p.name;p.format=g('format');p.brief=g('brief');p.client=g('client')||'';
+ const t=g('type');if(TYPES[t]&&t!==p.type){p.type=t;const T=TYPES[t];p.stage=Math.min(p.stage||0,T.stages.length-1);if(T.episodic&&!p.episodes)p.episodes=[];}
+ const pr=g('producer');if(pr&&U(pr))p.producer=pr;
+ if(p.producer!==old.producer)notify([p.producer],`You're now the producer on ${p.name}`,{v:'project',p:p.id});
+ if(p.client&&p.client!==old.client)notify([p.client],`New project: ${p.name}`,{v:'project',p:p.id});
+ save();closeModal();render();toast('Project updated','ok')};
+const _vProject12=VIEWS.project;VIEWS.project=()=>{let h=_vProject12();const p=P(V.p);if(!canEditProj(p))return h;
+ return h.replace('</h1>',` <a class="btn sm" style="vertical-align:middle;margin-inline-start:6px" data-act="projEdit" data-arg="${p.id}" title="Edit name, type, client, producer, brief">${ic('edit',14)}Edit details</a></h1>`)};
+
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
 document.addEventListener('change',e=>{const el=e.target.closest('[data-change]');if(!el)return;const f=CHG[el.dataset.change];if(f)f(el.dataset.arg,el,e)});
