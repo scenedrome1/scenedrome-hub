@@ -293,6 +293,7 @@ html,body{overflow-x:hidden;max-width:100%}body{touch-action:manipulation;-webki
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}.seg a{padding:7px 12px;font-size:12.5px;cursor:pointer;color:var(--muted)}.seg a.on{background:var(--gold2,#d6a03d);color:#111;font-weight:600}.scsearch{position:relative;flex:1;min-width:220px}.scsearch input{width:100%}#scResults .scres{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px);background:var(--panel,#0a241d);border:1px solid var(--line);border-radius:10px;max-height:60vh;overflow:auto;box-shadow:0 12px 30px rgba(0,0,0,.35)}.scres .scr{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-top:1px solid var(--line);cursor:pointer}.scres .scr:hover{background:var(--hover,rgba(255,255,255,.04))}.scres mark{background:#d6a03d;color:#111;border-radius:3px;padding:0 2px}.scres.empty{padding:10px}.bkboth{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}@media (max-width:1180px){.bkboth{grid-template-columns:minmax(0,1fr)}}.exportbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:22px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}tr.flash{animation:flash 1.6s}@keyframes flash{0%,60%{background:rgba(214,160,61,.25)}100%{background:transparent}}
 .ep-row.dyrow{display:flex!important;gap:12px;align-items:center;flex-wrap:wrap}.ep-row.dyrow>.bar{flex:1;min-width:80px}
 .daysel{width:70px;padding:4px 6px;font-size:13px;text-align:center}
+.dsub{font-size:10.5px;color:var(--faint);text-align:center;margin-top:2px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -2338,8 +2339,9 @@ const _vp21=VIEWS.project;VIEWS.project=()=>{const h=_vp21();const p=P(V.p);if(!
 /* shooting day as a cell in every scene table */
 ACT.stop=()=>{};
 function dayCell(p,e,s){const ce=canEditFlow(p);const d=pDays(p).find(x=>x.id===s.day);
- if(!ce)return`<td class="tiny num">${d?d.n:'<span class="faint">—</span>'}</td>`;
- return`<td data-act="stop"><input class="daysel" type="number" min="1" inputmode="numeric" placeholder="—" value="${d?d.n:''}" data-change="scDay" data-arg="${e.n}|${s.id}" title="${d?esc(dayLabel(p,d.id)+(d.loc?' · '+d.loc:'')):'Type the shooting day number'}"></td>`}
+ const sub=d&&d.date?`<div class="dsub">${esc(new Date(d.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}))}</div>`:'';
+ if(!ce)return`<td class="tiny num">${d?d.n:'<span class="faint">—</span>'}${sub}</td>`;
+ return`<td data-act="stop"><input class="daysel" type="number" min="1" inputmode="numeric" placeholder="—" value="${d?d.n:''}" data-change="scDay" data-arg="${e.n}|${s.id}" title="${d?esc(dayLabel(p,d.id)+(d.loc?' · '+d.loc:'')):'Type the shooting day number'}">${sub}</td>`}
 CHG.scDay=(a,el)=>{const[n,sid]=a.split('|');const p=bkPrep();if(!p||!canEditFlow(p))return;const e=epFind(p,n);const s=e&&e.scenes.find(x=>x.id===sid);if(!s)return;
  const num=parseInt(String(el.value).trim(),10);if(!num||num<1){delete s.day;bkSave(p,e);return}
  const ds=pDays(p);let d=ds.find(x=>x.n===num);if(!d){d={id:uid('d'),n:num,date:'',loc:s.loc||'',call:'',status:'',note:''};ds.push(d);toast(dayN(d)+' added — set its date and location under Shooting days','ok')}
