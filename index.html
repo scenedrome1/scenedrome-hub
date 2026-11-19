@@ -279,6 +279,11 @@ html,body{overflow-x:hidden;max-width:100%}body{touch-action:manipulation;-webki
 .pvbar{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:12px;justify-content:center;padding:8px 14px;background:linear-gradient(90deg,#3a2c10,#5a4520);color:#fff;font-size:13px;border-bottom:1px solid var(--gold)}
 .stars{display:inline-flex;flex-direction:row-reverse;gap:2px}.stars input{display:none}.stars label{font-size:24px;color:#2c4a42;cursor:pointer;letter-spacing:0!important;text-transform:none!important;margin:0}.stars input:checked~label,.stars label:hover,.stars label:hover~label{color:var(--gold2)}
 .starsel a{font-size:18px;color:#2c4a42;cursor:pointer;padding:0 1px}.starsel a.on{color:var(--gold2)}
+.bbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:80;display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(6,22,18,.96);border:1px solid var(--gold);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.55);max-width:calc(100vw - 24px);overflow-x:auto;animation:vIn .25s}
+.bbt{display:flex;flex-direction:column;min-width:120px}.bbf{display:flex!important;flex-direction:column;gap:3px;font-size:10px!important;letter-spacing:.12em!important;min-width:0}.bbf span{color:var(--faint)}.bbf input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;cursor:pointer}.bbf select{width:130px;padding:5px 8px;font-size:12.5px}
+.bbt,.bbf{flex:none}
+@media(max-width:860px){.bbar{bottom:calc(78px + env(safe-area-inset-bottom));left:8px;right:8px;transform:none;flex-wrap:wrap;justify-content:center;gap:10px;padding:10px;max-height:46vh;overflow:auto}.bbt{width:100%;flex-direction:row;gap:8px;align-items:center;justify-content:center}}
+@media (max-width:420px){.top .iconbtn{width:34px;height:34px}.top .row{gap:5px}.top .viewas{display:none}}
 </style>
 </head>
 <body>
@@ -642,7 +647,7 @@ return`<div class="shell"><aside class="side"><div class="brand"><img src="${esc
 ${LIVE?'':'<div class="draftnote">Draft · demo data lives in this browser only.</div>'}<div class="side-foot" data-act="go" data-arg="profile">${av(u,34)}<div class="grow"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500">${esc(u.name)}</b><span class="tiny faint">${esc(u.company||u.title)}</span></div></div></aside>
 <main><header class="top"><div><div class="eyebrow">${esc(u.company||B().studio)}</div><h2>${esc(titles[V.v]||'')}</h2></div>
 <div class="row">${LIVE?'':`<label class="viewas"><span class="lbl eyebrow">Draft · view as</span><select data-change="switchUser">${S.users.filter(x=>!x.suspended).map(x=>`<option value="${x.id}" ${x.id===u.id?'selected':''}>${esc(x.name)} — ${esc(x.company||x.title)}</option>`).join('')}</select></label>`}
-<a class="iconbtn ur ${UNDO.length?'':'off'}" data-act="undo" title="Undo (Ctrl/⌘ Z)">${ic('undo')}</a><a class="iconbtn ur ${REDO.length?'':'off'}" data-act="redo" title="Redo (Ctrl/⌘ ⇧ Z)">${ic('redo')}</a><div class="bellwrap"><a class="iconbtn" data-act="bell" title="Notifications">${ic('bell')}${un?`<span class="badge">${un}</span>`:''}</a><div class="bellpanel" id="bellpanel"><div class="row" style="padding:12px 14px"><b>Notifications</b><a class="btn sm ghost right" data-act="readAll">Mark all read</a></div>
+${isOwner()?`<a class="iconbtn" data-act="bbOpen" title="Style this page">${ic('star')}</a>`:''}<a class="iconbtn ur ${UNDO.length?'':'off'}" data-act="undo" title="Undo (Ctrl/⌘ Z)">${ic('undo')}</a><a class="iconbtn ur ${REDO.length?'':'off'}" data-act="redo" title="Redo (Ctrl/⌘ ⇧ Z)">${ic('redo')}</a><div class="bellwrap"><a class="iconbtn" data-act="bell" title="Notifications">${ic('bell')}${un?`<span class="badge">${un}</span>`:''}</a><div class="bellpanel" id="bellpanel"><div class="row" style="padding:12px 14px"><b>Notifications</b><a class="btn sm ghost right" data-act="readAll">Mark all read</a></div>
 ${my.length?my.map(n=>`<div class="n ${n.read?'':'unread'}" data-act="notif" data-arg="${n.id}"><span style="color:${n.read?'#24524a':'var(--gold2)'}">●</span><div class="grow"><div>${esc(n.text)}</div><div class="tiny faint">${ago(n.ts)}</div></div></div>`).join(''):'<div class="empty">You’re all caught up ✨</div>'}</div></div>
 <a class="iconbtn logout" data-act="logout" title="Log out">${ic('out')}<span class="lbl">Log out</span></a></div></header><section class="content">${body}</section></main></div>`}
 
@@ -1710,6 +1715,27 @@ const _vClients=VIEWS.clients;VIEWS.clients=()=>{let h=_vClients();S.users.filte
  const svc=B().services||[];return`<div class="row" style="margin-bottom:12px"><div class="muted grow">Open a client for their relationship page — evaluation, notes, offers, what’s next and their voice.</div>${isOwner()?`<a class="btn sm" data-act="svcNew">✨ Show a new service</a>`:''}</div>${svc.length&&isOwner()?`<div class="row wrap" style="gap:6px;margin-bottom:12px">${svc.map(x=>`<span class="chip gold">${esc(x.title)} <a data-act="svcDel" data-arg="${x.id}" style="cursor:pointer">✕</a></span>`).join('')}</div>`:''}`+h.replace(/<div class="card"><div class="row">(<span class="av|<div class="av|<img)/g,'<div class="card"><div class="row">$1')};
 /* clients editable by management; titles for page */
 const _canEditUser=canEditUser;canEditUser=function(x){if(x&&x.role==='client'&&canClients())return true;return _canEditUser(x)};
+
+/* ================= branding bar: the owner styles each page ================= */
+let BBAR=false,BLAST='';const _applyBrand0=applyBrand;applyBrand=function(b){if(!b)BLAST='';return _applyBrand0(b)};
+const pageKey=()=>V.v||'home';
+const PAGE_NAMES={home:'Dashboard',projects:'Projects',project:'Project pages',messages:'Messages',dm:'Direct messages',finance:'Finance',team:'Team',clients:'Clients',client:'Client pages',partners:'Partner studios',storage:'Storage & devices',marketing:'Marketing',handbook:'Studio handbook',admin:'Users & access',access:'Access',branding:'Branding',profile:'Profiles',history:'History',rewards:'Offers & rewards'};
+function brandFor(k){return Object.assign({},BRAND,(BRAND.pages||{})[k]||{})}
+function applyPageBrand(){const e=brandFor(pageKey());const sig=JSON.stringify([e.gold,e.gold2,e.bgColor,e.panel,e.text,e.bg,e.display,e.body]);if(sig!==BLAST){BLAST=sig;applyBrand(e)}}
+const _render5=render;render=function(){if(me())applyPageBrand();_render5();if(BBAR&&isOwner()&&me()&&!PREVIEW)document.getElementById('app').insertAdjacentHTML('beforeend',bbarHTML())};
+function bbarHTML(){const k=pageKey();const e=brandFor(k);const own=!!(BRAND.pages||{})[k];const f=(key,l)=>`<label class="bbf"><span>${l}</span><input type="color" value="${esc(e[key])}" data-change="bbSet" data-arg="${key}"></label>`;
+ return`<div class="bbar"><div class="bbt"><b>🎨 ${esc(PAGE_NAMES[k]||k)}</b><span class="tiny faint">${own?'Own look':'Using the studio look'}</span></div>${f('gold','Accent')}${f('gold2','Highlight')}${f('bgColor','Background')}${f('panel','Panels')}${f('text','Text')}
+ <label class="bbf"><span>Backdrop</span><select data-change="bbBg"><option value="keep">${e.bg?'Image':'None'}</option><option value="studio">Studio image</option><option value="none">No image</option><option value="up">Upload…</option></select></label><input type="file" id="bbUp" hidden accept="image/*" data-change="bbUpload">
+ <div class="row" style="gap:6px;flex-wrap:nowrap">${own?`<a class="btn sm ghost" data-act="bbReset">Reset page</a>`:''}<a class="btn sm" data-act="bbAll" title="Use this look on every page">Apply to all</a><a class="btn sm pri" data-act="bbClose">Done</a></div></div>`}
+function bbPatch(obj){const k=pageKey();BRAND.pages=Object.assign({},BRAND.pages);BRAND.pages[k]=Object.assign({},BRAND.pages[k],obj);save();render()}
+Object.assign(ACT,{bbOpen:()=>{if(!isOwner())return;BBAR=!BBAR;render()},bbClose:()=>{BBAR=false;render();toast('Look saved','ok')},
+ bbReset:()=>{const k=pageKey();BRAND.pages=Object.assign({},BRAND.pages);delete BRAND.pages[k];save();render();toast('Back to the studio look')},
+ bbAll:()=>{const e=brandFor(pageKey());['gold','gold2','bgColor','panel','text','bg'].forEach(x=>BRAND[x]=e[x]);BRAND.pages={};save();render();toast('Every page now uses this look','ok')}});
+Object.assign(CHG,{bbSet:(key,el)=>{if(!isOwner())return;bbPatch({[key]:el.value})},
+ bbBg:(a,el)=>{if(el.value==='up'){document.getElementById('bbUp').click();return}if(el.value==='studio')bbPatch({bg:BRAND.bg||BRAND0.bg});else if(el.value==='none')bbPatch({bg:''})},
+ bbUpload:(a,el)=>{const f=el.files&&el.files[0];if(!f)return;const img=new Image();const rd=new FileReader();rd.onload=()=>{img.onload=()=>{const sc=Math.min(1,1800/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);c.getContext('2d').drawImage(img,0,0,c.width,c.height);bbPatch({bg:c.toDataURL('image/jpeg',.78)});toast('Backdrop set for this page','ok')};img.src=rd.result};rd.readAsDataURL(f)}});
+/* live preview while dragging the colour picker */
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.matches&&t.matches('.bbar input[type=color]')){const k=pageKey();const tmp=Object.assign(brandFor(k),{[t.dataset.arg]:t.value});applyBrand(tmp);BLAST=''}});
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
