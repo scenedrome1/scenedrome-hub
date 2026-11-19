@@ -2097,6 +2097,34 @@ const privChip=' <span class="chip privchip" title="Only owners and the people o
 const _pc16=projCard;projCard=function(p,o){const h=_pc16(p,o);return p.private?h.replace(/(<h3[^>]*>)/,'$1'+privChip.trim()+' '):h};
 const _vp16=VIEWS.project;VIEWS.project=()=>{const h=_vp16();const p=P(V.p);return p&&p.private?h.replace('</h1>',privChip+'</h1>'):h};
 
+/* ================= Hub → SCENEDROME Cashflow: one sync code carries every money input to the private books ================= */
+const CF_URL='https://claude.ai/artifact/1pMUiWMTbFAJc3y1tKDZAQ';
+cfOpen=function(){if(!isOwner()&&!can('fin.cashflow')){toast('The owner hasn’t opened the Cashflow for you','bad');return}window.open(CF_URL,'_blank','noopener')};
+/* approving project money = it goes to the Cashflow with the next update */
+applyEntries=function(ids){const list=S.entries.filter(e=>ids.includes(e.id)&&e.status==='submitted');if(!list.length)return;list.forEach(e=>{e.status='recorded';notify([e.by],`Approved: ${e.item||e.line} (${moneyRaw(eEGP(e))}) — it goes into the Cashflow`,{v:'project',p:e.project,tab:'money'})});save();render();toast(`${list.length} approved — they reach the Cashflow with your next “Send to Cashflow”`,'ok')};
+const _rp17=reviewPanel;reviewPanel=function(){return _rp17().replace('Record all in Cashflow','Approve all').replace(/“Record” writes[\s\S]*?new Cashflow project\./,'Approved entries reach the Cashflow with your next “Send to Cashflow”.')};
+const _er17=entryRows;entryRows=function(...a){return _er17(...a).replace(/(data-act="entryRecord"[^>]*>)Record</g,'$1Approve<')};
+/* approved expense requests land in the Office cashflow book */
+const _ed17=ACT.expDone;ACT.expDone=id=>{const x=S.expenses.find(e=>e.id===id);if(x&&isOwner()){const B=BK('office');if(!B.expenses.some(r=>r.hubExp===x.id)){const d=new Date(x.ts||Date.now()).toISOString().slice(0,10);B.expenses.push(Object.assign(BT.expense(),{date:d,category:'Running costs',name:x.note||'Expense request',cost:+x.amount||0,budget:+x.amount||0,note:`Expense request by ${(U(x.by)||{}).name||'staff'}${x.project&&P(x.project)?' · '+P(x.project).name:''} — add the payment when it’s reimbursed`,hubExp:x.id}))}}_ed17(id)};
+function hubSyncPayload(){const nm=id=>(U(id)||{}).name||'';const books={};
+ ['salaries','office','assets','subs'].forEach(b=>{if(S.books&&S.books[b])books[b]=JSON.parse(JSON.stringify(S.books[b]))});
+ if(books.assets)books.assets.rows.forEach(a=>{a.assignedTo=nm(a.assignedTo)});
+ const entries=S.entries.filter(e=>e.status==='recorded'&&!String(e.id).startsWith('cf-')&&!e.demo&&P(e.project)).map(e=>({id:e.id,project:e.project,kind:e.kind,item:e.item||'',line:e.line||'',role:e.role||'',amount:+e.amount||0,cur:e.cur||'EGP',rate:e.rate||null,date:e.date||'',due:e.due||'',note:[e.method,e.ref&&('ref '+e.ref),e.note].filter(Boolean).join(' · '),by:nm(e.by)}));
+ const projects=S.projects.filter(p=>!p.demo).map(p=>({hubId:p.id,name:p.name,client:(U(p.client)||{}).company||'',status:p.status||'active',start:p.start?dIn(p.start):'',due:p.due?dIn(p.due):'',prog:Math.round(projProg(p)||0),moneyDue:!!p.moneyDue,tax:(p.cf&&p.cf.tax)||'',carried:(p.cf&&p.cf.carried)||''}));
+ return{app:'scenedrome-hub-sync',v:1,at:new Date().toISOString(),from:me().name,books,projects,entries}}
+ACT.cfSend=async()=>{if(!isOwner())return;const p=hubSyncPayload();const txt=JSON.stringify(p);let copied=false;try{await navigator.clipboard.writeText(txt);copied=true}catch(e){}
+ window.__cfSync=txt;try{localStorage.setItem('sd-cf-sent',String(Date.now()))}catch(e){}
+ const n=(k,b)=>(p.books[b]||{})[k]?p.books[b][k].length:0;
+ modal('Send to Cashflow',`<p class="muted" style="margin-top:0">${copied?'The sync code is copied.':'Copy the sync code below.'} It carries the Hub’s money inputs to your private Cashflow — nothing is sent anywhere else.</p>
+ <dl class="kv"><dt>Manpower</dt><dd>${n('rows','salaries')} people</dd><dt>Office</dt><dd>${n('rent','office')} rent · ${n('items','office')} monthly · ${n('expenses','office')} expenses</dd><dt>Assets</dt><dd>${n('rows','assets')}</dd><dt>Subscriptions</dt><dd>${n('rows','subs')}</dd><dt>Projects</dt><dd>${p.projects.length}</dd><dt>Approved project money</dt><dd>${p.entries.length} new from the Hub</dd></dl>
+ <ol class="tiny" style="margin:14px 0 0 18px;line-height:1.8"><li>Open the Cashflow and unlock it</li><li>Press <b>⇅ Update from Hub</b> at the top</li><li>Paste, check the summary, then <b>Apply</b></li></ol>
+ <div class="row wrap" style="margin-top:16px;gap:8px"><a class="btn" data-act="cfCopy">${ic('clip',14)}Copy again</a><a class="btn" data-act="cfFile">${ic('doc',14)}Save as file</a><a class="btn pri right" href="${CF_URL}" target="_blank" rel="noopener">${ic('wallet',14)}Open Cashflow</a></div>
+ <div class="tiny faint" style="margin-top:10px">The code holds your figures in plain form — after pasting, copy something else to clear your clipboard.</div>`)};
+ACT.cfCopy=async()=>{try{await navigator.clipboard.writeText(window.__cfSync||JSON.stringify(hubSyncPayload()));toast('Copied','ok')}catch(e){toast('Copy didn’t work — use Save as file','bad')}};
+ACT.cfFile=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([window.__cfSync||JSON.stringify(hubSyncPayload())],{type:'application/json'}));a.download='hub-to-cashflow-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)};
+const _vf17=VIEWS.finance;VIEWS.finance=()=>{let h=_vf17();if(!isOwner())return h;let last=0;try{last=+localStorage.getItem('sd-cf-sent')||0}catch(e){}
+ return h.replace(/<div class="row wrap" style="gap:12px"><div class="grow tiny muted">The exact Cashflow app inside the Hub\. Only what you publish leaves it\.<\/div><a class="btn pri" data-act="cfOpen">([\s\S]*?)<\/a><\/div>/,`<div class="row wrap" style="gap:10px"><div class="grow tiny muted">Your private books. Every money input made in the Hub — manpower, office, assets, subscriptions, approved project money, project dates and statuses — goes there with <b>Send to Cashflow</b>.${last?' Last sent '+ago(last)+'.':''}</div><a class="btn" data-act="cfOpen">$1</a><a class="btn pri" data-act="cfSend">⇅ Send to Cashflow</a></div>`)};
+
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
 document.addEventListener('change',e=>{const el=e.target.closest('[data-change]');if(!el)return;const f=CHG[el.dataset.change];if(f)f(el.dataset.arg,el,e)});
