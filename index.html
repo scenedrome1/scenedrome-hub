@@ -2318,7 +2318,7 @@ function dayReport(p){const q=NP(p);const days=pDays(q).slice().sort((a,b)=>a.n-
  const rows=[];days.forEach(d=>{const c=dayCalc(q,d);c.sc.forEach(({e,s},i)=>rows.push({day:dayN(d),date:d.date||'',loc:d.loc||'',dst:(DAY_ST.find(z=>z[0]===c.st)||DAY_ST[0])[1],ep:epL(e.n),sc:String(s.n),desc:[s.chars,s.note].filter(Boolean).join(' — '),sloc:s.loc||'',dur:+s.dur||0,shoot:SHOOTL[s.shoot||''][1],ed:edSt(s)}));rows.push({total:true,day:dayN(d)+' total',n:c.sc.length,dur:c.dur,shot:c.shot})});
  const un=unsched(q);if(un.length){un.forEach(({e,s})=>rows.push({day:'Not scheduled',date:'',loc:'',dst:'',ep:epL(e.n),sc:String(s.n),desc:[s.chars,s.note].filter(Boolean).join(' — '),sloc:s.loc||'',dur:+s.dur||0,shoot:SHOOTL[s.shoot||''][1],ed:edSt(s)}));rows.push({total:true,day:'Not scheduled total',n:un.length,dur:un.reduce((a,x)=>a+(+x.s.dur||0),0),shot:un.filter(x=>x.s.shoot==='shot').length})}
  const eps=allEps(q).map(e=>{const ds=[...new Set(e.scenes.filter(s=>s.day).map(s=>{const d=days.find(x=>x.id===s.day);return d?d.n:null}).filter(Boolean))].sort((a,b)=>a-b);return{ep:epL(e.n),scenes:e.scenes.length,dur:epRun(e),target:+e.target||0,shot:e.scenes.filter(s=>s.shoot==='shot').length,days:ds.map(n=>'D'+pad2(n)).join(' '),st:(e.statuses||[]).map(k=>EPST[k]?EPST[k][1]:k).join(', ')}});
- eps.forEach(x=>{if(x.ep==='EPS X'){x.st='Undecided';x.target=0}});const real=eps.filter(x=>x.ep!=='EPS X');return{title:q.name,dir,house:q.prodHouse||'',at:new Date(),rows,eps,totDur:real.reduce((a,x)=>a+x.dur,0),totScenes:real.reduce((a,x)=>a+x.scenes,0),days:days.length}}
+ eps.forEach(x=>{if(x.ep==='EPS X'){x.st='Undecided';x.target=0}if(x.ep==='EPS Totalat'){x.st='Location full shots';x.target=0}});const real=eps.filter(x=>x.ep!=='EPS X'&&x.ep!=='EPS Totalat');return{title:q.name,dir,house:q.prodHouse||'',at:new Date(),rows,eps,totDur:real.reduce((a,x)=>a+x.dur,0),totScenes:real.reduce((a,x)=>a+x.scenes,0),days:days.length}}
 ACT.exportDays=pid=>{const p=P(pid);if(!p)return;const r=dayReport(p);const at=r.at.toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'});
  const A=[[r.title],['Director',r.dir||'—'],['Production house',r.house||'—'],['Exported',at],[]];const style={0:1,5:2};
  A.push(['Day','Date','Locations','Day status','Episode','Scene','Characters / description','Scene location','Time','Versions','Duration','Sync','Edit status']);
@@ -2412,23 +2412,30 @@ const _dr23=dayReport;dayReport=function(p){const r=_dr23(p);const q=NP(p);const
 
 /* ================= sync per day · EPS X for undecided scenes · search dropdown ================= */
 const XN=999;
-const epL=n=>+n===XN?'EPS X':'EP'+pad2(n);
-function ensureX(p){if(!p.epX){p.epX={n:XN,x:true,target:0,scenes:[],statuses:['blank'],checks:{},sound:{assignee:'',brief:'',items:[]},v2:1}}const e=p.epX;e.scenes=e.scenes||[];e.checks=e.checks||{};e.statuses=e.statuses||['blank'];e.sound=e.sound||{assignee:'',brief:'',items:[]};e.target=0;try{normEp(p,e)}catch(_){}return e}
-const allEps=p=>[...(p.episodes||[]),...(p.epX?[p.epX]:[])];
-const _epFind24=epFind;epFind=function(p,n){return +n===XN?ensureX(p):_epFind24(p,n)};
+const TN=998;const SPECIAL={[XN]:{key:'epX',l:'EPS X',d:'Undecided scenes — move them to an episode from the Episode cell'},[TN]:{key:'epT',l:'EPS Totalat',d:'Full shots of every location, prepared for the edit'}};
+const epL=n=>SPECIAL[+n]?SPECIAL[+n].l:'EP'+pad2(n);
+function ensureSp(p,n){const K=SPECIAL[n].key;if(!p[K]){p[K]={n,x:true,target:0,scenes:[],statuses:['blank'],checks:{},sound:{assignee:'',brief:'',items:[]},v2:1}}const e=p[K];e.scenes=e.scenes||[];e.checks=e.checks||{};e.statuses=e.statuses||['blank'];e.sound=e.sound||{assignee:'',brief:'',items:[]};e.target=0;try{normEp(p,e)}catch(_){}return e}
+const ensureX=p=>ensureSp(p,XN);
+const allEps=p=>[...(p.episodes||[]),...(p.epX?[p.epX]:[]),...(p.epT?[p.epT]:[])];
+const _epFind24=epFind;epFind=function(p,n){return SPECIAL[+n]?ensureSp(p,+n):_epFind24(p,n)};
 bkRef=function(p,path){const segs=path.split('.');const f=segs.pop();let o=null,e=null,s=null,kind='';
  for(const g of segs){if(g==='snd'){o=e&&e.sound;kind='snd'}else{const k=g[0],id=g.slice(1);kind=k;
-  if(k==='e'){e=+id===XN?ensureX(p):p.episodes.find(x=>x.n===+id);o=e}else if(k==='s'){s=e&&e.scenes.find(x=>x.id===id);o=s}else if(k==='v')o=s&&s.versions.find(x=>x.id===id);else if(k==='h')o=s&&s.shots.find(x=>x.id===id);else if(k==='i')o=e&&e.sound&&e.sound.items.find(x=>x.id===id)}
+  if(k==='e'){e=SPECIAL[+id]?ensureSp(p,+id):p.episodes.find(x=>x.n===+id);o=e}else if(k==='s'){s=e&&e.scenes.find(x=>x.id===id);o=s}else if(k==='v')o=s&&s.versions.find(x=>x.id===id);else if(k==='h')o=s&&s.shots.find(x=>x.id===id);else if(k==='i')o=e&&e.sound&&e.sound.items.find(x=>x.id===id)}
   if(!o)return null}
  return{o,f,e,s,kind}};
-const _bks24=bkSave;bkSave=function(p,e){if(e&&e.n===XN){e.scenes.forEach(scCalc);save();setTimeout(render,0);return}return _bks24(p,e)};
-const epOpts=(p,sel)=>allEps(p).map(x=>`<option value="${x.n}" ${+sel===x.n?'selected':''}>${epL(x.n)}</option>`).join('')+(p.epX?'':`<option value="${XN}" ${+sel===XN?'selected':''}>EPS X — undecided</option>`);
+const _bks24=bkSave;bkSave=function(p,e){if(e&&SPECIAL[e.n]){e.scenes.forEach(scCalc);save();setTimeout(render,0);return}return _bks24(p,e)};
+const epOpts=(p,sel)=>allEps(p).map(x=>`<option value="${x.n}" ${+sel===x.n?'selected':''}>${epL(x.n)}</option>`).join('')+[XN,TN].filter(n=>!p[SPECIAL[n].key]).map(n=>`<option value="${n}" ${+sel===n?'selected':''}>${SPECIAL[n].l}</option>`).join('');
 /* episodes mirror: EPS X after the last episode */
 const _bs24=breakdownSeries;breakdownSeries=function(p0){let h=_bs24(p0);const p=NP(p0);if(!hasDays(p))return h;const ce=canEditFlow(p),mg=canManage(p);
- if(!p.epX)return h+(ce?`<div class="ep" style="border-style:dashed"><div class="ep-row dyrow"><b style="font-family:var(--display)">EPS X</b><span class="tiny faint grow">Scenes whose episode isn’t decided yet</span><a class="btn sm" data-act="mkX">${ic('plus',13)}Create EPS X</a></div></div>`:'');
- const X=p.epX;try{normEp(p,X)}catch(_){}const k=p.id+'-'+XN;const open=V.open[k];
- return h+`<div class="ep ${open?'open':''}" style="border-style:dashed"><div class="ep-row dyrow" data-act="toggleEp" data-arg="${XN}"><b style="font-family:var(--display)">EPS X</b><span class="tiny faint grow">Undecided scenes — move them to an episode from the Episode cell in a day</span><span class="tiny">${X.scenes.length} scene${X.scenes.length!==1?'s':''}</span><span class="tiny num">${mmss(epRun(X))}</span><span class="faint">${open?'▾':'▸'}</span></div>${open?`<div class="ep-body">${epSceneSec(p,X,ce,mg).replace(/<label style="width:150px" class="tiny">Target runtime[\s\S]*?<\/label>/,'')}</div>`:''}</div>`};
-ACT.mkX=()=>{const p=bkPrep();if(!p||!canEditFlow(p))return;ensureX(p);V.open[p.id+'-'+XN]=true;save();render();toast('EPS X created — scenes without an episode go here','ok')};
+ [XN,TN].forEach(n=>{const S0=SPECIAL[n];const E=p[S0.key];
+  if(!E){if(ce)h+=`<div class="ep" style="border-style:dashed"><div class="ep-row dyrow"><b style="font-family:var(--display)">${S0.l}</b><span class="tiny faint grow">${S0.d}</span><a class="btn sm" data-act="mkSp" data-arg="${n}">${ic('plus',13)}Create ${S0.l}</a></div></div>`;return}
+  try{normEp(p,E)}catch(_){}const k=p.id+'-'+n;const open=V.open[k];const fill=n===TN&&ce?`<a class="btn sm" data-act="totFill" style="margin:0 0 10px">${ic('plus',13)}Add a full shot for every location</a>`:'';
+  h+=`<div class="ep ${open?'open':''}" style="border-style:dashed"><div class="ep-row dyrow" data-act="toggleEp" data-arg="${n}"><b style="font-family:var(--display)">${S0.l}</b><span class="tiny faint grow">${S0.d}</span><span class="tiny">${E.scenes.length} ${n===TN?'shot':'scene'}${E.scenes.length!==1?'s':''}</span><span class="tiny num">${mmss(epRun(E))}</span><span class="faint">${open?'▾':'▸'}</span></div>${open?`<div class="ep-body">${fill}${epSceneSec(p,E,ce,mg).replace(/<label style="width:150px" class="tiny">Target runtime[\s\S]*?<\/label>/,'')}</div>`:''}</div>`});
+ return h};
+ACT.mkSp=n=>{const p=bkPrep();if(!p||!canEditFlow(p)||!SPECIAL[+n])return;ensureSp(p,+n);V.open[p.id+'-'+n]=true;save();render();toast(SPECIAL[+n].l+' created','ok')};
+ACT.mkX=()=>ACT.mkSp(XN);
+ACT.totFill=()=>{const p=bkPrep();if(!p||!canEditFlow(p))return;const E=ensureSp(p,TN);const have=new Set(E.scenes.map(s=>String(s.loc||'').toLowerCase()));const locs=allLocs(p).filter(l=>!have.has(l.toLowerCase()));if(!locs.length){toast('Every location already has its full shot','ok');return}
+ let k=E.scenes.length;locs.forEach(l=>{k++;E.scenes.push({id:uid('s'),n:'T'+k,chars:'',note:'Location full shots',vfx:'none',versions:[],sel:null,locked:false,shots:[],dur:0,st:0,loc:l,time:'',sync:false})});V.open[p.id+'-'+TN]=true;bkSave(p,E);toast(`${locs.length} location full shot${locs.length>1?'s':''} added to EPS Totalat`,'ok')};
 /* sync is now one switch per day */
 const _dayF24=CHG.dayF;CHG.dayF=(a,el)=>{const[id,f]=a.split('|');if(f==='sync'){const p=bkPrep();const d=p&&pDays(p).find(x=>x.id===id);if(!d||!canEditFlow(p))return;d.sync=el.checked;save();render();return}_dayF24(a,el)};
 const _scRow24=scRow;scRow=function(p,e,s,ctx,d){return _scRow24(p,e,s,ctx,d).replace(/<td data-act="stop" style="text-align:center"><input type="checkbox" class="cs-sync"[^>]*><\/td>/,'')};
@@ -2436,29 +2443,15 @@ const _scHead24=scHead;scHead=ctx=>_scHead24(ctx).replace('<th style="width:46px
 const _db24=dayBlock;dayBlock=function(p,d,ce,mg){let h=_db24(p,d,ce,mg);const c=dayCalc(p,d);
  h=h.replace(/<span class="tiny[^"]*">\d+\/\d+ synced<\/span>/,`<span class="chip ${d.sync?'ok':''}" style="font-size:11px">${d.sync?'✓ Synced':'Not synced'}</span>`);
  h=h.replace(/(<label>Date)/,`<label>Sync${ce?`<span class="jp fbsw" style="padding:8px 10px!important"><input type="checkbox" data-change="dayF" data-arg="${d.id}|sync" ${d.sync?'checked':''} style="width:auto"> <b>Day synced</b></span>`:`<div>${d.sync?'Synced':'Not synced'}</div>`}</label>$1`);
- h=h.replace(/<span class="tiny faint hide-s">((?:EP\d+ ?)*EP999[^<]*)<\/span>/,(m,t)=>`<span class="tiny faint hide-s">${t.replace('EP999','EPS X')}</span>`);
- return h.replace(/<select class="cs-ep"([^>]*)>[\s\S]*?<\/select>/g,(m,attrs)=>{const n=(attrs.match(/data-arg="(\d+)\|/)||[])[1];return`<select class="cs-ep"${attrs}>${epOpts(p,n)}</select>`}).replace(/(<select id="ns-ep-[^"]+"[^>]*>)[\s\S]*?(<\/select>)/,`$1${epOpts(p,V.lastEp||1)}$2`).replace(/<b>EP999<\/b>/g,'<b>EPS X</b>')};
-const _bk24=bothKPIs;bothKPIs=function(p){let h=_bk24(p);const days=pDays(p);const nx=p.epX?p.epX.scenes.length:0;
+ 
+ return h.replace(/<select class="cs-ep"([^>]*)>[\s\S]*?<\/select>/g,(m,attrs)=>{const n=(attrs.match(/data-arg="(\d+)\|/)||[])[1];return`<select class="cs-ep"${attrs}>${epOpts(p,n)}</select>`}).replace(/(<select id="ns-ep-[^"]+"[^>]*>)[\s\S]*?(<\/select>)/,`$1${epOpts(p,V.lastEp||1)}$2`)};
+const _bk24=bothKPIs;bothKPIs=function(p){let h=_bk24(p);const days=pDays(p);const nx=p.epX?p.epX.scenes.length:0;const nt=p.epT?p.epT.scenes.length:0;
  h=h.replace(/<b class="num" style="font-size:20px">\d+\/\d+<\/b><div class="tiny faint">scheduled scenes synced<\/div>/,`<b class="num" style="font-size:20px">${days.filter(d=>d.sync).length}/${days.length}</b><div class="tiny faint">days synced</div>`);
  const un=unsched(p).length;h=h.replace(/(<b class="num" style="font-size:20px">)\d+(<\/b><div class="tiny faint">not scheduled)/,`$1${un}$2`);
- return nx?h.replace('<div class="tiny faint">scenes</div>',`<div class="tiny faint">scenes · ${nx} in EPS X</div>`):h};
+ return(nx||nt)?h.replace('<div class="tiny faint">scenes</div>',`<div class="tiny faint">scenes${nx?' · '+nx+' in EPS X':''}${nt?' · '+nt+' Totalat':''}</div>`):h};
 /* the shared lists see EPS X too */
 dayScenes=function(p,d){const out=[];allEps(p).forEach(e=>(e.scenes||[]).forEach(s=>{if(s.day===d.id)out.push({e,s})}));return out.sort((a,b)=>(a.s.dayOrd||0)-(b.s.dayOrd||0)||a.e.n-b.e.n||String(a.s.n).localeCompare(String(b.s.n),undefined,{numeric:true}))};
 
-/* EPS TOTAL: a creatable totals block after EPS X */
-function epsTotalHTML(p){const days=pDays(p);const dn=id=>{const d=days.find(x=>x.id===id);return d?d.n:null};
- const row=e=>{const sc=e.scenes||[];const sch=sc.filter(s=>s.day&&dn(s.day));const ds=[...new Set(sch.map(s=>dn(s.day)))].sort((a,b)=>a-b);const run=epRun(e),tg=+e.target||0;return{l:epL(e.n),x:e.n===XN,sc:sc.length,sch:sch.length,ds,run,tg,lk:sc.filter(s=>s.locked).length}};
- const rs=allEps(p).map(row);const real=rs.filter(r=>!r.x);const T={sc:real.reduce((a,r)=>a+r.sc,0),sch:real.reduce((a,r)=>a+r.sch,0),run:real.reduce((a,r)=>a+r.run,0),tg:real.reduce((a,r)=>a+r.tg,0),lk:real.reduce((a,r)=>a+r.lk,0)};
- const X=rs.find(r=>r.x);const all={sc:T.sc+(X?X.sc:0),sch:T.sch+(X?X.sch:0),run:T.run+(X?X.run:0)};
- const diff=(a,b)=>b?`<span style="color:${a>b+60?'var(--warn)':a<b-60?'var(--info,#6cc3e0)':'var(--ok)'}">${a>=b?'+':'−'}${mmss(Math.abs(a-b))}</span>`:'<span class="faint">—</span>';
- const tr=r=>`<tr${r.x?' class="faint-row"':''}><td><b>${r.l}</b></td><td class="num">${r.sc}</td><td class="num">${r.sch}/${r.sc}</td><td class="tiny">${r.ds.length?r.ds.map(n=>'D'+pad2(n)).join(' '):'—'}</td><td class="num">${mmss(r.run)}</td><td class="num">${r.x?'—':mmss(r.tg)}</td><td class="num">${r.x?'—':diff(r.run,r.tg)}</td><td class="num">${r.lk}/${r.sc}</td></tr>`;
- const k=p.id+'-tot';const open=V.open[k]!==false;
- return`<div class="ep ${open?'open':''}" style="border-color:var(--gold2)"><div class="ep-row dyrow" data-act="tog" data-arg="${k}|1"><b style="font-family:var(--display)">EPS TOTAL</b><span class="tiny grow">${p.episodes.length} episodes · ${T.sc} scenes · ${mmss(T.run)} of ${mmss(T.tg)}${X&&X.sc?` · +${X.sc} in EPS X`:''}</span><span class="tiny">${days.length} shooting day${days.length!==1?'s':''} · ${days.filter(d=>d.sync).length} synced</span>${canEditFlow(p)?`<a class="faint" data-act="rmTot" title="Remove EPS TOTAL" style="cursor:pointer">${ic('x',14)}</a>`:''}<span class="faint">${open?'▾':'▸'}</span></div>
- ${open?`<div class="ep-body"><div class="tablewrap"><table><thead><tr><th>Episode</th><th>Scenes</th><th>On a day</th><th>Shooting days</th><th>Runtime</th><th>Target</th><th>Difference</th><th>Locked</th></tr></thead><tbody>${rs.map(tr).join('')}<tr class="totrow"><td><b>Total episodes</b></td><td class="num"><b>${T.sc}</b></td><td class="num"><b>${T.sch}/${T.sc}</b></td><td class="tiny">${days.length} days</td><td class="num"><b>${mmss(T.run)}</b></td><td class="num"><b>${mmss(T.tg)}</b></td><td class="num">${diff(T.run,T.tg)}</td><td class="num"><b>${T.lk}/${T.sc}</b></td></tr>${X?`<tr class="totrow"><td><b>With EPS X</b></td><td class="num"><b>${all.sc}</b></td><td class="num"><b>${all.sch}/${all.sc}</b></td><td></td><td class="num"><b>${mmss(all.run)}</b></td><td></td><td></td><td></td></tr>`:''}</tbody></table></div></div>`:''}</div>`}
-const _bs25=breakdownSeries;breakdownSeries=function(p0){const h=_bs25(p0);const p=NP(p0);if(!hasDays(p))return h;
- if(p.epsTotal)return h+epsTotalHTML(p);return h+(canEditFlow(p)?`<div class="ep" style="border-style:dashed"><div class="ep-row dyrow"><b style="font-family:var(--display)">EPS TOTAL</b><span class="tiny faint grow">Totals of every episode — scenes, days, runtime against target</span><a class="btn sm" data-act="mkTot">${ic('plus',13)}Create EPS TOTAL</a></div></div>`:'')};
-ACT.mkTot=()=>{const p=bkPrep();if(!p||!canEditFlow(p))return;p.epsTotal=true;save();render()};
-ACT.rmTot=()=>{const p=bkPrep();if(!p||!canEditFlow(p))return;delete p.epsTotal;save();render()};
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
