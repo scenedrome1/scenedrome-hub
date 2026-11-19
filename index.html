@@ -2471,6 +2471,42 @@ ACT.unEp=n=>{V.unEp=+n;render()};
 ACT.scGo=a=>{const[pid,n,sid]=a.split('|');const p=P(pid);const s=p&&epFind(p,n).scenes.find(x=>x.id===sid);V.open['sn'+sid]=true;V.bkMode=Object.assign({},V.bkMode,{[pid]:'days'});
  if(s&&s.day){V.open['dy'+s.day]=true}else{V.open['un'+pid]=true;V.unEp=+n}render();setTimeout(()=>{const el=document.querySelector(`[data-arg="sn${sid}|0"]`);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});const tr=el.closest('tr');if(tr){tr.classList.add('flash');setTimeout(()=>tr.classList.remove('flash'),1600)}}},80)};
 
+/* ================= calm screen updates · the page lives in the address · back & swipe ================= */
+/* 1) updates are patched into the page instead of rebuilding it — no flashing, focus and scroll stay */
+const MORPH={on:true};
+function mAttrs(o,n){for(const a of [...o.attributes])if(!n.hasAttribute(a.name))o.removeAttribute(a.name);for(const a of n.attributes)if(o.getAttribute(a.name)!==a.value)o.setAttribute(a.name,a.value)}
+function mSame(o,n){return o.nodeType===n.nodeType&&o.nodeName===n.nodeName&&(o.nodeType!==1||((o.id||'')===(n.id||'')&&(o.getAttribute('data-key')||'')===(n.getAttribute('data-key')||'')))}
+function mNode(o,n){if(o.nodeType===3||o.nodeType===8){if(o.nodeValue!==n.nodeValue)o.nodeValue=n.nodeValue;return}
+ const tag=o.nodeName;if(tag==='IFRAME'||tag==='CANVAS'||tag==='VIDEO'){if(o.outerHTML!==n.outerHTML)o.replaceWith(n);return}
+ mAttrs(o,n);const act=o===document.activeElement;
+ if(tag==='INPUT'){if(o.type==='checkbox'||o.type==='radio'){const c=n.hasAttribute('checked');if(o.checked!==c)o.checked=c}else if(o.type!=='file'&&!act){const v=n.getAttribute('value')||'';if(o.value!==v)o.value=v}return}
+ if(tag==='TEXTAREA'){if(!act){const v=n.value;if(o.value!==v)o.value=v}return}
+ mKids(o,n);
+ if(tag==='SELECT'&&!act){const sel=[...n.options].find(x=>x.hasAttribute('selected'));const v=sel?sel.value:(o.options[0]?o.options[0].value:'');if(o.value!==v)o.value=v}}
+function mKids(a,b){const ac=[...a.childNodes],bc=[...b.childNodes];for(let i=0;i<bc.length;i++){const n=bc[i],o=ac[i];if(!o){a.appendChild(n);continue}if(!mSame(o,n)){a.replaceChild(n,o);continue}mNode(o,n)}for(let i=ac.length-1;i>=bc.length;i--)ac[i].remove()}
+(()=>{const root=document.getElementById('app');if(!root)return;const D=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
+ Object.defineProperty(root,'innerHTML',{configurable:true,get(){return D.get.call(this)},set(h){if(!MORPH.on||!root.firstElementChild){D.set.call(this,h);return}const t=document.createElement('div');D.set.call(t,h);
+  const same=root.firstElementChild&&t.firstElementChild&&root.firstElementChild.className===t.firstElementChild.className;if(!same){D.set.call(this,h);return}try{mKids(root,t)}catch(e){console.warn('[hub] patch',e);D.set.call(this,h)}}})})();
+/* 2) the address keeps the page — refresh lands on the same page, back goes to the previous one */
+const routeOf=()=>'#/'+[V.v,V.p||'',V.v==='project'?(V.tab||'overview'):'',V.ch||''].map(x=>encodeURIComponent(x||'')).join('/').replace(/\/+$/,'');
+const tokenHash=()=>/access_token|refresh_token|type=recovery|error_description/.test(location.hash);
+function routeApply(h){if(!h||!h.startsWith('#/'))return false;const[v,p,tab,ch]=h.slice(2).split('/').map(x=>{try{return decodeURIComponent(x)}catch(e){return x}});if(!v||!VIEWS[v])return false;V.v=v;V.p=p||null;V.tab=tab||'overview';V.ch=ch||null;return true}
+let ROUTE_POP=false;const histIdx=()=>(history.state&&history.state.idx)||0;
+function routeSync(){if(!me()||tokenHash()||(LIVE&&!booted))return;const r=routeOf();if(location.hash===r)return;
+ if(ROUTE_POP||!location.hash.startsWith('#/')){history.replaceState(Object.assign({},history.state,{idx:histIdx()}),'',r);return}
+ history.replaceState(Object.assign({},history.state,{idx:histIdx(),y:window.scrollY}),'');history.pushState({idx:histIdx()+1},'',r)}
+routeApply(location.hash);
+const _render27=render;render=function(){_render27();routeSync();const b=document.querySelector('.backbtn');if(b)b.style.visibility=histIdx()>0?'visible':'hidden'};
+window.addEventListener('popstate',e=>{if(!me())return;const y=(e.state&&e.state.y)||0;if(!routeApply(location.hash)){V.v='home';V.p=null}document.getElementById('modal')&&document.getElementById('modal').innerHTML&&typeof closeModal==='function'&&closeModal();
+ ROUTE_POP=true;try{transit(()=>{render();requestAnimationFrame(()=>window.scrollTo(0,y))})}finally{setTimeout(()=>{ROUTE_POP=false},150)}});
+ACT.goBack=()=>{if(histIdx()>0)history.back();else go('home')};
+const _sh27=shellHTML;shellHTML=function(){return _sh27().replace('<header class="top"><div>',`<header class="top"><div class="row" style="gap:10px;align-items:center"><a class="iconbtn backbtn" data-act="goBack" title="Back" style="visibility:${histIdx()>0?'visible':'hidden'}">${ic('back',18)}</a><div>`).replace(/(<h2>[^<]*<\/h2><\/div>)/,'$1</div>')};
+IC.back='<path d="M15 18l-6-6 6-6"/>';
+/* 3) swipe right on a phone goes back */
+(()=>{let x0=0,y0=0,t0=0,ok=false;const scrollsX=el=>{for(let n=el;n&&n!==document.body;n=n.parentElement){if(n.scrollWidth>n.clientWidth+4&&/(auto|scroll)/.test(getComputedStyle(n).overflowX))return true}return false};
+ document.addEventListener('touchstart',e=>{const t=e.touches[0];if(e.touches.length!==1){ok=false;return}x0=t.clientX;y0=t.clientY;t0=Date.now();const el=e.target;ok=x0>18&&!el.closest('input,textarea,select,[contenteditable],.modal,#modal')&&!scrollsX(el)},{passive:true});
+ document.addEventListener('touchend',e=>{if(!ok)return;ok=false;const t=e.changedTouches[0];const dx=t.clientX-x0,dy=Math.abs(t.clientY-y0);if(dx>90&&dy<45&&Date.now()-t0<600&&me()&&histIdx()>0)history.back()},{passive:true})})();
+
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
 document.addEventListener('change',e=>{const el=e.target.closest('[data-change]');if(!el)return;const f=CHG[el.dataset.change];if(f)f(el.dataset.arg,el,e)});
