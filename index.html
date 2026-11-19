@@ -284,6 +284,7 @@ html,body{overflow-x:hidden;max-width:100%}body{touch-action:manipulation;-webki
 .bbt,.bbf{flex:none}
 @media(max-width:860px){.bbar{bottom:calc(78px + env(safe-area-inset-bottom));left:8px;right:8px;transform:none;flex-wrap:wrap;justify-content:center;gap:10px;padding:10px;max-height:46vh;overflow:auto}.bbt{width:100%;flex-direction:row;gap:8px;align-items:center;justify-content:center}}
 @media (max-width:420px){.top .iconbtn{width:34px;height:34px}.top .row{gap:5px}.top .viewas{display:none}}
+.persel{display:flex;align-items:center;gap:8px}.persel .eyebrow{margin:0}.persel select{width:auto;padding:6px 10px;font-size:13px}
 </style>
 </head>
 <body>
@@ -1736,6 +1737,46 @@ Object.assign(CHG,{bbSet:(key,el)=>{if(!isOwner())return;bbPatch({[key]:el.value
  bbUpload:(a,el)=>{const f=el.files&&el.files[0];if(!f)return;const img=new Image();const rd=new FileReader();rd.onload=()=>{img.onload=()=>{const sc=Math.min(1,1800/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);c.getContext('2d').drawImage(img,0,0,c.width,c.height);bbPatch({bg:c.toDataURL('image/jpeg',.78)});toast('Backdrop set for this page','ok')};img.src=rd.result};rd.readAsDataURL(f)}});
 /* live preview while dragging the colour picker */
 document.addEventListener('input',e=>{const t=e.target;if(t&&t.matches&&t.matches('.bbar input[type=color]')){const k=pageKey();const tmp=Object.assign(brandFor(k),{[t.dataset.arg]:t.value});applyBrand(tmp);BLAST=''}});
+
+/* ================= period switch: one control for projects & money across the Hub ================= */
+let PERIOD='all';try{PERIOD=localStorage.getItem('sd-period')||'all'}catch(e){}
+const PST={pitching:['Pitching','info'],cancelled:['Cancelled','']};
+function perRange(){if(PERIOD==='all')return null;const y=+PERIOD;return[new Date(y,0,1).getTime(),new Date(y+1,0,1).getTime()-1]}
+const inPer=ts=>{const r=perRange();if(!r)return true;const t=typeof ts==='string'?new Date(ts).getTime():ts;return t>=r[0]&&t<=r[1]};
+function projInPer(p){const r=perRange();if(!r)return true;const a=p.start||p.due||0,b=p.due||p.start||a;return a<=r[1]&&b>=r[0]}
+const perLabel=()=>PERIOD==='all'?'All years':PERIOD;
+function yearTag(p){const a=p.start?new Date(p.start).getFullYear():null,b=p.due?new Date(p.due).getFullYear():null;const t=a&&b&&a!==b?a+' → '+b:(a||b||'');return t?`<span class="chip" style="font-size:10px;padding:0 7px">${t}</span>`:''}
+function periodOptions(){const ys=new Set([new Date().getFullYear()]);S.projects.forEach(p=>{[p.start,p.due].forEach(t=>{if(t)ys.add(new Date(t).getFullYear())})});(S.entries||[]).forEach(e=>{if(e.date)ys.add(new Date(e.date).getFullYear())});return['all',...[...ys].sort((a,b)=>b-a).map(String)]}
+CHG.period=(a,el)=>{PERIOD=el.value;try{localStorage.setItem('sd-period',PERIOD)}catch(e){}render();toast('Showing '+perLabel(),'ok')};
+const perSel=()=>isStaff()?`<label class="persel" title="Period for projects and money"><span class="eyebrow">Period</span><select data-change="period">${periodOptions().map(y=>`<option value="${y}" ${PERIOD===y?'selected':''}>${y==='all'?'All years':y}</option>`).join('')}</select></label>`:'';
+/* money in the period, from project money entries */
+function perMoney(ps){const ids=new Set(ps.map(p=>p.id));const l=(S.entries||[]).filter(e=>ids.has(e.project)&&e.status!=='returned');const pick=k=>l.filter(e=>e.kind===k&&inPer(e.date||e.due||e.ts));const sum=a=>a.reduce((x,e)=>x+eEGP(e),0);
+ const deal=ps.filter(projInPer).reduce((a,p)=>a+(+p.quote||0),0);const recv=sum(pick('payin')),cost=sum(pick('cost')),paid=sum(pick('payout'));const due=ps.filter(projInPer).reduce((a,p)=>a+Math.max(0,(+p.quote||0)-(+p.paid||0)),0);return{deal,recv,cost,paid,due}}
+function perKPIs(ps){const m=perMoney(ps);return kpis([['Deals · '+perLabel(),money(m.deal),ps.filter(projInPer).length+' projects','hero'],['Received · '+perLabel(),money(m.recv),money(m.due)+' still to collect'],['Costs · '+perLabel(),money(m.cost),'agreed'],['Paid out · '+perLabel(),money(m.paid),money(Math.max(0,m.cost-m.paid))+' still to pay']])}
+const canPerMoney=()=>isStaff()&&(isMgmt()||jobsOf(me()).includes('finance')||can('fin.budgetsAll'));
+/* projects page: by period and status */
+VIEWS.projects=()=>{const u=me();const all=visibleProjects();const ps=all.filter(projInPer);const grp=st=>ps.filter(p=>(p.status||'active')===st);const act=grp('active').sort((a,b)=>(a.due||0)-(b.due||0)),done=grp('done').sort((a,b)=>(b.due||0)-(a.due||0)),pit=grp('pitching'),can_=grp('cancelled');
+ return`<div class="row wrap" style="margin-bottom:6px;gap:10px"><div class="muted grow">${perLabel()} · ${act.length} in production · ${done.length} delivered${pit.length?' · '+pit.length+' pitching':''}${can_.length?' · '+can_.length+' cancelled':''}${ps.length<all.length?` <span class="faint">(${all.length-ps.length} outside this period)</span>`:''}</div>${perSel()}${can('proj.create')?`<a class="btn pri" data-act="newProject">${ic('plus')}New project</a>`:''}</div>
+ ${canPerMoney()?perKPIs(all):''}
+ <div class="sec-title"><h2>${u.role==='partner'?'Collabs in progress':'In production'}</h2></div>${act.length?`<div class="grid g3">${act.map(p=>projCard(p)).join('')}</div>`:'<div class="card empty">Nothing in production in this period</div>'}
+ ${pit.length?`<div class="sec-title"><h2>Pitching</h2></div><div class="grid g3">${pit.map(p=>projCard(p,{next:false})).join('')}</div>`:''}
+ <div class="sec-title"><h2>Delivered</h2></div>${done.length?`<div class="grid g3">${done.map(p=>projCard(p,{next:false})).join('')}</div>`:'<div class="card empty">Nothing delivered in this period</div>'}
+ ${can_.length?`<div class="sec-title"><h2>Cancelled</h2></div><div class="grid g3" style="opacity:.6">${can_.map(p=>projCard(p,{next:false})).join('')}</div>`:''}`};
+const _projCard=projCard;projCard=function(p,o){let h=_projCard(p,o);h=h.replace('<h3 style="margin:5px 0 2px">',`<div class="row" style="gap:6px;margin-top:4px">${yearTag(p)}${p.moneyDue&&isStaff()?'<span class="chip warn" style="font-size:10px;padding:0 7px">Money due</span>':''}${PST[p.status]?`<span class="chip ${PST[p.status][1]}" style="font-size:10px;padding:0 7px">${PST[p.status][0]}</span>`:''}</div><h3 style="margin:5px 0 2px">`);return h};
+const _projStage=projStage;projStage=function(p){if(PST[p.status])return PST[p.status][0];if(p.status==='done'&&p.moneyDue&&isStaff())return'Delivered · money due';return _projStage(p)};
+const _projProg=projProg;projProg=function(p){if(PST[p.status])return Math.round(+p.prog||0);return _projProg(p)};
+/* money tab follows the period */
+const _tMoney=TABS.money;TABS.money=p=>{const keep=S.entries;const r=perRange();if(r)S.entries=keep.filter(e=>e.project!==p.id||inPer(e.date||e.due||e.ts));let h;try{h=_tMoney(p)}finally{S.entries=keep}return`<div class="row" style="margin-bottom:10px;gap:10px"><span class="tiny faint grow">Money ${PERIOD==='all'?'across all years':'dated in '+PERIOD} — change the period to look at another year.</span>${perSel()}</div>`+h};
+/* finance & dashboard: period money for management, owners & finance */
+const _vFin=VIEWS.finance;VIEWS.finance=()=>{const h=_vFin();if(!canPerMoney())return h;return`<div class="row" style="margin-bottom:10px;gap:10px"><div class="sec-title grow" style="margin:0"><h2>Projects money · ${perLabel()}</h2></div>${perSel()}</div>${perKPIs(S.projects)}<div style="height:14px"></div>`+h};
+const _homeLead=homeLead;homeLead=function(){const h=_homeLead();if(!canPerMoney())return h;return h.replace(/(<\/div>\s*)$/,'$1')+`<div class="row" style="margin:18px 0 8px;gap:10px"><div class="sec-title grow" style="margin:0"><h2>Money · ${perLabel()}</h2></div>${perSel()}</div>${perKPIs(S.projects)}`};
+/* specs: what came from the Cashflow and doesn’t fit elsewhere */
+const _projSpecs=projSpecsHTML;projSpecsHTML=function(p){let h=_projSpecs(p);if(!p.cf||!isStaff())return h;const c=p.cf;return h.replace('<div class="row" style="margin-top:12px"><a class="btn sm" data-act="dlvOpen"',`<div class="formgrid mini" style="margin-top:10px"><label>Tax${canManage(p)?`<input value="${esc(c.tax??'')}" data-change="cfSet" data-arg="${p.id}|tax" placeholder="e.g. 10%">`:`<div>${esc(c.tax||'—')}</div>`}</label><label>Carried over from last year${canManage(p)?`<input value="${esc(c.carried||'')}" data-change="cfSet" data-arg="${p.id}|carried" placeholder="e.g. Remaining 50%">`:`<div>${esc(c.carried||'—')}</div>`}</label><label class="full">Notes from the books${canManage(p)?`<textarea rows="2" data-change="cfSet" data-arg="${p.id}|note">${esc(c.note||'')}</textarea>`:`<div>${esc(c.note||'—')}</div>`}</label></div><div class="tiny faint" style="margin-top:6px">Brought in from SCENEDROME Cashflow ${c.at?dstr(c.at):''}</div><div class="row" style="margin-top:12px"><a class="btn sm" data-act="dlvOpen"`)};
+CHG.cfSet=(a,el)=>{const[pid,k]=a.split('|');const p=P(pid);if(!canManage(p))return;p.cf=Object.assign({},p.cf,{[k]:el.value});save();toast('Saved','ok')};
+/* project status control for managers (incl. pitching / cancelled / money due) */
+CHG.projStatus=(pid,el)=>{const p=P(pid);if(!canManage(p))return;p.status=el.value;if(el.value==='done')p.stage=lastStage(p);save();render();toast('Status: '+el.selectedOptions[0].textContent,'ok')};
+CHG.projDue=(pid,el)=>{const p=P(pid);if(!canManage(p))return;p.moneyDue=el.checked;save();render()};
+const _projSpecs2=projSpecsHTML;projSpecsHTML=function(p){let h=_projSpecs2(p);if(!(isStaff()&&canManage(p)))return h;return h.replace('<div class="formgrid mini">',`<div class="formgrid mini"><label>Project status<select data-change="projStatus" data-arg="${p.id}">${[['active','In production'],['done','Delivered'],['pitching','Pitching'],['cancelled','Cancelled']].map(([k,l])=>`<option value="${k}" ${(p.status||'active')===k?'selected':''}>${l}</option>`).join('')}</select></label><label class="jp" style="cursor:pointer;align-self:end"><input type="checkbox" ${p.moneyDue?'checked':''} data-change="projDue" data-arg="${p.id}"><span><b>Money still due</b><i>Delivered, waiting for payment</i></span></label>`)};
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
