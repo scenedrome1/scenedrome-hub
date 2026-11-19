@@ -297,6 +297,7 @@ html,body{overflow-x:hidden;max-width:100%}body{touch-action:manipulation;-webki
 .cs td{vertical-align:middle;padding:6px 6px}.cs-tog{cursor:pointer;color:var(--faint);text-align:center}.cs-n{width:62px}.cs-ep{width:76px}.cs-loc{width:100%;min-width:120px}.cs-time{width:112px}.cs-vers{display:flex;flex-direction:column;gap:4px}.cs-v{display:flex;gap:4px;align-items:center}.cs-v.on .cs-vl,.cs-v.on .cs-vd{border-color:var(--gold2)}.cs-vl{width:46px;padding:3px 5px!important;font-size:12px}.cs-vd{width:78px;padding:3px 5px!important;font-size:12px;font-variant-numeric:tabular-nums}.cs-pick{cursor:pointer;color:var(--gold2);width:14px;text-align:center}.cs-add{font-size:11.5px;color:var(--gold2);cursor:pointer}.cs-sync{width:auto!important;transform:scale(1.15)}.cs input,.cs select{padding:4px 6px;font-size:12.5px}.dayform{display:grid;grid-template-columns:110px minmax(0,2fr) 160px 160px;gap:12px;margin-bottom:12px;align-items:start}.dayform .full{grid-column:1/-1}.dayform label{display:flex;flex-direction:column;gap:5px}.locchip{display:inline-flex;gap:6px;align-items:center}.locchip a{cursor:pointer;opacity:.6}.locadd{display:inline-flex;gap:4px}.locadd input{width:170px}@media (max-width:860px){.dayform{grid-template-columns:1fr 1fr}.dayform .grow2{grid-column:1/-1}}
 #scResults .scres{position:static!important;margin-top:6px;background:var(--panel,#0b231d)!important;box-shadow:none!important;max-height:46vh!important}.scsearch{z-index:80}.scsearch:not(.open) #scResults{display:none}
 tr.totrow td{background:rgba(214,160,61,.10);border-top:1px solid var(--goldline,#5a4520)}tr.faint-row td{opacity:.75}
+html,body{overscroll-behavior:none}body{-webkit-overflow-scrolling:touch}
 </style>
 </head>
 <body>
@@ -2502,10 +2503,14 @@ window.addEventListener('popstate',e=>{if(!me())return;const y=(e.state&&e.state
 ACT.goBack=()=>{if(histIdx()>0)history.back();else go('home')};
 const _sh27=shellHTML;shellHTML=function(){return _sh27().replace('<header class="top"><div>',`<header class="top"><div class="row" style="gap:10px;align-items:center"><a class="iconbtn backbtn" data-act="goBack" title="Back" style="visibility:${histIdx()>0?'visible':'hidden'}">${ic('back',18)}</a><div>`).replace(/(<h2>[^<]*<\/h2><\/div>)/,'$1</div>')};
 IC.back='<path d="M15 18l-6-6 6-6"/>';
-/* 3) swipe right on a phone goes back */
-(()=>{let x0=0,y0=0,t0=0,ok=false;const scrollsX=el=>{for(let n=el;n&&n!==document.body;n=n.parentElement){if(n.scrollWidth>n.clientWidth+4&&/(auto|scroll)/.test(getComputedStyle(n).overflowX))return true}return false};
- document.addEventListener('touchstart',e=>{const t=e.touches[0];if(e.touches.length!==1){ok=false;return}x0=t.clientX;y0=t.clientY;t0=Date.now();const el=e.target;ok=x0>18&&!el.closest('input,textarea,select,[contenteditable],.modal,#modal')&&!scrollsX(el)},{passive:true});
- document.addEventListener('touchend',e=>{if(!ok)return;ok=false;const t=e.changedTouches[0];const dx=t.clientX-x0,dy=Math.abs(t.clientY-y0);if(dx>90&&dy<45&&Date.now()-t0<600&&me()&&histIdx()>0)history.back()},{passive:true})})();
+/* 3) swipe right in the phone app goes back (browsers keep their own back gesture) */
+(()=>{let x0=0,y0=0,ok=false,fired=false,c=null;const scrollsX=el=>{for(let n=el;n&&n!==document.body&&n!==document.documentElement;n=n.parentElement){if(n.scrollWidth>n.clientWidth+4&&/(auto|scroll)/.test(getComputedStyle(n).overflowX))return true}return false};
+ const reset=()=>{if(c){c.style.transition='transform .18s ease';c.style.transform='';setTimeout(()=>{if(c){c.style.transition='';c=null}},200)}};
+ const on=()=>(typeof isStandalone==='function'&&isStandalone())||window.SD_SWIPE===true;
+ document.addEventListener('touchstart',e=>{fired=false;ok=false;if(!on()||e.touches.length!==1||!me()||histIdx()<1)return;const t=e.touches[0];x0=t.clientX;y0=t.clientY;const el=e.target;ok=!el.closest('input,textarea,select,[contenteditable],#modal,.modal')&&!scrollsX(el);c=ok?document.querySelector('.content'):null},{passive:true});
+ document.addEventListener('touchmove',e=>{if(!ok||fired)return;const t=e.touches[0];const dx=t.clientX-x0,dy=Math.abs(t.clientY-y0);if(dy>40&&dy>dx){ok=false;reset();return}
+  if(dx>0&&c)c.style.transform=`translateX(${Math.min(dx*.45,90)}px)`;if(dx>85&&dy<45){fired=true;ok=false;reset();history.back()}},{passive:true});
+ document.addEventListener('touchend',()=>{if(ok)reset();ok=false},{passive:true});document.addEventListener('touchcancel',()=>{reset();ok=false},{passive:true})})();
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
