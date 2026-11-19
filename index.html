@@ -2133,7 +2133,7 @@ function cfDataFromHub(){const u=me();const own=isOwner();const st=cfSet();const
    else if(e.kind==='cost')cost.push({id:e.id,name:e.item||'',role:e.role||'',currency:v.currency,amount:v.amount,rate:v.rate,note:e.note||'',payments:[]});
    else if(e.kind==='payin'){let l=inc.find(x=>x.item===e.line)||inc[0];if(!l){l={id:'l'+e.id,item:e.line||'Client payment',currency:v.currency,amount:0,rate:v.rate,note:'',payments:[]};inc.push(l)}l.payments.push(pay)}
    else if(e.kind==='payout'){let l=cost.find(x=>x.name===e.line);if(!l){l={id:'l'+e.id,name:e.line||'Payment',role:'',currency:v.currency,amount:0,rate:v.rate,note:'',payments:[]};cost.push(l)}l.payments.push(pay)}});
-  const cl=U(p.client);projects[p.id]={id:p.id,name:p.name,client:cl?(cl.company||cl.name):'',color:'#6b4f1d',status:STM(p),progress:Math.round(projProg(p)||0),start:p.start?dIn(p.start):'',end:p.due?dIn(p.due):'',carryOver:!!cf.carried,carryNote:cf.carried||'',taxMode,taxPct,include:p.status!=='cancelled',notes:cf.note||'',income:inc,costs:cost,team:[]};main.order.push(p.id)});
+  const cl=U(p.client);projects[p.id]={id:p.id,name:p.name,client:cl?(cl.company||cl.name):'',color:'#6b4f1d',status:STM(p),progress:Math.round(projProg(p)||0),start:p.start?dIn(p.start):'',end:p.due?dIn(p.due):'',carryOver:!!cf.carried,carryNote:cf.carried||'',taxMode,taxPct,include:true,notes:cf.note||'',income:inc,costs:cost,team:[]};main.order.push(p.id)});
  return{main,projects}}
 window.__hubCashflow=()=>{try{return JSON.parse(JSON.stringify(cfDataFromHub()))}catch(e){console.warn('[hub] cashflow',e);return{main:{settings:{year:new Date().getFullYear()},salaries:[],rent:[],expenses:[],office:[],assets:[],subscriptions:[],order:[]},projects:{}}}};
 window.cfClose=cfClose;
