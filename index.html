@@ -514,6 +514,7 @@ const ico=document.getElementById('brandIcon');if(ico&&b.mark)ico.href=b.mark;co
 /* ================= live mode (hub.scenedrome.com · Supabase) ================= */
 const CFG=window.HUB_CONFIG||null;
 const LIVE=!!(CFG&&CFG.url&&CFG.anon&&window.supabase&&window.supabase.createClient);
+const BOOT_HASH=location.hash;
 const sb=LIVE?window.supabase.createClient(CFG.url,CFG.anon,{auth:{persistSession:true,autoRefreshToken:true}}):null;
 let booted=!LIVE,bootMsg='';
 function emptyState(){return{v:3,users:[],projects:[],tasks:[],msgs:[],dms:[],notifs:[],leaves:[],files:[],devices:[],mkt:[],expenses:[],entries:[],evals:[],fin:{source:'none',pulledAt:null,rows:[],salaries:[],totals:null}}}
@@ -561,7 +562,7 @@ const[fr,fp,fm]=await Promise.all([fetchAll('fin_rows').catch(()=>[]),sb.from('f
 S.fin={source:fm?fm.data.source:'none',pulledAt:fm?fm.data.pulledAt:null,rows:fr.map(r=>r.data),salaries:fp?fp.data.salaries||[]:[],totals:fm?fm.data.totals:null};
 SYNCED.fin_rows=new Map(fr.map(r=>[r.id,JSON.stringify({id:r.id,link:r.link,share:r.share,data:r.data})]));
 if(isOwner()){SYNCED.fin_private=new Map(fp?[['salaries',JSON.stringify({id:'salaries',data:fp.data})]]:[]);SYNCED.fin_meta=new Map(fm?[['main',JSON.stringify({id:'main',data:fm.data})]]:[]);SYNCED.settings=new Map(brandRow?[['brand',JSON.stringify({id:'brand',data:BRAND})]]:[])}
-booted=true;V={v:'home',p:null,tab:'overview',ch:null,open:{}};render();liveRealtime();appBooted()}
+booted=true;V={v:'home',p:null,tab:'overview',ch:null,open:{}};try{if(routeApply(location.hash.startsWith('#/')?location.hash:BOOT_HASH)&&V.p&&V.v==='project'&&!(S.projects||[]).some(x=>x.id===V.p)){V.v='projects';V.p=null}}catch(e){V={v:'home',p:null,tab:'overview',ch:null,open:{}}}render();try{const y=history.state&&history.state.y;if(y)requestAnimationFrame(()=>setTimeout(()=>window.scrollTo(0,y),60))}catch(e){}liveRealtime();appBooted()}
 let rtCh=null,rtPending=false;
 function liveRealtime(){if(rtCh)sb.removeChannel(rtCh);rtCh=sb.channel('hub-live').on('postgres_changes',{event:'*',schema:'public'},pl=>{const tb=pl.table;
  if(tb==='settings'){if(pl.new&&pl.new.data){BRAND=Object.assign({},BRAND0,pl.new.data);applyBrand();SYNCED.settings&&SYNCED.settings.set('brand',JSON.stringify({id:'brand',data:BRAND}));softRender()}return}
@@ -2500,6 +2501,7 @@ function routeSync(){if(!me()||tokenHash()||(LIVE&&!booted))return;const r=route
  history.replaceState(Object.assign({},history.state,{idx:histIdx(),y:window.scrollY}),'');history.pushState({idx:histIdx()+1},'',r)}
 routeApply(location.hash);
 const _render27=render;render=function(){_render27();if(V.bellOpen){const bp=document.getElementById('bellpanel');if(bp)bp.classList.add('open')}routeSync();const b=document.querySelector('.backbtn');if(b)b.style.visibility=histIdx()>0?'visible':'hidden'};
+window.addEventListener('pagehide',()=>{try{history.replaceState(Object.assign({},history.state,{y:window.scrollY}),'')}catch(e){}});
 window.addEventListener('popstate',e=>{if(!me())return;const y=(e.state&&e.state.y)||0;if(!routeApply(location.hash)){V.v='home';V.p=null}document.getElementById('modal')&&document.getElementById('modal').innerHTML&&typeof closeModal==='function'&&closeModal();
  ROUTE_POP=true;try{transit(()=>{render();requestAnimationFrame(()=>window.scrollTo(0,y))})}finally{setTimeout(()=>{ROUTE_POP=false},150)}});
 ACT.goBack=()=>{if(histIdx()>0)history.back();else go('home')};
