@@ -495,6 +495,11 @@ html[data-theme] .modal{width:min(560px,96vw)}html[data-theme] .modal.wide{width
 .pwdrow{display:flex;justify-content:flex-start}
 .profwrap{display:flex;flex-direction:column}.profwrap>*{order:1}.profwrap>.prefrow,.profwrap>.card:has(>.row>img[src*="icon-192"]){order:50}.profwrap>.prefrow{margin-top:14px}
 .crewrole select{width:136px;max-width:40vw;padding:5px 6px;font-size:12.5px}.item:has(.crewrole) .grow,.item:has(.chip) .grow{min-width:0}.item:has(.crewrole) .grow b,.item:has(.crewrole) .grow .tiny{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* scene rows alternate in two close shades */
+html[data-theme] tr.csrow>td{background:var(--panel)}
+html[data-theme] tr.csrow:nth-child(even of .csrow)>td{background:color-mix(in srgb,var(--text) 4%,var(--panel))}
+html[data-theme=dark] tr.csrow:nth-child(even of .csrow)>td{background:color-mix(in srgb,#fff 4.5%,var(--panel))}
+html[data-theme] tr.csrow:hover>td{background:var(--sel)}
 </style>
 </head>
 <body>
