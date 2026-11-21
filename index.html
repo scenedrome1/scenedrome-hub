@@ -553,6 +553,9 @@ html[data-theme] .crumb.hidate{display:block!important;font-size:12px;letter-spa
 .pstbtn{cursor:pointer;text-decoration:none;gap:6px}.pstbtn:hover{filter:brightness(1.15)}.pstbtn .pcaret{font-size:10px;opacity:.75}
 .pstlist{display:flex;flex-direction:column;gap:8px}.pstopt{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;cursor:pointer;text-decoration:none;color:inherit}.pstopt:hover{background:var(--hover)}.pstopt.on{border-color:var(--gold)}.pstopt .chip{font-size:13px;padding:4px 12px}
 .pushtip .pushic{font-size:24px;line-height:1}.belltip{gap:10px;padding:8px 14px;margin:0 8px 6px;border:1px solid var(--gold);border-radius:10px}
+.hero56{margin:4px 0 22px}.hero56 .hidate{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.hero56 .hi1{font:500 40px/1.1 var(--display);letter-spacing:-.015em;color:var(--text)}.hero56 .hi2{font:700 64px/1.05 var(--display);letter-spacing:-.02em;color:var(--gold2)}
+@media (max-width:860px){.hero56{margin:0 0 16px}.hero56 .hidate{font-size:10.5px}.hero56 .hi1{font-size:28px}.hero56 .hi2{font-size:44px}}
 </style>
 </head>
 <body>
@@ -913,7 +916,7 @@ g('You');N.push(['profile','My profile','user']);return N}
 function shellHTML(){const u=me();const titles={group:'SCENEDROME Chat',client:'Client',history:'History',branding:'Branding',home:u.role==='partner'?'Collab hub':u.role==='client'?'Home':'Dashboard',projects:u.role==='partner'?'Our collabs':u.role==='client'?'My projects':'Projects',messages:'Messages',dm:(U(V.p)||{}).name||'Message',team:'Team',finance:'Finance',clients:'Clients',partners:'Partner studios',admin:'Users & access',profile:V.p&&V.p!==u.id?'Profile':'My profile',project:(P(V.p)||{}).name||'Project',rewards:'Offers & rewards',storage:'Storage & devices',marketing:'Marketing',handbook:'Studio handbook',access:'Access'};
 let body;try{body=(VIEWS[V.v]||VIEWS.home)()}catch(err){console.error('[hub] view',V.v,err);body=`<div class="card empty">This page hit a snag and couldn’t load (${esc(err.message)}). The rest of the Hub still works — try another page, or reload.</div>`}const un=unread();const my=S.notifs.filter(n=>n.to===u.id).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,30);
 const nav=navItems().map(([k,l,i])=>k==='__'?`<h6>${l}</h6>`:`<a class="${V.v===k||(k==='projects'&&V.v==='project')||(k==='admin'&&V.v==='access')||(k==='profile'&&V.v==='profile'&&(!V.p||V.p===u.id))?'on':''}" data-act="go" data-arg="${k}">${ic(i)}<span>${l}</span></a>`).join('');
-const homeT=V.v==='home'&&isStaff()?`<span class="hi1">${greet()},</span> <span class="hi2">${esc(first(u))}</span>`:esc(titles[V.v]||'');
+const homeT=esc(titles[V.v]||'');
 const navM=nav+`<a class="navmore ${MORE_OPEN?'on':''}" data-act="navMore">${ic('dots')}<span>More</span></a>`;
 return`<div class="shell"><aside class="side ${MORE_OPEN?'more':''}"><div class="brand"><img src="${esc(B().logo)}" alt="${esc(B().studio)}"><div class="sub">${esc(B().hubName)}</div><div class="mk"><i></i>${esc(B().hubName||'Studio Hub')}</div></div><nav class="nav" aria-label="Main">${navM}</nav>
 ${LIVE?'':'<div class="draftnote">Draft · demo data lives in this browser only.</div>'}<div class="side-foot" data-act="go" data-arg="profile">${av(u,34)}<div class="grow"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500">${esc(u.name)}</b><span class="tiny faint">${esc(u.title||u.company||'')}</span></div></div></aside>
@@ -3528,9 +3531,9 @@ ACT.dealDocDelOk=async id=>{const f=S.files.find(x=>x.id===id);closeModal();if(!
 /* deal papers stay out of the general Files list for people without deal access */
 if(TABS.files){const _tf53=TABS.files;TABS.files=p=>{if(canMoney(p))return _tf53(p);const keep=S.files;S.files=keep.filter(f=>!f.deal);try{return _tf53(p)}finally{S.files=keep}}}
 
-/* welcome: date above a bigger greeting */
-const _sh54=shellHTML;shellHTML=function(){let h=_sh54();if(V.v!=='home'||!isStaff())return h;const d=new Date().toLocaleDateString('en-GB',{timeZone:'Africa/Cairo',weekday:'long',day:'numeric',month:'long'});
- return h.replace(/<div class="crumb">[\s\S]*?<\/div><h2>/,`<div class="crumb hidate">${esc(d)}</div><h2 class="hello2">`)};
+/* welcome: a big two-line greeting under the header */
+const _vh56=VIEWS.home;VIEWS.home=()=>{const h=_vh56();const u=me();if(!u||!isStaff())return h;const d=new Date().toLocaleDateString('en-GB',{timeZone:'Africa/Cairo',weekday:'long',day:'numeric',month:'long'});
+ return`<div class="hero56"><div class="hidate">${esc(d)}</div><div class="hi1">${greet()},</div><div class="hi2">${esc(first(u))}</div></div>`+h};
 
 /* ================= SCENEDROME (the studio's own account) stays out of people lists and crews ================= */
 const FID55=()=>{const f=S.users.find(u=>u.job==='founder'&&u.role==='owner');return f?f.id:null};
