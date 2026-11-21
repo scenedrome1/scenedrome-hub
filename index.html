@@ -640,6 +640,10 @@ html.still .content>*,html.still .content.entering,html.still .msg,html.still .m
 .sbx-opt.on,.sbx-opt:hover{background:color-mix(in srgb,var(--sig-clients,#79aec2) 16%,transparent)}
 .sbx-opt.new{color:var(--gold);font-weight:500}.sbx-empty{padding:9px 12px;opacity:.6;font-size:13px}
 .modal:has(.sbx.open){overflow:visible}
+
+.msgx63{margin-left:8px;opacity:0;color:var(--muted,#9aa);vertical-align:middle;cursor:pointer;transition:opacity .15s}
+.msg:hover .msgx63,.msgx63:focus{opacity:.8}.msgx63:hover{opacity:1;color:var(--st-bad,#c9605a)}
+@media (hover:none){.msgx63{opacity:.55}}
 </style>
 </head>
 <body>
@@ -3813,6 +3817,29 @@ const _vcl61=VIEWS.clients;VIEWS.clients=()=>{const h=_vcl61();if(!h||/This page
   sub.innerHTML=`<div class="row wrap" style="gap:6px;margin-top:4px">${tags||'<span class="faint">No project yet</span>'}</div><div style="margin-top:4px">${ccContact(x)}</div>`});
  t.content.querySelectorAll('b').forEach(b=>{if(b.textContent==='No company yet')b.textContent='Independent'});return t.innerHTML};
 
+/* client messages: delete one, clear a project's client thread, or (owner) clear every client thread */
+const _att63=attHTML;attHTML=function(att,mid){return(mid?`<i class="mid63" data-mid="${mid}" hidden></i>`:'')+_att63(att,mid)};
+const canDelMsg63=p=>!!p&&isStaff()&&canDel('msg',{project:p.id});
+async function delMsgs63(list,label){if(!list.length)return;const paths=[];list.forEach(m=>(m.att||[]).forEach(f=>{if(f.path)paths.push(f.path)}));
+ if(LIVE&&paths.length){try{for(let i=0;i<paths.length;i+=100){const{error}=await sb.storage.from('hub').remove(paths.slice(i,i+100));if(error)throw error}}catch(e){console.warn('[hub] storage',e)}}
+ const ids=new Set(list.map(m=>m.id));const pset=new Set(paths);
+ S.files=S.files.filter(x=>!(x.path&&pset.has(x.path)));S.msgs=S.msgs.filter(m=>!ids.has(m.id));save();render();toast(label,'ok')}
+const _tt63=TABS.thread;TABS.thread=p=>{let h=_tt63(p);if(V.ch!=='client'||!canDelMsg63(p))return h;const t=document.createElement('template');t.innerHTML=h;
+ t.content.querySelectorAll('.chat-scroll .msg').forEach(m=>{const k=m.querySelector('i.mid63');const meta=m.querySelector('.meta');if(k&&meta)meta.insertAdjacentHTML('beforeend',`<a class="msgx63" data-act="msgDel" data-arg="${k.dataset.mid}" title="Delete message" aria-label="Delete message">${ic('trash',13)}</a>`)});
+ const n=S.msgs.filter(m=>m.project===p.id&&m.ch==='client').length;const hd=t.content.querySelector('.chat-head');
+ if(hd&&n)hd.insertAdjacentHTML('beforeend',`<a class="btn sm ghost" data-act="thClear" data-arg="${p.id}" title="Delete every message in this client thread">${ic('trash',14)}Clear thread</a>`);return t.innerHTML};
+Object.assign(ACT,{
+ msgDel:id=>{const m=S.msgs.find(x=>x.id===id);const p=m&&P(m.project);if(!m||!canDelMsg63(p))return;const prev=(m.text||'').slice(0,120)||((m.att||[]).map(f=>f.name).join(', '));
+  modal('Delete this message?',`<p class="muted" style="margin-top:0">It disappears for everyone, including the client${(m.att||[]).length?', and its attachments are deleted from storage':''}. This can’t be undone.</p>${prev?`<div class="card" style="padding:10px 14px;margin-bottom:14px"><span class="tiny">${esc(prev)}</span></div>`:''}<div class="row"><a class="btn right" data-act="closeModal">Keep</a><a class="btn pri" data-act="msgDelOk" data-arg="${id}">Delete</a></div>`)},
+ msgDelOk:id=>{const m=S.msgs.find(x=>x.id===id);const p=m&&P(m.project);closeModal();if(!m||!canDelMsg63(p))return;delMsgs63([m],'Message deleted')},
+ thClear:pid=>{const p=P(pid);if(!canDelMsg63(p))return;const n=S.msgs.filter(m=>m.project===pid&&m.ch==='client').length;
+  modal('Clear the client thread?',`<p class="muted" style="margin-top:0">All <b>${n}</b> message${n===1?'':'s'} in the ${esc(p.name)} client thread are deleted for everyone, with their attachments. The team thread isn’t touched. This can’t be undone.</p><div class="row"><a class="btn right" data-act="closeModal">Keep</a><a class="btn pri" data-act="thClearOk" data-arg="${pid}">Clear ${n} message${n===1?'':'s'}</a></div>`)},
+ thClearOk:pid=>{const p=P(pid);closeModal();if(!canDelMsg63(p))return;delMsgs63(S.msgs.filter(m=>m.project===pid&&m.ch==='client'),`${p.name} client thread cleared`)},
+ thClearAll:()=>{if(!isOwner())return;const ms=S.msgs.filter(m=>m.ch==='client');const np=new Set(ms.map(m=>m.project)).size;
+  modal('Clear every client thread?',`<p class="muted" style="margin-top:0"><b>${ms.length}</b> messages across <b>${np}</b> project${np===1?'':'s'} are deleted for everyone, with their attachments. Team threads, group chat and direct messages aren’t touched. This can’t be undone.</p><label style="display:block;margin-bottom:14px">Type <b>CLEAR</b> to confirm<input id="clr63" autocomplete="off"></label><div class="row"><a class="btn right" data-act="closeModal">Keep</a><a class="btn pri" data-act="thClearAllOk">Clear all client threads</a></div>`)},
+ thClearAllOk:()=>{if(!isOwner())return;const i=document.getElementById('clr63');if(!i||i.value.trim().toUpperCase()!=='CLEAR'){toast('Type CLEAR to confirm','bad');return}closeModal();delMsgs63(S.msgs.filter(m=>m.ch==='client'),'All client threads cleared — fresh start')}});
+const _vm63=VIEWS.messages;VIEWS.messages=()=>{const h=_vm63();if(!isOwner())return h;const n=S.msgs.filter(m=>m.ch==='client').length;if(!n)return h;
+ return h+`<div class="card prefrow" style="margin-top:16px"><div class="row wrap" style="gap:12px"><div class="grow"><b style="font-weight:500">Client threads</b><div class="tiny faint">${n} message${n===1?'':'s'} with clients across all projects</div></div><a class="btn sm ghost" data-act="thClearAll">${ic('trash',14)}Clear all client threads</a></div></div>`};
 /* no flashing: entrance animations only when you actually move to another page or tab, not on every click */
 let RK62=null;const _rd62=render;render=function(){let k='';try{k=me()?routeOf():''}catch(e){}const still=!!k&&k===RK62;document.documentElement.classList.toggle('still',still);const y=window.scrollY;_rd62();if(still&&Math.abs(window.scrollY-y)>2)window.scrollTo(0,y);RK62=k};
 /* one open at a time: opening a collapsed list closes the other open ones on the page (lists inside it stay as they are) */

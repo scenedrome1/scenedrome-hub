@@ -1,5 +1,5 @@
 /* SCENEDROME Hub · service worker: installable app, offline shell, push notifications */
-const CACHE = 'sd-hub-v5';
+const CACHE = 'sd-hub-v6';
 const SHELL = ['./', './index.html', './config.js', './manifest.webmanifest', './assets/logo.png', './assets/s.png', './assets/bg.jpg', './assets/chat-doodles.svg', './assets/app/icon-192.png', './assets/app/badge-mono.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => {})); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
