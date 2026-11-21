@@ -1626,13 +1626,23 @@ window.addEventListener("pageshow",e=>{if(e.persisted){DATA_KEY=null;S.main=null
 function hubParent(){try{return window.parent!==window&&typeof window.parent.__hubCashflow==="function"?window.parent:null}catch(_){return null}}
 function hubLoad(){const P=hubParent();const d=P.__hubCashflow();const keepY=S.main&&S.main.settings?S.main.settings.year:null;applyData(d);if(keepY)S.main.settings.year=keepY;
   setSave("ok","Live from the Hub")}
-function hubBoot(){mode="hub";canWrite=false;DATA_KEY=null;hubLoad();route();
+function hubBoot(){mode="hub";canWrite=false;DATA_KEY=null;hubLoad();let r0="overview";try{r0=sessionStorage.getItem("sd-cf-route")||"overview"}catch(_){}ui.route=r0;render();
   window.__hubRefresh=()=>{if(document.activeElement&&document.activeElement.tagName==="SELECT")return;hubLoad();scheduleRender()}}
 const _render0=render;render=function(){_render0();if(mode!=="hub")return;
   const y=document.querySelector('#top [data-b="main|settings.year"]');if(y)y.disabled=false;
   document.querySelectorAll("#view .banner.warn").forEach(b=>{if(/read-only/.test(b.textContent))b.innerHTML="Live from the Hub — figures update by themselves. Change them in the Hub: books on the Finance page, project money on each project’s Money tab.";b.classList.remove("warn")});
   document.querySelectorAll('[data-act="logout"] span').forEach(s=>s.textContent="Close")};
 const _logout0=A.logout;A.logout=function(...a){const P=hubParent();if(mode==="hub"&&P&&P.cfClose){P.cfClose();return}return _logout0.apply(A,a)};
+
+/* in the Hub: amounts follow the Hub's hidden/shown setting, and links stay inside this window */
+const hubMasked=()=>{if(mode!=="hub")return false;try{const P=hubParent();return !!(P&&P.__hubMasked&&P.__hubMasked())}catch(_){return false}};
+const _fmt0=fmt;fmt=function(n,dec){if(hubMasked())return "•••••";return _fmt0(n,dec)};
+function hubGo(h){ui.route=h||"overview";try{sessionStorage.setItem("sd-cf-route",ui.route)}catch(_){}render();const m=document.getElementById("main");if(m)m.scrollTop=0;document.body.classList.remove("nav-open")}
+document.addEventListener("click",e=>{if(mode!=="hub")return;const a=e.target.closest('a[href^="#"]');if(!a)return;e.preventDefault();e.stopPropagation();hubGo(a.getAttribute("href").slice(1))},true);
+const _go0=go;go=function(r){if(mode==="hub"){hubGo(r);return}return _go0(r)};
+const _rd1=render;render=function(){_rd1();if(mode!=="hub")return;let b=document.getElementById("hubEye");const m=hubMasked();
+ if(!b){const t=document.getElementById("top");if(t){b=document.createElement("button");b.id="hubEye";b.className="btn sm";b.style.marginLeft="8px";b.onclick=()=>{const P=hubParent();if(P&&P.__hubReveal)P.__hubReveal()};t.appendChild(b)}}
+ if(b)b.textContent=m?"👁 Show amounts":"🙈 Hide amounts"};
 const _gate0=gate;gate=function(){if(hubParent())return hubBoot();return _gate0()};
 
 gate();
