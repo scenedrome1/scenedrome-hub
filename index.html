@@ -481,6 +481,8 @@ html[data-theme] .top{position:sticky;top:0;z-index:20;padding-top:max(16px,calc
 .ovr{color:var(--honey-fg);background:var(--honey-bg);border-radius:6px;padding:0 6px;font-size:11px;font-weight:500;white-space:nowrap}
 .evstar{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:99px;border:1px solid var(--line);font-size:13px;color:var(--faint);cursor:pointer;text-decoration:none}.evstar.on{color:var(--gold2);border-color:color-mix(in srgb,var(--gold) 40%,var(--line));font-weight:500}.evstar:hover{border-color:var(--gold)}
 .card.pt{padding:0}.card.pt>.sec{margin:0;border:0;box-shadow:none}.aboutro .kv{margin:6px 0 0}.prefrow{padding:12px 16px}
+.recacts{display:inline-flex;gap:6px;margin-left:auto}.iconbtn.sm{width:32px;height:32px}.recbar{margin-bottom:10px;gap:8px}.danger{color:var(--coral-fg)!important}.btn.danger{border-color:color-mix(in srgb,var(--coral-fg) 40%,var(--line))}.btn.danger:not(:disabled):hover{background:var(--coral-bg)}button.btn:disabled{opacity:.45;cursor:not-allowed}
+.pen{margin-left:4px}.card.hover .row{gap:8px}
 </style>
 </head>
 <body>
@@ -3083,6 +3085,60 @@ function aboutReadOnly(){if(V.v!=='profile')return;const v=me();if(V.p&&V.p!==v.
  const box=document.createElement('div');box.className='aboutro';box.innerHTML=`<dl class="kv">${rows.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v).replace(/\n/g,'<br>')}</dd>`).join('')||'<dt></dt><dd class="faint">Nothing filled in yet</dd>'}</dl>`;
  f.style.display='none';f.parentNode.insertBefore(box,f);if(h3&&!h3.querySelector('[data-act=editAbout]'))h3.insertAdjacentHTML('beforeend',`<a class="btn sm ghost" data-act="editAbout" style="float:right">${ic('edit',14)}Edit</a>`)}
 const _rd38=render;render=function(){_rd38();try{aboutReadOnly()}catch(e){console.warn(e)}};
+
+/* ================= revision 03 · E: view → edit → save, delete with owner-set roles, people managed in their directories ================= */
+const DELR=()=>Object.assign({manager:true,producer:false},(BRAND&&BRAND.delRoles)||{});
+function canDel(kind,rec){const u=me();if(isOwner())return true;const ok=DELR()[u.role==='manager'?'manager':'producer'];if(!ok)return false;if(isMgmt())return true;
+ const p=kind==='project'?rec:P(rec&&rec.project);return!!(p&&canManage(p))}
+const DEL_K={task:['task',()=>S.tasks,x=>x.title],project:['project',()=>S.projects,x=>x.name],drive:['drive',()=>S.devices,x=>x.code||drvCode(x,P(x.project))],file:['file',()=>S.files,x=>x.name]};
+ACT.recDel=a=>{const[k,id]=a.split('|');const D_=DEL_K[k];const r=D_&&D_[1]().find(x=>x.id===id);if(!r||!canDel(k,r))return;const nm=String(D_[2](r)||'').trim();
+ let extra='';if(k==='project'){const ent=(S.entries||[]).filter(e=>e.project===id).length;if(ent){modal('Can’t delete this project yet',`<p class="muted" style="margin-top:0">“${esc(nm)}” has ${ent} money entr${ent>1?'ies':'y'}. Remove or move them on its Money tab first, so the Cashflow stays right.</p><div class="row"><a class="btn right" data-act="closeModal">OK</a></div>`);return}
+  const tn=S.tasks.filter(t=>t.project===id).length,mn=S.msgs.filter(m=>m.project===id).length,fn=S.files.filter(f=>f.project===id).length,dn=S.devices.filter(d=>d.project===id).length;extra=`<p class="tiny faint">This also deletes ${tn} task${tn!==1?'s':''}, ${mn} message${mn!==1?'s':''} and ${fn} file link${fn!==1?'s':''}.${dn?` ${dn} drive${dn>1?'s':''} stay in Storage, unlinked.`:''}</p>`}
+ modal(`Delete ${D_[0]}`,`<p style="margin-top:0">Type <b>${esc(nm)}</b> to confirm. This can’t be undone.</p>${extra}<form data-form="recDel" data-arg="${a}" class="col"><input name="nm" autocomplete="off" placeholder="${esc(nm)}" data-change="recDelType" data-arg="${esc(nm)}"><div class="row" style="margin-top:12px"><a class="btn ghost" data-act="closeModal">Cancel</a><button class="btn right danger" type="submit" disabled>${ic('trash',15)}Delete ${D_[0]}</button></div></form>`)};
+document.addEventListener('input',e=>{const i=e.target;if(i.name==='nm'&&i.closest('form[data-form=recDel]')){const b=i.form.querySelector('button[type=submit]');b.disabled=i.value.trim()!==i.dataset.arg}},true);
+CHG.recDelType=()=>{};
+FORM.recDel=(fd,a)=>{const[k,id]=a.split('|');const D_=DEL_K[k];const r=D_&&D_[1]().find(x=>x.id===id);if(!r||!canDel(k,r))return;if(String(fd.get('nm')||'').trim()!==String(D_[2](r)||'').trim())return;
+ if(k==='task')S.tasks=S.tasks.filter(x=>x.id!==id);
+ if(k==='drive')S.devices=S.devices.filter(x=>x.id!==id);
+ if(k==='file')S.files=S.files.filter(x=>x.id!==id);
+ if(k==='project'){S.tasks=S.tasks.filter(t=>t.project!==id);S.msgs=S.msgs.filter(m=>m.project!==id);S.files=S.files.filter(f=>f.project!==id);S.devices.forEach(d=>{if(d.project===id)d.project=null});S.projects=S.projects.filter(p=>p.id!==id);if(V.p===id){V.v='projects';V.p=null}}
+ closeModal();save();render();toast(`${D_[0][0].toUpperCase()+D_[0].slice(1)} deleted`,'ok')};
+/* tasks: open read-only; Edit and Delete in the header */
+const _tm39=taskModal;taskModal=function(t){_tm39(t);const m=document.querySelector('#modal .modal');if(!m)return;const p=P(t.project);const hd=m.querySelector('.mh')||m.firstElementChild;
+ const b=[];if(canAssign(p))b.push(`<a class="iconbtn sm" data-act="taskEdit" data-arg="${t.id}" title="Edit task" aria-label="Edit task">${ic('edit',15)}</a>`);if(canDel('task',t))b.push(`<a class="iconbtn sm" data-act="recDel" data-arg="task|${t.id}" title="Delete task" aria-label="Delete task">${ic('trash',15)}</a>`);
+ if(b.length&&hd&&!hd.querySelector('.recacts')){const x=hd.querySelector('[data-act=closeModal]');const span=document.createElement('span');span.className='recacts';span.innerHTML=b.join('');if(x)x.before(span);else hd.appendChild(span)}};
+ACT.taskEdit=id=>{const t=S.tasks.find(x=>x.id===id);const p=t&&P(t.project);if(!t||!canAssign(p))return;const dd=t.due?cKey(t.due):'';
+ modal('Edit task',`<form data-form="taskEdit" data-arg="${id}" class="formgrid"><label class="full">Title<input name="title" value="${esc(t.title)}" required></label><label class="full">Brief<textarea name="brief" rows="3">${esc(t.brief||'')}</textarea></label>
+ <label>Due date<input type="date" name="due" value="${dd}"></label><label>Priority<select name="prio">${[['high','High'],['med','Medium'],['low','Low']].map(([k,l])=>`<option value="${k}" ${t.prio===k?'selected':''}>${l}</option>`).join('')}</select></label>
+ <label class="full">Assigned to<select name="who"><option value="">Unassigned</option>${taskPeople(p).map(x=>`<option value="${x.id}" ${tPeople(t).includes(x.id)?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
+ <div class="full row"><a class="btn ghost" data-act="taskOpen" data-arg="${id}">Cancel</a><button class="btn pri right" type="submit">Save</button></div></form>`)};
+FORM.taskEdit=(fd,id)=>{const t=S.tasks.find(x=>x.id===id);const p=t&&P(t.project);if(!t||!canAssign(p))return;t.title=String(fd.get('title')).trim()||t.title;t.brief=String(fd.get('brief')||'');t.prio=fd.get('prio')||t.prio;
+ const d=fd.get('due');t.due=d?Date.parse(d+'T17:00:00+02:00'):null;const w=fd.get('who')||'';const was=tPeople(t)[0]||'';t.assignee=w;t.assignees=w?[w]:[];if(w&&w!==was)notify([w],`${me().name} assigned you “${t.title}” on ${p.name}`,{v:'project',p:p.id,tab:'tasks'});
+ save();render();taskModal(t);toast('Task saved','ok')};
+/* drives: read-only until Edit */
+const _dr39=drvRow;drvRow=function(p,d,ed){const can=ed;const on=can&&V.drvEd===d.id;let h=_dr39(p,d,on);if(!V.open['dv'+d.id])return h;
+ const acts=`<div class="row recbar">${can?(on?`<a class="btn sm pri" data-act="drvEd" data-arg="">${ic('check',14)}Done</a>`:`<a class="btn sm" data-act="drvEd" data-arg="${d.id}">${ic('edit',14)}Edit</a>`):''}${canDel('drive',d)&&can?`<a class="btn sm ghost right danger" data-act="recDel" data-arg="drive|${d.id}">${ic('trash',14)}Delete</a>`:''}</div>`;
+ return h.replace('<div class="drvb">','<div class="drvb">'+acts)};
+ACT.drvEd=id=>{V.drvEd=id||null;render()};
+/* projects: Delete inside Edit details */
+const _pe39=ACT.projEdit;ACT.projEdit=a=>{_pe39(a);const p=P(String(a).split('|')[0]);const f=document.querySelector('#modal form');if(!p||!f||!canDel('project',p))return;f.insertAdjacentHTML('beforeend',`<div class="full row" style="border-top:1px solid var(--line);padding-top:12px;margin-top:4px"><span class="tiny faint grow">Delete this project and its tasks, threads and file links.</span><a class="btn sm ghost danger" data-act="recDel" data-arg="project|${p.id}">${ic('trash',14)}Delete project</a></div>`)};
+/* people are added and managed where they live: Team, Clients, Partner studios */
+const addPreset=job=>{ACT.newUser();const s=document.querySelector('#modal select[name=job]');if(s&&job&&[...s.options].some(o=>o.value===job)){s.value=job;s.dispatchEvent(new Event('change',{bubbles:true}))}};
+ACT.addMember=()=>addPreset('');ACT.addClient=()=>addPreset('client');ACT.addPartner=()=>addPreset('partner');
+const canPeople=()=>can('admin.users')||can('people.add');
+const dirBtn=(act,l)=>canPeople()?`<div class="row" style="margin-bottom:12px"><div class="grow"></div><a class="btn pri" data-act="${act}">${ic('plus',16)}${l}</a></div>`:'';
+['team','clients','partners'].forEach(v=>{const o=VIEWS[v];if(!o)return;VIEWS[v]=()=>{const h=o();return dirBtn(v==='team'?'addMember':v==='clients'?'addClient':'addPartner',v==='team'?'Add member':v==='clients'?'Add':'Add partner')+h}});
+/* a pencil on every person card opens their details and access in one place */
+ACT.personEdit=id=>{const x=U(id);if(!x)return;if(!can('admin.users')){go('profile',id);return}ACT.editUser(id);const f=document.querySelector('#modal form[data-form=userEdit]');if(f&&!(isOwner(x)&&!isOwner()))f.insertAdjacentHTML('beforeend',`<div class="full row wrap" style="border-top:1px solid var(--line);padding-top:12px;margin-top:4px;gap:8px"><span class="tiny faint grow">Account</span><a class="btn sm ghost" data-act="resetPwd" data-arg="${id}">${ic('key',14)}Reset password</a><a class="btn sm ghost" data-act="toggleSuspend" data-arg="${id}">${x.suspended?'Reactivate':'Suspend'}</a><a class="btn sm ghost danger" data-act="delUser" data-arg="${id}">${ic('trash',14)}Remove</a></div>`)};
+function pencils(){if(!['team','clients','partners'].includes(V.v)||!can('admin.users'))return;document.querySelectorAll('#app [data-act=profile][data-arg]').forEach(c=>{if(c.querySelector('.pen'))return;const id=c.dataset.arg;if(id===meId||(isOwner(U(id))&&!isOwner()))return;
+ const row=c.querySelector('.row')||c;row.insertAdjacentHTML('beforeend',`<a class="iconbtn sm pen" data-act="personEdit" data-arg="${id}" title="Edit details & access" aria-label="Edit details and access">${ic('edit',14)}</a><a class="iconbtn sm pen" data-act="access" data-arg="${id}" title="Access" aria-label="Access">${ic('key',14)}</a>`)})}
+const _rd39=render;render=function(){_rd39();try{pencils()}catch(e){}};
+const _nav39=navItems;navItems=function(){const N=_nav39().filter(x=>x[0]!=='admin');return N.filter((x,i)=>!(x[0]==='__'&&(!N[i+1]||N[i+1][0]==='__')))};
+/* owner decides who can delete */
+ACT.delRole=k=>{if(!isOwner())return;const d=DELR();d[k]=!d[k];BRAND=Object.assign({},BRAND,{delRoles:d});save();render();toast(`${k==='manager'?'Managers':'Producers'} ${d[k]?'can':'can’t'} delete records now`,'ok')};
+const _vt39=VIEWS.team;VIEWS.team=()=>{const h=_vt39();if(!isOwner())return h;const d=DELR();return h+`<div class="card prefrow" style="margin-top:16px"><div class="row wrap" style="gap:12px"><div class="grow"><b style="font-weight:500">Who can delete records</b><div class="tiny faint">Tasks, projects, drives and file links. The owner always can; everyone confirms by typing the name.</div></div>${[['manager','Managers'],['producer','Producers (their projects)']].map(([k,l])=>`<label class="row" style="gap:6px;cursor:pointer"><input type="checkbox" ${d[k]?'checked':''} data-act="delRole" data-arg="${k}"> ${l}</label>`).join('')}</div></div>`};
+/* Studio handbook: owner and management only */
+const _hb39=VIEWS.handbook;if(_hb39)VIEWS.handbook=()=>isMgmt()?_hb39():deny();
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
