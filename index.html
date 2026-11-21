@@ -649,6 +649,8 @@ html.still .content>*,html.still .content.entering,html.still .msg,html.still .m
 .dealbox{margin-top:4px}
 
 .cpacc .jp.dis{opacity:.55;cursor:default}
+
+.chip.roleme66{font-size:11px;margin:6px 0;display:inline-flex;background:color-mix(in srgb,var(--sig-clients,#79aec2) 20%,transparent);color:var(--sig-clients,#79aec2);border-color:transparent}
 </style>
 </head>
 <body>
@@ -3899,6 +3901,15 @@ const _cc65=clientsCard61;clientsCard61=function(p){const h=_cc65(p);if(!h)retur
  t.content.querySelectorAll('.clirow').forEach(r=>{const b=r.querySelector('[data-act=profile]');if(!b)return;const x=U(b.dataset.arg);if(!x)return;
   if(p.client===x.id&&ccEditor(p)){const pm=cpOf(p,x);const row=r.querySelector('.grow>div:last-child');if(row)row.insertAdjacentHTML('beforeend',`<div style="margin-top:6px">${permChips(pm)}</div>`)}
   r.insertAdjacentHTML('beforeend',`<a class="iconbtn sm" data-act="access" data-arg="${x.id}" title="Access on all projects" aria-label="Access for ${esc(x.name)}">${ic('key',14)}</a>`)});return t.innerHTML};
+/* one client, many projects: a title per project, set when they're added */
+const _pc66=projCard;projCard=function(p,opts){const u=me();if(u&&u.role==='client')opts=Object.assign({},opts||{},{next:false});let h=_pc66(p,opts);
+ const c=u&&u.role==='client'&&ccOf(p,u.id);if(c&&c.title)h=h.replace(/(<h3[^>]*>)/,`<span class="chip roleme66">You · ${esc(c.title)}</span>$1`);return h};
+const _cpc66=clientProjCard;clientProjCard=function(p){let h=_cpc66(p);const u=me();const c=u&&ccOf(p,u.id);const tl=c?c.title:(p.client===u.id?'Main contact':'');
+ if(!tl)return h;const t=document.createElement('template');t.innerHTML=h;const e=t.content.querySelector('.eyebrow');if(e)e.insertAdjacentHTML('afterend',`<span class="chip roleme66">You · ${esc(tl)}</span>`);return t.innerHTML};
+const _cpa66=CHG.cpAddProj;CHG.cpAddProj=(uid,el)=>{const pid=el.value;_cpa66(uid,el);if(ccOf(P(pid),uid))ACT.ccEdit(pid+'|'+uid)};
+const _va66=VIEWS.access;VIEWS.access=()=>{const h=_va66();const x=U(V.p);if(!x||x.role!=='client')return h;const t=document.createElement('template');t.innerHTML=h;
+ t.content.querySelectorAll('.cpacc').forEach(card=>{const b=card.querySelector('[data-act=openProject]');const p=b&&P(b.dataset.arg);if(!p||p.client===x.id||!ccEditor(p))return;const chip=card.querySelector('.chip.gold');
+  if(chip)chip.insertAdjacentHTML('afterend',`<a class="iconbtn sm" data-act="ccEdit" data-arg="${p.id}|${x.id}" title="Change title on this project" aria-label="Change title on ${esc(p.name)}">${ic('edit',13)}</a>`)});return t.innerHTML};
 /* client messages: delete one, clear a project's client thread, or (owner) clear every client thread */
 const _att63=attHTML;attHTML=function(att,mid){return(mid?`<i class="mid63" data-mid="${mid}" hidden></i>`:'')+_att63(att,mid)};
 const canDelMsg63=p=>!!p&&isStaff()&&canDel('msg',{project:p.id});
