@@ -644,6 +644,11 @@ html.still .content>*,html.still .content.entering,html.still .msg,html.still .m
 .msgx63{margin-left:8px;opacity:0;color:var(--muted,#9aa);vertical-align:middle;cursor:pointer;transition:opacity .15s}
 .msg:hover .msgx63,.msgx63:focus{opacity:.8}.msgx63:hover{opacity:1;color:var(--st-bad,#c9605a)}
 @media (hover:none){.msgx63{opacity:.55}}
+
+.chip.deal64{font-size:11px;background:color-mix(in srgb,var(--sig-finance,#a7ad6e) 22%,transparent);color:var(--sig-finance,#a7ad6e);border-color:transparent}
+.dealbox{margin-top:4px}
+
+.cpacc .jp.dis{opacity:.55;cursor:default}
 </style>
 </head>
 <body>
@@ -3745,7 +3750,7 @@ function ctitles(){const base=[];CTITLES.forEach(t=>{if(CNUM.includes(t))for(let
 COMBO.title={items:ctitles,newLabel:q=>`＋ Add “${q}” as a new title`};
 const ctPick=(cur,label)=>`<label class="full ctpick">${esc(label||'Title on the client side')}<div style="margin-top:6px">${combo({src:'title',name:'ctitle_in',value:cur||'',ph:'Search a title or type a new one — e.g. Director, Asst. Producer 2'})}</div></label>`;
 const ctRead=fd=>String(fd.get('ctitle_in')||'').trim().replace(/\s+/g,' ');
-const permBoxes=pm=>`<div class="full"><div class="eyebrow" style="margin:6px 0 8px">What they can see on this project</div><div class="jobpick" style="max-height:none">${CPERM.map(([k,l,d])=>`<label class="jp"><input type="checkbox" name="perm" value="${k}" ${pm[k]?'checked':''}><span><b>${esc(l)}</b><i>${esc(d)}</i></span></label>`).join('')}</div><div class="tiny faint" style="margin-top:8px">Quotation & payments stay with the project’s main client contact. Internal tasks, costs, rates and studio notes are never shown to clients.</div></div>`;
+const permBoxes=pm=>`<div class="full"><div class="eyebrow" style="margin:6px 0 8px">What they can see on this project</div><div class="jobpick" style="max-height:none">${CPERM.map(([k,l,d])=>`<label class="jp"><input type="checkbox" name="perm" value="${k}" ${pm[k]?'checked':''}><span><b>${esc(l)}</b><i>${esc(d)}</i></span></label>`).join('')}</div><div class="tiny faint" style="margin-top:8px">Quotation & payments show only for people with Deal & money ticked on their profile. Internal tasks, costs, rates and studio notes are never shown to clients.</div></div>`;
 const permChips=pm=>CPERM.filter(([k])=>pm[k]).map(([,l])=>`<span class="chip" style="font-size:11px">${esc(l)}</span>`).join(' ')||'<span class="tiny faint">Credit only — no Hub access</span>';
 /* contact line: mail and mobile, tappable */
 function ccContact(x){const em=x.email&&!String(x.email).startsWith('mockup.')?x.email:'';const ph=x.phone||'';
@@ -3817,6 +3822,83 @@ const _vcl61=VIEWS.clients;VIEWS.clients=()=>{const h=_vcl61();if(!h||/This page
   sub.innerHTML=`<div class="row wrap" style="gap:6px;margin-top:4px">${tags||'<span class="faint">No project yet</span>'}</div><div style="margin-top:4px">${ccContact(x)}</div>`});
  t.content.querySelectorAll('b').forEach(b=>{if(b.textContent==='No company yet')b.textContent='Independent'});return t.innerHTML};
 
+/* deal & money: only client people ticked for it see quotation and payments — an artist on the project doesn't */
+const dealOn=(p,u)=>!!p&&!!u&&(u.deal===true||(u.deal==null&&p.client===u.id));
+const canSetDeal=()=>{const v=me();return!!v&&(isOwner()||v.role==='manager'||can('clients.manage')||can('admin.users'))};
+const dealBox=(on,note)=>canSetDeal()?`<label class="full jp dealbox"><input type="checkbox" name="deal" ${on?'checked':''}><span><b>Deal & money</b><i>${esc(note||'Sees quotation and payments on every project they’re on. Leave off for artists and creative people.')}</i></span></label>`:'';
+const _fs64=finSees;finSees=function(p,u){u=u||me();if(u&&u.role==='client')return!!p&&(p.client===u.id||!!ccOf(p,u.id))&&dealOn(p,u);return _fs64(p,u)};
+/* someone ticked for money needs at least the project itself */
+const _crl64=crewList;crewList=function(p){return _crl64(p).map(x=>{if(x.k!=='client'||x.access!=='credit')return x;const u=U(x.id);return u&&u.deal?Object.assign({},x,{access:'report'}):x})};
+/* the Quotation card on a client's Overview follows the tick */
+const _ov64=TABS.overview;TABS.overview=p=>{let h=_ov64(p);const u=me();if(!u||u.role!=='client')return h;const t=document.createElement('template');t.innerHTML=h;
+ const q=[...t.content.querySelectorAll('.card>h3')].find(x=>x.textContent.trim()==='Quotation');
+ if(!dealOn(p,u)){if(q)q.parentElement.remove();return t.innerHTML}
+ if(!q&&typeof p.quote==='number'){const rem=(p.quote||0)-(p.paid||0);const card=`<div class="card"><h3>Quotation</h3><div class="row"><span class="faint">Quoted</span><b class="right num">${money(p.quote)}</b></div><div class="row"><span class="faint">Paid</span><b class="right num" style="color:var(--ok)">${money(p.paid)}</b></div><div class="row"><span class="faint">Remaining</span><b class="right num">${money(rem)}</b></div><div style="margin-top:8px">${bar(p.quote?p.paid/p.quote*100:0,'green')}</div></div>`;
+  const side=t.content.querySelector('.crewc')||[...t.content.querySelectorAll('.card>h3')].find(x=>/Your team/.test(x.textContent));if(side){(side.closest('.card')||side).insertAdjacentHTML('afterend',card)}else t.content.append(document.createRange().createContextualFragment(card))}
+ return t.innerHTML};
+/* creation: the tick on both client forms */
+const _ccAdd64=ACT.ccAdd;ACT.ccAdd=pid=>{_ccAdd64(pid);const nf=document.querySelector('#modal form[data-form=ccAdd] .ccnewf');if(nf)nf.insertAdjacentHTML('beforeend',dealBox(false))};ACT.ccNew=ACT.ccAdd;
+const _nu64=ACT.newUser;ACT.newUser=()=>{_nu64();const f=document.querySelector('#modal form[data-form=user]');const ph=f&&f.querySelector('.ctlph');if(!ph)return;ph.insertAdjacentHTML('afterend',dealBox(false));
+ const sel=f.querySelector('select[name=job]');const d=f.querySelector('.dealbox');const sync=()=>{const jj=JOBS[sel.value];if(d)d.style.display=jj&&jj.dash==='client'?'':'none'};sel.addEventListener('change',sync);sync()};
+let DEAL_NEXT=null;
+const _fu64=FORM.user;FORM.user=fd=>{const j=JOBS[String(fd.get('job')||'')];if(!j||j.dash!=='client'||!canSetDeal())return _fu64(fd);DEAL_NEXT=fd.get('deal')!==null;const m=mkUser;mkUser=o=>{const u=m(o);u.deal=DEAL_NEXT;return u};try{return _fu64(fd)}finally{mkUser=m}};
+const _fca64=FORM.ccAdd;FORM.ccAdd=(fd,pid)=>{const box=document.querySelector('#modal form[data-form=ccAdd] .sbx[data-src=person]');if(box&&box.dataset.new==='1'&&fd.get('deal')!==null){DEAL_NEXT=true;const m=mkUser;mkUser=o=>{const u=m(o);u.deal=true;return u};try{return _fca64(fd,pid)}finally{mkUser=m}}return _fca64(fd,pid)};
+/* profile editing: the tick on a client's edit form */
+const _eu64=ACT.editUser;ACT.editUser=id=>{_eu64(id);const x=U(id);if(!x||x.role!=='client')return;const f=document.querySelector('#modal form[data-form=userEdit]');if(!f||f.querySelector('.dealbox'))return;
+ const at=f.querySelector('button[type=submit]');const html=dealBox(x.deal===true||(x.deal==null&&S.projects.some(p=>p.client===x.id)))+(canSetDeal()?'<input type="hidden" name="dealShown" value="1">':'');
+ if(!html)return;const row=at&&at.closest('.full');if(row)row.insertAdjacentHTML('beforebegin',html);else f.insertAdjacentHTML('beforeend',html)};
+const _fue64=FORM.userEdit;FORM.userEdit=(fd,id)=>{const x=U(id);if(x&&x.role==='client'&&fd.has('dealShown')&&canSetDeal())x.deal=fd.has('deal');return _fue64(fd,id)};
+/* show the tick where client people are listed */
+const dealChip='<span class="chip deal64" title="Sees quotation and payments">Deal & money</span>';
+const _cc64=clientsCard61;clientsCard61=function(p){let h=_cc64(p);if(!h)return h;const t=document.createElement('template');t.innerHTML=h;
+ t.content.querySelectorAll('.clirow').forEach(r=>{const b=r.querySelector('[data-act=profile]');const x=b&&U(b.dataset.arg);if(!x)return;const sub=r.querySelector('.grow>div:last-child');
+  if(dealOn(p,x)){const row1=r.querySelector('.grow>.row');if(row1)row1.insertAdjacentHTML('beforeend',dealChip)}
+  if(p.client===x.id&&sub)sub.innerHTML=`<span class="tiny faint">Main contact · ${dealOn(p,x)?'sees the client view with quotation and payments':'sees the client view — no money'}</span>`});return t.innerHTML};
+/* client access, per project, for main contacts too: what each client person sees is a set of switches */
+const MAIN_DEF={status:true,previews:true,approve:true,thread:true,files:true};
+const cpOf=(p,u)=>{if(!p||!u||u.role!=='client')return null;const c=ccOf(p,u.id);if(c)return c.perms||{};if(p.client===u.id)return Object.assign({},MAIN_DEF,p.mainPerms||{});return null};
+const cpAllow=(p,k,u)=>{const pm=cpOf(p,u||me());return!pm||!!pm[k]};
+/* main contact: tabs, thread, previews and approvals follow the switches */
+const _ch65=channelsFor;channelsFor=function(p,u){u=u||me();const r=_ch65(p,u);return u&&u.role==='client'&&!cpAllow(p,'thread',u)?r.filter(c=>c!=='client'):r};
+const _vp65=VIEWS.project;VIEWS.project=()=>{const u=me();const p=P(V.p);if(!u||u.role!=='client'||!p||!cpOf(p,u)||ccOf(p,u.id))return _vp65();
+ const ok=t=>t==='overview'||(t==='thread'&&cpAllow(p,'thread'))||(t==='files'&&cpAllow(p,'files'))||(t==='report'&&cpAllow(p,'status'));if(!ok(V.tab||'overview'))V.tab='overview';
+ const h=_vp65();const t=document.createElement('template');t.innerHTML=h;t.content.querySelectorAll('[data-act=tab],[data-act=ptab]').forEach(a=>{if(!ok(a.dataset.arg))a.remove()});return t.innerHTML};
+const _pvh65=previewsHTML;previewsHTML=function(p){const u=me();if(u&&u.role==='client'&&!ccOf(p,u.id)&&p.client===u.id){if(!cpAllow(p,'previews')&&!cpAllow(p,'approve'))return'';const h=_pvh65(p);if(cpAllow(p,'approve'))return h;
+  const t=document.createElement('template');t.innerHTML=h;t.content.querySelectorAll('[data-act=pvOk]').forEach(b=>{const r=b.closest('.row');(r||b).remove()});return t.innerHTML}return _pvh65(p)};
+['pvOk','pvChg'].forEach(k=>{const o=ACT[k];if(o)ACT[k]=(a,el,e)=>{const p=P(String(a).split('|')[0]);if(me()&&me().role==='client'&&!cpAllow(p,'approve'))return;return o(a,el,e)}});
+const _ov65=TABS.overview;TABS.overview=p=>{let h=_ov65(p);const u=me();if(!u||u.role!=='client'||ccOf(p,u.id)||cpAllow(p,'status'))return h;const t=document.createElement('template');t.innerHTML=h;
+ const f=[...t.content.querySelectorAll('h3')].find(x=>x.textContent.trim()==='Flow');if(f){const nx=f.nextElementSibling;if(nx)nx.remove();f.textContent='Brief'}return t.innerHTML};
+const _cpc65=clientProjCard;clientProjCard=function(p){const h=_cpc65(p);const u=me();const t=document.createElement('template');t.innerHTML=h;
+ if(!dealOn(p,u)){const q=[...t.content.querySelectorAll('.eyebrow')].find(e=>e.textContent.trim()==='Quotation');if(q&&q.parentElement)q.parentElement.remove()}
+ if(!cpAllow(p,'previews')&&!cpAllow(p,'approve'))t.content.querySelectorAll('a[target=_blank]').forEach(a=>{if(/Latest preview/.test(a.textContent))a.remove()});
+ if(!cpAllow(p,'thread'))t.content.querySelectorAll('[data-act]').forEach(a=>{if(/Message the team/.test(a.textContent))a.remove()});return t.innerHTML};
+const _rw65=rewardsBlock;rewardsBlock=function(){const h=_rw65();const u=me();if(!u||u.role!=='client'||visibleProjects().some(p=>dealOn(p,u)))return h;const t=document.createElement('template');t.innerHTML=h;t.content.querySelectorAll('.tier').forEach(e=>e.remove());return t.innerHTML};
+/* the client Access page */
+const clientEditable=x=>S.projects.filter(p=>(p.client===x.id||ccOf(p,x.id))&&ccEditor(p));
+const _va65=VIEWS.access;VIEWS.access=()=>{const x=U(V.p);if(!x||x.role!=='client')return _va65();if(!isStaff()||!(canSetDeal()||clientEditable(x).length||seesClients(me())))return deny();
+ const ps=S.projects.filter(p=>p.client===x.id||ccOf(p,x.id)).sort((a,b)=>(a.status==='done')-(b.status==='done'));
+ const proj=p=>{const ed=ccEditor(p);const main=p.client===x.id;const c=ccOf(p,x.id);const pm=cpOf(p,x);const title=main?'Main contact':(c&&c.title)||x.title||'';
+  return`<div class="card cpacc"><div class="row wrap" style="gap:10px;margin-bottom:12px"><b style="font-weight:500;font-size:16px;cursor:pointer" data-act="openProject" data-arg="${p.id}">${esc(p.name)}</b><span class="chip gold" style="font-size:11px">${esc(title)}</span>${p.status==='done'?'<span class="chip" style="font-size:11px">Delivered</span>':''}${dealOn(p,x)?dealChip:''}${!main&&ed?`<a class="btn sm ghost right" data-act="ccDel" data-arg="${p.id}|${x.id}">${ic('x',14)}Remove from project</a>`:''}</div>
+  <div class="jobpick" style="max-height:none">${CPERM.map(([k,l,d])=>`<label class="jp ${ed?'':'dis'}"><input type="checkbox" data-change="cpSet" data-arg="${p.id}|${x.id}|${k}" ${pm[k]?'checked':''} ${ed?'':'disabled'}><span><b>${esc(l)}</b><i>${esc(d)}</i></span></label>`).join('')}</div>${ed?'':'<div class="tiny faint" style="margin-top:8px">Only the owner, a manager or this project’s producer can change these.</div>'}</div>`};
+ const addable=S.projects.filter(p=>ccEditor(p)&&p.status!=='done'&&p.client!==x.id&&!ccOf(p,x.id));
+ return`<div class="hello">${av(x,54)}<div class="grow"><div class="eyebrow">Client · ${esc(x.title||'')}${x.company?' · '+esc(x.company):' · Independent'}</div><h1>${esc(x.name)} — access</h1><div class="muted">${ccContact(x)}</div><div class="muted tiny" style="margin-top:6px">What ${esc(first(x))} can see on each project. Changes take effect the moment you tick a box.</div></div><div class="col" style="align-items:flex-end"><a class="btn sm" data-act="editUser" data-arg="${x.id}">${ic('edit',14)}Edit details</a></div></div>
+ <div class="card" style="margin-bottom:14px"><div class="row wrap" style="gap:12px"><div class="grow"><b style="font-weight:500">Deal & money</b><div class="tiny faint">Quotation and payments on every project ${esc(first(x))} is on. Leave off for artists and creative people.</div></div>${canSetDeal()?`<label class="jp" style="margin:0"><input type="checkbox" data-change="dealSet" data-arg="${x.id}" ${x.deal===true||(x.deal==null&&ps.some(p=>p.client===x.id))?'checked':''}><span><b>${(x.deal===true||(x.deal==null&&ps.some(p=>p.client===x.id)))?'On':'Off'}</b></span></label>`:`<span class="chip">${x.deal?'On':'Off'}</span>`}</div></div>
+ <div class="sec-title"><h2>Projects</h2><span class="tiny faint">${ps.length} project${ps.length===1?'':'s'}</span></div>
+ ${ps.length?`<div class="col" style="gap:14px">${ps.map(proj).join('')}</div>`:'<div class="card empty">Not on any project yet.</div>'}
+ ${addable.length?`<div class="card" style="margin-top:14px"><div class="row wrap" style="gap:10px"><b style="font-weight:500">Add to a project</b><select data-change="cpAddProj" data-arg="${x.id}" style="flex:1;min-width:220px"><option value="">Choose a project…</option>${addable.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></div></div>`:''}`};
+Object.assign(CHG,{
+ cpSet:(a,el)=>{const[pid,uid,k]=a.split('|');const p=P(pid);const x=U(uid);if(!ccEditor(p)||!x)return;const on=el.checked;
+  if(p.client===uid&&!ccOf(p,uid)){p.mainPerms=Object.assign({},MAIN_DEF,p.mainPerms||{},{[k]:on});if(k==='approve'&&on)p.mainPerms.previews=true}
+  else{const c=ccOf(p,uid);if(!c)return;c.perms=Object.assign({},c.perms||{},{[k]:on});if(k==='approve'&&on)c.perms.previews=true;c.access=ccAcc(c.perms)}
+  save();render();toast(`${first(x)} · ${CPERM.find(z=>z[0]===k)[1]} ${on?'on':'off'} for ${p.name}`,'ok')},
+ dealSet:(uid,el)=>{const x=U(uid);if(!x||!canSetDeal())return;x.deal=el.checked;save();render();toast(`Deal & money ${x.deal?'on':'off'} for ${x.name}`,'ok')},
+ cpAddProj:(uid,el)=>{const p=P(el.value);const x=U(uid);if(!p||!x||!ccEditor(p))return;p.clientCrew=p.clientCrew||[];const perms=Object.assign({},CPERM_DEF);p.clientCrew.push({id:uid,title:x.title&&x.title!=='Client contact'?x.title:'',perms,access:ccAcc(perms)});
+  notify([uid],`${me().name} added you to ${p.name}`,{v:'project',p:p.id});save();render();toast(`${x.name} added to ${p.name}`,'ok')}});
+/* reach it from the Clients card on a project too */
+const _cc65=clientsCard61;clientsCard61=function(p){const h=_cc65(p);if(!h)return h;const t=document.createElement('template');t.innerHTML=h;
+ t.content.querySelectorAll('.clirow').forEach(r=>{const b=r.querySelector('[data-act=profile]');if(!b)return;const x=U(b.dataset.arg);if(!x)return;
+  if(p.client===x.id&&ccEditor(p)){const pm=cpOf(p,x);const row=r.querySelector('.grow>div:last-child');if(row)row.insertAdjacentHTML('beforeend',`<div style="margin-top:6px">${permChips(pm)}</div>`)}
+  r.insertAdjacentHTML('beforeend',`<a class="iconbtn sm" data-act="access" data-arg="${x.id}" title="Access on all projects" aria-label="Access for ${esc(x.name)}">${ic('key',14)}</a>`)});return t.innerHTML};
 /* client messages: delete one, clear a project's client thread, or (owner) clear every client thread */
 const _att63=attHTML;attHTML=function(att,mid){return(mid?`<i class="mid63" data-mid="${mid}" hidden></i>`:'')+_att63(att,mid)};
 const canDelMsg63=p=>!!p&&isStaff()&&canDel('msg',{project:p.id});
