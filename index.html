@@ -329,7 +329,7 @@ html[data-theme] .brand img{max-width:150px;display:block}
 html[data-theme] .brand .sub{color:var(--railtext);opacity:.75;letter-spacing:.32em}
 html[data-theme] .brand .mk{display:none;align-items:center;gap:10px;font:500 16px var(--display);color:var(--railontext)}
 html[data-theme] .brand .mk i{width:34px;height:34px;border-radius:9px;background:var(--forest) var(--markimg) center/62% no-repeat;display:block}
-html[data-theme=light] .brand img,html[data-theme=light] .brand .sub{display:none}html[data-theme=light] .brand .mk{display:flex}
+
 html[data-theme] .nav a{color:var(--railtext);border:0;border-radius:8px;padding:9px 12px;font-size:14px}
 html[data-theme] .nav a:hover{background:color-mix(in srgb,var(--railon) 55%,transparent);color:var(--railontext)}
 html[data-theme] .nav a.on{background:var(--railon);color:var(--railontext);font-weight:500;border:0}
@@ -484,6 +484,8 @@ html[data-theme] .top{position:sticky;top:0;z-index:20;padding-top:max(16px,calc
 .recacts{display:inline-flex;gap:6px;margin-left:auto}.iconbtn.sm{width:32px;height:32px}.recbar{margin-bottom:10px;gap:8px}.danger{color:var(--coral-fg)!important}.btn.danger{border-color:color-mix(in srgb,var(--coral-fg) 40%,var(--line))}.btn.danger:not(:disabled):hover{background:var(--coral-bg)}button.btn:disabled{opacity:.45;cursor:not-allowed}
 .pen{margin-left:4px}.card.hover .row{gap:8px}
 .figbar{gap:10px;margin-bottom:12px}
+.delcode{font:600 18px var(--display);letter-spacing:.15em;padding:1px 8px;border-radius:6px;background:var(--honey-bg);color:var(--honey-fg);margin:0 4px}
+html[data-theme=light] .brand img{background:var(--forest);padding:8px 10px;border-radius:10px;box-sizing:content-box}
 </style>
 </head>
 <body>
@@ -2931,7 +2933,7 @@ VIEWS.projects=(()=>{const _old=VIEWS.projects;return()=>{const u=me();if(u.role
  return`<div class="row wrap" style="gap:10px;margin-bottom:4px"><div class="ptabs grow">${Object.keys(L).map(k=>`<a class="${tab===k?'on':''}" data-act="ptab" data-arg="${k}">${L[k]} <span>${G[k].length}</span></a>`).join('')}</div><input class="psearch" placeholder="Search projects" value="${esc(V.pq||'')}" data-change="pq" style="width:220px">${perSel()}${can('proj.create')?`<a class="btn pri" data-act="newProject">${ic('plus',16)}New project</a>`:''}</div>
  <div class="pgrid" style="margin-top:16px">${list.map(p=>pcardHTML(p)).join('')||`<div class="card empty" style="grid-column:1/-1">${q?`No projects match “${esc(V.pq)}”. <a class="btn sm" data-act="pqClear">Clear search</a>`:`No ${L[tab].toLowerCase()} projects in ${perLabel()}`}</div>`}</div>
  <div class="tiny faint" style="margin-top:10px">Showing ${list.length} of ${G[tab].length} ${L[tab].toLowerCase()} project${G[tab].length!==1?'s':''} · ${perLabel()}${ps.length<all.length?` · ${all.length-ps.length} outside this period`:''}</div>
- ${canPerMoney()?`<div style="margin-top:18px">${sec('projMoney','Money · '+perLabel(),'Owner and finance members only',perKPIs(all),false)}</div>`:''}`}})();
+ `}})();
 ACT.ptab=k=>{V.ptab=k;render()};CHG.pq=(a,el)=>{V.pq=el.value;render()};ACT.pqClear=()=>{V.pq='';render()};
 
 /* phone: four destinations and More; money forms ask for a rate only for foreign currency */
@@ -3006,7 +3008,7 @@ function threadUnread(u){u=u||me();const since=u.readsInit||0;const R=u.reads||{
 function msgUnread(){const u=me();if(!u)return 0;const dm=dmsFor().reduce((a,t)=>a+t.unread,0);return dm+(u.readsInit?threadUnread(u):0)}
 function markThreadRead(){const u=me();if(!u||V.v!=='project'||V.tab!=='thread'||!V.ch||!V.p)return;if(!u.readsInit){u.readsInit=Date.now()}u.reads=u.reads||{};const k=V.p+'|'+V.ch;const last=S.msgs.filter(m=>m.project===V.p&&m.ch===V.ch).reduce((a,m)=>Math.max(a,m.ts||0),0);if((u.reads[k]||0)<last){u.reads[k]=last;save()}}
 /* finance eye only where figures are on the page */
-const finPage=()=>V.v==='finance'||(V.v==='project'&&V.tab==='money')||(V.v==='projects'&&canPerMoney())||V.v==='client';
+const finPage=()=>V.v==='finance'||(V.v==='project'&&V.tab==='money')||V.v==='client';
 /* shell: photo once (sidebar on desktop, bottom bar on phone/tablet), ⋯ menu for everything else */
 var DOTS_OPEN=false;ACT.dots=()=>{DOTS_OPEN=!DOTS_OPEN;const p=document.getElementById('dotspanel');if(p)p.classList.toggle('open',DOTS_OPEN)};
 document.addEventListener('click',e=>{if(DOTS_OPEN&&!e.target.closest('.dotswrap')){DOTS_OPEN=false;const p=document.getElementById('dotspanel');if(p)p.classList.remove('open')}});
@@ -3088,17 +3090,17 @@ function aboutReadOnly(){if(V.v!=='profile')return;const v=me();if(V.p&&V.p!==v.
 const _rd38=render;render=function(){_rd38();try{aboutReadOnly()}catch(e){console.warn(e)}};
 
 /* ================= revision 03 · E: view → edit → save, delete with owner-set roles, people managed in their directories ================= */
-const DELR=()=>Object.assign({manager:true,producer:false},(BRAND&&BRAND.delRoles)||{});
+const DEL_CODE={};const DELR=()=>Object.assign({manager:true,producer:false},(BRAND&&BRAND.delRoles)||{});
 function canDel(kind,rec){const u=me();if(isOwner())return true;const ok=DELR()[u.role==='manager'?'manager':'producer'];if(!ok)return false;if(isMgmt())return true;
  const p=kind==='project'?rec:P(rec&&rec.project);return!!(p&&canManage(p))}
 const DEL_K={task:['task',()=>S.tasks,x=>x.title],project:['project',()=>S.projects,x=>x.name],drive:['drive',()=>S.devices,x=>x.code||drvCode(x,P(x.project))],file:['file',()=>S.files,x=>x.name]};
 ACT.recDel=a=>{const[k,id]=a.split('|');const D_=DEL_K[k];const r=D_&&D_[1]().find(x=>x.id===id);if(!r||!canDel(k,r))return;const nm=String(D_[2](r)||'').trim();
  let extra='';if(k==='project'){const ent=(S.entries||[]).filter(e=>e.project===id).length;if(ent){modal('Can’t delete this project yet',`<p class="muted" style="margin-top:0">“${esc(nm)}” has ${ent} money entr${ent>1?'ies':'y'}. Remove or move them on its Money tab first, so the Cashflow stays right.</p><div class="row"><a class="btn right" data-act="closeModal">OK</a></div>`);return}
   const tn=S.tasks.filter(t=>t.project===id).length,mn=S.msgs.filter(m=>m.project===id).length,fn=S.files.filter(f=>f.project===id).length,dn=S.devices.filter(d=>d.project===id).length;extra=`<p class="tiny faint">This also deletes ${tn} task${tn!==1?'s':''}, ${mn} message${mn!==1?'s':''} and ${fn} file link${fn!==1?'s':''}.${dn?` ${dn} drive${dn>1?'s':''} stay in Storage, unlinked.`:''}</p>`}
- modal(`Delete ${D_[0]}`,`<p style="margin-top:0">Type <b>${esc(nm)}</b> to confirm. This can’t be undone.</p>${extra}<form data-form="recDel" data-arg="${a}" class="col"><input name="nm" autocomplete="off" placeholder="${esc(nm)}" data-change="recDelType" data-arg="${esc(nm)}"><div class="row" style="margin-top:12px"><a class="btn ghost" data-act="closeModal">Cancel</a><button class="btn right danger" type="submit" disabled>${ic('trash',15)}Delete ${D_[0]}</button></div></form>`)};
+ const code=String(10+Math.floor(Math.random()*90));DEL_CODE[a]=code;modal(`Delete ${D_[0]}`,`<p style="margin-top:0">Delete <b>${esc(nm)}</b>? This can’t be undone.</p>${extra}<form data-form="recDel" data-arg="${a}" class="col"><label>Type <b class="delcode">${code}</b> to confirm<input name="nm" inputmode="numeric" maxlength="2" autocomplete="off" placeholder="${code}" data-arg="${code}"></label><div class="row" style="margin-top:12px"><a class="btn ghost" data-act="closeModal">Cancel</a><button class="btn right danger" type="submit" disabled>${ic('trash',15)}Delete ${D_[0]}</button></div></form>`)};
 document.addEventListener('input',e=>{const i=e.target;if(i.name==='nm'&&i.closest('form[data-form=recDel]')){const b=i.form.querySelector('button[type=submit]');b.disabled=i.value.trim()!==i.dataset.arg}},true);
 CHG.recDelType=()=>{};
-FORM.recDel=(fd,a)=>{const[k,id]=a.split('|');const D_=DEL_K[k];const r=D_&&D_[1]().find(x=>x.id===id);if(!r||!canDel(k,r))return;if(String(fd.get('nm')||'').trim()!==String(D_[2](r)||'').trim())return;
+FORM.recDel=(fd,a)=>{const[k,id]=a.split('|');const D_=DEL_K[k];const r=D_&&D_[1]().find(x=>x.id===id);if(!r||!canDel(k,r))return;if(!DEL_CODE[a]||String(fd.get('nm')||'').trim()!==DEL_CODE[a])return;delete DEL_CODE[a];
  if(k==='task')S.tasks=S.tasks.filter(x=>x.id!==id);
  if(k==='drive')S.devices=S.devices.filter(x=>x.id!==id);
  if(k==='file')S.files=S.files.filter(x=>x.id!==id);
@@ -3118,7 +3120,7 @@ FORM.taskEdit=(fd,id)=>{const t=S.tasks.find(x=>x.id===id);const p=t&&P(t.projec
  save();render();taskModal(t);toast('Task saved','ok')};
 /* drives: read-only until Edit */
 const _dr39=drvRow;drvRow=function(p,d,ed){const can=ed;const on=can&&V.drvEd===d.id;let h=_dr39(p,d,on);if(!V.open['dv'+d.id])return h;
- const acts=`<div class="row recbar">${can?(on?`<a class="btn sm pri" data-act="drvEd" data-arg="">${ic('check',14)}Done</a>`:`<a class="btn sm" data-act="drvEd" data-arg="${d.id}">${ic('edit',14)}Edit</a>`):''}${canDel('drive',d)&&can?`<a class="btn sm ghost right danger" data-act="recDel" data-arg="drive|${d.id}">${ic('trash',14)}Delete</a>`:''}</div>`;
+ const acts=`<div class="row recbar">${can?(on?`<a class="btn sm pri" data-act="drvEd" data-arg="">${ic('check',14)}Done</a>`:`<a class="btn sm" data-act="drvEd" data-arg="${d.id}">${ic('edit',14)}Edit</a>`):''}${canDel('drive',d)?`<a class="btn sm ghost right danger" data-act="recDel" data-arg="drive|${d.id}">${ic('trash',14)}Delete</a>`:''}</div>`;
  return h.replace('<div class="drvb">','<div class="drvb">'+acts)};
 ACT.drvEd=id=>{V.drvEd=id||null;render()};
 /* projects: Delete inside Edit details */
@@ -3137,7 +3139,7 @@ const _rd39=render;render=function(){_rd39();try{pencils()}catch(e){}};
 const _nav39=navItems;navItems=function(){const N=_nav39().filter(x=>x[0]!=='admin');return N.filter((x,i)=>!(x[0]==='__'&&(!N[i+1]||N[i+1][0]==='__')))};
 /* owner decides who can delete */
 ACT.delRole=k=>{if(!isOwner())return;const d=DELR();d[k]=!d[k];BRAND=Object.assign({},BRAND,{delRoles:d});save();render();toast(`${k==='manager'?'Managers':'Producers'} ${d[k]?'can':'can’t'} delete records now`,'ok')};
-const _vt39=VIEWS.team;VIEWS.team=()=>{const h=_vt39();if(!isOwner())return h;const d=DELR();return h+`<div class="card prefrow" style="margin-top:16px"><div class="row wrap" style="gap:12px"><div class="grow"><b style="font-weight:500">Who can delete records</b><div class="tiny faint">Tasks, projects, drives and file links. The owner always can; everyone confirms by typing the name.</div></div>${[['manager','Managers'],['producer','Producers (their projects)']].map(([k,l])=>`<label class="row" style="gap:6px;cursor:pointer"><input type="checkbox" ${d[k]?'checked':''} data-act="delRole" data-arg="${k}"> ${l}</label>`).join('')}</div></div>`};
+const _vt39=VIEWS.team;VIEWS.team=()=>{const h=_vt39();if(!isOwner())return h;const d=DELR();return h+`<div class="card prefrow" style="margin-top:16px"><div class="row wrap" style="gap:12px"><div class="grow"><b style="font-weight:500">Who can delete records</b><div class="tiny faint">Tasks, projects, drives and file links. The owner always can; everyone confirms with a two-digit code.</div></div>${[['manager','Managers'],['producer','Producers (their projects)']].map(([k,l])=>`<label class="row" style="gap:6px;cursor:pointer"><input type="checkbox" ${d[k]?'checked':''} data-act="delRole" data-arg="${k}"> ${l}</label>`).join('')}</div></div>`};
 /* Studio handbook: owner and management only */
 const _hb39=VIEWS.handbook;if(_hb39)VIEWS.handbook=()=>isMgmt()?_hb39():deny();
 
@@ -3148,6 +3150,9 @@ const _vf40=VIEWS.finance;VIEWS.finance=()=>{const h=_vf40();if(!isOwner()||h.in
 const figBar=()=>finAny()?`<div class="row figbar">${eyeBtn('btn sm')}<span class="tiny faint">${FIN_SHOW?'Figures are showing — they hide again after 3 minutes':'Figures are hidden'}</span></div>`:'';
 const _vf41=VIEWS.finance;VIEWS.finance=()=>{const h=_vf41();return h.includes('data-act="finEye"')?h:figBar()+h};
 if(TABS.money){const _tm41=TABS.money;TABS.money=p=>{const h=_tm41(p);return h.includes('data-act="finEye"')?h:figBar()+h}}
+
+/* drives in Storage can be deleted the same way */
+const _dm42=devModal;devModal=function(d){_dm42(d);const m=document.querySelector('#modal .modal');if(!m||!canDel('drive',d))return;const hd=m.querySelector('.mh');if(hd&&!hd.querySelector('.recacts')){const x=hd.querySelector('[data-act=closeModal]');const sp=document.createElement('span');sp.className='recacts';sp.innerHTML=`<a class="iconbtn sm" data-act="recDel" data-arg="drive|${d.id}" title="Delete drive" aria-label="Delete drive">${ic('trash',15)}</a>`;if(x)x.before(sp);else hd.appendChild(sp)}};
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
