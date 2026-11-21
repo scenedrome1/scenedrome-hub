@@ -4203,6 +4203,16 @@ const _nav9=navItems;navItems=function(){const N=_nav9();if(!me()||!rmView())ret
  if(at>=0)N.splice(at+1,0,['rooms','Rooms & booking','cal']);else{const y=N.findIndex(x=>x[0]==='__'&&x[1]==='You');const it=[['__','Studio'],['rooms','Rooms & booking','cal']];if(y>=0)N.splice(y,0,...it);else N.push(...it)}return N};
 const _shell9=shellHTML;shellHTML=function(){const h=_shell9();return V.v==='rooms'?h.replace('<h2></h2>','<h2>Rooms & booking</h2>'):h};
 
+/* ---------- 8. finance hidden from clients until the owner says otherwise (flip CLIENT_FINANCE to true to bring it back) ---------- */
+const CLIENT_FINANCE=false;
+if(!CLIENT_FINANCE){
+ const isCl=()=>{const u=me();return !!u&&u.role==='client'};
+ const strip=(html,fn)=>{const t=document.createElement('template');t.innerHTML=html;fn(t.content);return t.innerHTML};
+ const _fs8=finSees;finSees=function(p,u){u=u||me();if(u&&u.role==='client')return false;return _fs8(p,u)};
+ const _cpc8=clientProjCard;clientProjCard=function(p){return strip(_cpc8(p),c=>{const q=[...c.querySelectorAll('.eyebrow')].find(e=>e.textContent.trim()==='Quotation');if(q&&q.parentElement)q.parentElement.remove()})};
+ const _ov8=TABS.overview;TABS.overview=function(p){const h=_ov8(p);return isCl()?strip(h,c=>{[...c.querySelectorAll('.card>h3')].filter(x=>/^(Quotation|Payments?|Money)$/.test(x.textContent.trim())).forEach(x=>x.parentElement.remove())}):h};
+ const _rw8=rewardsBlock;rewardsBlock=function(){const h=_rw8();return isCl()?strip(h,c=>{c.querySelectorAll('.tier').forEach(e=>e.remove());[...c.querySelectorAll('.eyebrow')].filter(e=>/^Your points$/.test(e.textContent.trim())).forEach(e=>{const card=e.closest('.card');if(card)card.remove()});c.querySelectorAll('.offer .tiny').forEach(e=>{e.textContent=e.textContent.replace(/\d+% off /i,'Special ')})}):h};
+}
 /* ---------- 7. pull down from the top to refresh ---------- */
 (function(){const bar=document.createElement('div');bar.style.cssText='position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 8px);transform:translate(-50%,-70px);z-index:300;padding:8px 14px;border-radius:999px;background:var(--panel);border:1px solid var(--line2,var(--line));font-size:13px;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.35)';bar.textContent='↓ Pull to refresh';document.body.appendChild(bar);
  let y0=null,dy=0,go_=false;const TH=90;
