@@ -536,6 +536,11 @@ form[data-form=groupSend] .composer{gap:6px}form[data-form=groupSend] .composer 
 .ovbar{gap:10px;margin-bottom:12px}.taskbadge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--line2);border-radius:99px;cursor:pointer;font-weight:500;text-decoration:none;color:var(--text)}.taskbadge:hover{border-color:var(--gold)}
 .epacts{gap:8px;margin-bottom:10px}
 .cmedia .attx{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;display:grid;place-items:center;font-size:12px;z-index:2}
+.ptabs2 a{display:inline-flex;align-items:center;gap:7px}.ptabs2 a svg{flex:none;opacity:.8}.ptabs2 a.on svg{opacity:1;color:var(--gold2)}
+@media (max-width:760px){.ptabs2{justify-content:space-between;gap:0!important}.ptabs2 a{flex:1;justify-content:center;margin:0!important;padding:10px 0!important}.ptabs2 a span{display:none}.ptabs2 .tabmore{display:none!important}}
+.phright{display:flex;flex-direction:column;align-items:flex-end;gap:8px;margin-left:auto}.phbtns{gap:8px}
+@media (max-width:760px){.phright{align-items:flex-start;margin-left:0;width:100%}}
+.subhead{gap:12px;margin:-4px 0 12px}.ovfold{margin-top:14px;display:flex;flex-direction:column;gap:12px}
 </style>
 </head>
 <body>
@@ -3437,6 +3442,35 @@ const _tab51=ACT.tab;ACT.tab=t=>{if(t!=='thread')V.thEp=null;return _tab51(t)};
 /* chat: documents too, and the owner can remove any attachment */
 const _vg51=VIEWS.group;VIEWS.group=()=>{let h=_vg51();h=h.replace('accept="image/*,video/*" data-change="attachChat"','accept="image/*,video/*,.pdf,.txt" data-change="attachChat"');if(!isOwner())return h;const ms=groupMsgs();let mi=0;
  return h.replace(/<div class="cmedias">([\s\S]*?)<\/div>(?=<div class="bubble">|<\/div><\/div>)/g,(m0,inner)=>{while(mi<ms.length&&!(ms[mi].att||[]).length)mi++;const m=ms[mi++];if(!m)return m0;let j=0;return`<div class="cmedias">${inner.replace(/<\/a>/g,()=>`<span class="attx" data-act="attDel" data-arg="${m.id}|${j++}" title="Delete attachment" aria-label="Delete attachment">✕</span></a>`)}</div>`})};
+
+/* ================= project tabs: Overview · Footage · Edit · Grading · VFX · Sound (· Creative Services) ================= */
+const SVC_TABS=SVCS.map(x=>x[0]);
+const staffTabs=(p,u)=>isStaff(u)&&u.role!=='partner'&&!crewOnly(p,u);
+const _vp52=VIEWS.project;VIEWS.project=()=>{const p=P(V.p);const u=me();if(!p||!staffTabs(p,u))return _vp52();
+ const on=pSvc(p);if(V.tab==='breakdown')V.tab=on[0]||'overview';if(V.tab==='briefs')V.tab=on.includes('vfx')?'vfx':on.includes('sound')?'sound':'overview';
+ if(SVC_TABS.includes(V.tab)&&!on.includes(V.tab))V.tab='overview';
+ const svc=SVC_TABS.includes(V.tab)?V.tab:null;const keepTab=V.tab,keepMode=V.bkMode;
+ if(svc){V.tab='breakdown';V.bkMode=Object.assign({},keepMode,{[p.id]:svc})}
+ let h;try{h=_vp52()}finally{V.tab=keepTab;if(svc)V.bkMode=Object.assign({},keepMode,{[p.id]:svc})}
+ const items=[['overview','Overview','home'],...SVCS.filter(([k])=>on.includes(k))];
+ const bar=`<div class="tabs ptabs2" role="tablist">${items.map(([k,l,i])=>`<a class="${V.tab===k?'on':''}" role="tab" aria-selected="${V.tab===k}" aria-label="${esc(l)}" title="${esc(l)}" data-act="tab" data-arg="${k}">${ic(i,16)}<span>${esc(l)}</span></a>`).join('')}</div>`;
+ h=h.replace(/<div class="tabs">[\s\S]*?<\/div>/,bar);
+ if(svc)h=h.replace(/<div class="seg svcmenu"[\s\S]*?<\/div>/,'');
+ /* Thread and Deal sit under the project status, like Message on a profile */
+ const acts=`<div class="row phbtns"><a class="btn sm ${V.tab==='thread'?'pri':''}" data-act="tab" data-arg="thread">${ic('chat',14)}Thread</a>${canMoney(p)?`<a class="btn sm ${V.tab==='money'?'pri':''}" data-act="tab" data-arg="money">${ic('wallet',14)}Deal</a>`:''}</div>`;
+ h=h.replace(/(<div class="card phead">[\s\S]*?)(<span class="chip [^"]*">[^<]*<\/span>)(<\/div>)/,(m,a,chip,end)=>`${a}<div class="phright">${chip}${acts}</div>${end}`);
+ /* opened from Overview: a way back */
+ if(['thread','money','tasks','files','drives','report'].includes(V.tab)){const L={thread:'Thread',money:'Deal',tasks:'Tasks',files:'Files & links',drives:'Drives',report:'Status report'}[V.tab];h=h.replace(bar,bar+`<div class="row subhead"><a class="btn sm ghost" data-act="tab" data-arg="overview">${ic('back',14)}Overview</a><b>${L}</b></div>`)}
+ return h};
+/* Overview gathers the rest: Status report and Drives fold open; Files & links and Tasks stay one tap away */
+const _ov52=TABS.overview;TABS.overview=p=>{let h=_ov52(p);const u=me();if(!staffTabs(p,u))return h;
+ const ep=TYPES[p.type].episodic&&p.episodes;const kr='ovrep'+p.id,kd='ovdrv'+p.id;
+ const rep=ep&&TABS.report?sec(kr,'Status report','',V.open[kr]===true?TABS.report(p):'',false):'';
+ const drv=TABS.drives?sec(kd,'Drives',`${S.devices.filter(d=>d.project===p.id).length} drive${S.devices.filter(d=>d.project===p.id).length!==1?'s':''}`,V.open[kd]===true?TABS.drives(p):'',false):'';
+ return h+`<div class="ovfold">${rep}${drv}</div>`};
+/* old links into removed tabs still land somewhere sensible */
+const _rt52=ACT.tab;ACT.tab=t=>{if(t==='breakdown'){const p=P(V.p);t=p?(pSvc(p)[0]||'overview'):'overview'}return _rt52(t)};
+ACT.svcGo=a=>{const[pid,k]=a.split('|');V.tab=k;render()};
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
