@@ -550,6 +550,9 @@ html[data-theme] .top h2.hello2{font:500 34px/1.15 var(--display);letter-spacing
 .hello2 .hi1{color:var(--text)}.hello2 .hi2{color:var(--gold2);font-weight:600}
 html[data-theme] .crumb.hidate{display:block!important;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 @media (max-width:860px){html[data-theme] .top h2.hello2{font-size:24px}html[data-theme] .crumb.hidate{font-size:10.5px}}
+.pstbtn{cursor:pointer;text-decoration:none;gap:6px}.pstbtn:hover{filter:brightness(1.15)}.pstbtn .pcaret{font-size:10px;opacity:.75}
+.pstlist{display:flex;flex-direction:column;gap:8px}.pstopt{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;cursor:pointer;text-decoration:none;color:inherit}.pstopt:hover{background:var(--hover)}.pstopt.on{border-color:var(--gold)}.pstopt .chip{font-size:13px;padding:4px 12px}
+.pushtip .pushic{font-size:24px;line-height:1}.belltip{gap:10px;padding:8px 14px;margin:0 8px 6px;border:1px solid var(--gold);border-radius:10px}
 </style>
 </head>
 <body>
@@ -1123,7 +1126,7 @@ return`<tr class="item click" style="cursor:pointer" data-act="tog" data-arg="${
 ${open?`<tr><td colspan="9"><div class="sub"><div class="eyebrow" style="margin-bottom:6px">Checkpoints</div><div class="row wrap" style="gap:6px">${T.stages.map((s,i)=>{const c=e.checks[i]||{};return`<span class="chip ${c.done?'ok':''}" style="font-size:11px">${c.done?'✓':'○'} ${esc(s)}</span>`}).join('')}</div>
 ${e.scenes.length?`<div class="eyebrow" style="margin:12px 0 6px">${T.unit}s</div><table><thead><tr><th>${T.unit.slice(0,2)}</th><th>Characters</th><th>Version</th><th>Duration</th><th>VFX</th><th>Status</th></tr></thead><tbody>${e.scenes.map(s=>{const v=s.versions.find(x=>x.id===s.sel);const hs=s.vfx!=='none'?s.shots:[];return`<tr><td>${s.n}</td><td class="tiny">${esc(s.chars)||'—'}</td><td class="tiny">${v?esc(v.l):'—'}</td><td class="tiny num">${mmss(s.dur)}</td><td class="tiny">${s.vfx!=='none'?VFX_K[s.vfx]+(hs.length?' · '+hs.filter(h=>h.status==='approved').length+'/'+hs.length+' approved':''):'—'}</td><td><span class="chip ${s.locked?'ok':s.versions.length?'gold':''}" style="font-size:10.5px">${s.locked?'Locked':s.versions.length?'In edit':'Not cut'}</span></td></tr>`}).join('')}</tbody></table>`:''}</div></td></tr>`:''}`}).join('')}</tbody></table></div>`};
 
-function breakdownShort(p){const ce=canEditFlow(p)&&p.status!=='done';const st=STG(p);return`<div class="card"><div class="row" style="margin-bottom:14px"><div><div class="eyebrow">${esc(TYPES[p.type].label)} flow</div><div class="tiny faint">Team: ${esc(TYPES[p.type].team)}</div></div>${ce?`<div class="right row"><a class="btn sm ghost" data-act="stageMove" data-arg="${p.id}|-1">Previous stage</a><a class="btn sm pri" data-act="stageMove" data-arg="${p.id}|1">${p.stage>=st.length-1?'Mark delivered':'Next stage'}</a></div>`:''}</div>
+function breakdownShort(p){const ce=canEditFlow(p);const st=STG(p);return`<div class="card"><div class="row" style="margin-bottom:14px"><div><div class="eyebrow">${esc(TYPES[p.type].label)} flow</div><div class="tiny faint">Team: ${esc(TYPES[p.type].team)}</div></div>${ce?`<div class="right row"><a class="btn sm ghost" data-act="stageMove" data-arg="${p.id}|-1">Previous stage</a><a class="btn sm pri" data-act="stageMove" data-arg="${p.id}|1">${p.stage>=st.length-1?'Mark delivered':'Next stage'}</a></div>`:''}</div>
 <div class="list">${st.map((s,i)=>{const done=p.status==='done'||i<p.stage,cur=i===p.stage&&p.status!=='done';const ts=S.tasks.filter(t=>t.project===p.id&&t.stage===i);return`<div class="item"><span class="iconbtn" style="width:32px;height:32px;${done?'color:var(--ok);border-color:rgba(95,211,168,.4)':cur?'color:var(--gold2);border-color:var(--gold)':'color:var(--line2)'}">${done?ic('check',15):`<b style="font-size:12px">${i+1}</b>`}</span><div class="grow"><b style="font-weight:500;${cur?'color:var(--gold2)':done?'':'color:var(--faint)'}">${esc(s)}</b>${ts.length?`<div class="tiny faint">${ts.map(t=>esc(t.title)).join(' · ')}</div>`:''}</div>${cur?'<span class="chip gold">Now</span>':done?'<span class="chip ok">Done</span>':''}</div>`}).join('')}</div></div>`}
 TABS.tasks=p=>{const u=me();let ts=S.tasks.filter(t=>t.project===p.id);if(u.role==='partner')ts=ts.filter(t=>tAs(t,u.id));const cols=[['todo','To do'],['doing','In progress'],['review','In review'],['done','Done']];const lead=canDo('proj.tasks',p);
 return`<div class="row" style="margin-bottom:12px"><div class="tiny faint">${u.role==='partner'?'Everything we’ve handed over to you on this project.':'Open a card for its spec sheet: codec, resolution, watermark and delivery method.'}</div>${lead?`<a class="btn pri sm right" data-act="newTask" data-arg="${p.id}">${ic('plus',14)}New task</a>`:''}</div>
@@ -2434,8 +2437,7 @@ const _vCl19=VIEWS.clients;VIEWS.clients=()=>{const u=me();if(!(isOwner()||seesC
  const people=Object.entries(by).map(([c,xs])=>`<div class="card" style="margin-bottom:10px"><div class="row" style="margin-bottom:8px"><b style="font-family:var(--display)">${esc(c)}</b><span class="chip">${xs.length}</span></div><div class="list">${xs.sort((a,b)=>ord(a.title)-ord(b.title)).map(x=>{const ps=S.projects.filter(p=>p.client===x.id||crewList(p).some(k=>k.id===x.id));const show=typeof canSeeContact==='function'?canSeeContact(x,u):true;return`<div class="item click" data-act="profile" data-arg="${x.id}">${av(x,30)}<div class="grow" style="min-width:0"><div>${esc(x.name)}</div><div class="tiny faint">${ps.length?ps.map(p=>esc(p.name)).join(' · '):'No project yet'}${show&&x.phone?' · '+esc(x.phone):''}</div></div><span class="chip gold">${esc(x.title||'Role not set')}</span></div>`}).join('')}</div></div>`).join('');
  return`<div class="sec-title" style="margin-top:0"><h2>Client side</h2><span class="tiny faint">Directors, producers, line & post producers, executive producers and showrunners — seen by management and in-house producers</span></div>${people||'<div class="card empty">No client-side people yet</div>'}${h?`<div class="sec-title"><h2>Client companies</h2></div>${h}`:''}`};
 /* the client-side role list, with room for any other role */
-const _eu19=ACT.editUser;ACT.editUser=id=>{_eu19(id);const x=U(id);if(!x||x.role!=='client')return;const f=document.querySelector('form[data-form="userEdit"] input[name="title"]');if(!f)return;f.setAttribute('list','crole-list');f.placeholder='Director, Producer, Showrunner… or type another';
- const d=document.createElement('datalist');d.id='crole-list';d.innerHTML=[...new Set([...CLIENT_ROLES,...S.users.filter(y=>y.role==='client'&&y.title).map(y=>y.title)])].map(r=>`<option value="${esc(r)}">`).join('');f.after(d);const l=f.closest('label');if(l&&l.firstChild&&l.firstChild.nodeType===3)l.firstChild.textContent='Role on the client side'};
+const _eu19=ACT.editUser;ACT.editUser=id=>{_eu19(id);const x=U(id);if(!x||x.role!=='client')return;const f=document.querySelector('form[data-form="userEdit"] input[name="title"]');if(!f)return;f.placeholder='Type their title';f.removeAttribute('list');const l=f.closest('label');if(l&&l.firstChild&&l.firstChild.nodeType===3)l.firstChild.textContent='Role on the client side'};
 
 /* ================= project roles carry their allowances (editable per project) ================= */
 Object.assign(PROJ_ROLES,{prod:'Producer',aprod:'Asst. Producer'});
@@ -3529,6 +3531,59 @@ if(TABS.files){const _tf53=TABS.files;TABS.files=p=>{if(canMoney(p))return _tf53
 /* welcome: date above a bigger greeting */
 const _sh54=shellHTML;shellHTML=function(){let h=_sh54();if(V.v!=='home'||!isStaff())return h;const d=new Date().toLocaleDateString('en-GB',{timeZone:'Africa/Cairo',weekday:'long',day:'numeric',month:'long'});
  return h.replace(/<div class="crumb">[\s\S]*?<\/div><h2>/,`<div class="crumb hidate">${esc(d)}</div><h2 class="hello2">`)};
+
+/* ================= SCENEDROME (the studio's own account) stays out of people lists and crews ================= */
+const FID55=()=>{const f=S.users.find(u=>u.job==='founder'&&u.role==='owner');return f?f.id:null};
+let HIDE55=null;
+function hideRun55(fn,self,args){if(HIDE55)return fn.apply(self,args);const fid=FID55();if(!fid)return fn.apply(self,args);
+ const full=S.users;const fl=full.filter(u=>u.id!==fid);fl.find=full.find.bind(full);fl.findIndex=full.findIndex.bind(full);
+ const tm=[];S.projects.forEach(p=>{if(Array.isArray(p.team)&&p.team.includes(fid)){const f=p.team.filter(i=>i!==fid);tm.push([p,p.team,f]);p.team=f}});
+ HIDE55={full,fl,tm,fid};S.users=fl;
+ try{return fn.apply(self,args)}finally{if(S.users===fl)S.users=full;tm.forEach(([p,o,f])=>{if(p.team===f)p.team=o;else if(!p.team.includes(fid))p.team=[...p.team,fid]});HIDE55=null}}
+const _sv55=save;save=function(){const h=HIDE55;if(!h)return _sv55.apply(this,arguments);const cur=S.users;S.users=h.full;const sw=h.tm.map(([p,o,f])=>{const c=p.team;p.team=c===f?o:(c.includes(h.fid)?c:[...c,h.fid]);return[p,c]});
+ try{return _sv55.apply(this,arguments)}finally{S.users=cur;sw.forEach(([p,c])=>p.team=c)}};
+const _rd55=render;render=function(){return hideRun55(_rd55,this,arguments)};
+const _md55=modal;modal=function(){const r=_md55.apply(this,arguments);const fid=FID55();const m=document.getElementById('modal');if(fid&&m){
+ m.querySelectorAll(`option[value="${fid}"]`).forEach(o=>{if(!o.selected)o.remove()});
+ m.querySelectorAll(`input[value="${fid}"]`).forEach(i=>{const l=i.closest('label,.item,.row');if(!l)return;if(i.checked)l.style.display='none';else l.remove()})}return r};
+
+/* ================= project status: tap the coloured chip next to the name ================= */
+const PST55=[['active','In production','gold'],['done','Delivered','ok'],['pitching','Pitching','lilac'],['cancelled','Cancelled','']];
+const _vp55=VIEWS.project;VIEWS.project=()=>{let h=_vp55();const p=P(V.p);if(!p||!isStaff()||!canManage(p))return h;
+ return h.replace(/(<div class="phright">)<span class="chip ([^"]*)">([^<]*)<\/span>/,(m,a,c,t)=>`${a}<a class="chip ${c} pstbtn" data-act="pstOpen" data-arg="${p.id}" title="Change the project status">${t}<span class="pcaret">▾</span></a>`)};
+Object.assign(ACT,{
+ pstOpen:pid=>{const p=P(pid);if(!p||!canManage(p))return;const cur=p.status||'active';
+  modal('Project status · '+esc(p.name),`<div class="pstlist">${PST55.map(([k,l,c])=>`<a class="pstopt ${k===cur?'on':''}" data-act="pstSet" data-arg="${p.id}|${k}"><span class="chip ${c||''}"><span class="dot"></span>${l}</span>${k===cur?'<span class="tiny faint right">Current</span>':''}</a>`).join('')}</div>
+  ${cur==='done'?`<label class="jp" style="margin-top:12px"><input type="checkbox" data-change="projDue" data-arg="${p.id}" ${p.moneyDue?'checked':''}><span><b>Money still due</b></span></label>`:''}`)},
+ pstSet:a=>{const[pid,k]=a.split('|');const p=P(pid);if(!p||!canManage(p))return;const was=p.status||'active';if(was===k){closeModal();return}
+  const l=(PST55.find(x=>x[0]===k)||[])[1]||k;closeModal();CHG.projStatus(pid,{value:k,selectedOptions:[{textContent:l}]});
+  notify([p.producer,...(p.team||[])],`${me().name} set ${p.name} to ${l}`,{v:'project',p:p.id});save()}});
+/* delivered projects stay fully editable: stepping back reopens them */
+const _sm55=ACT.stageMove;ACT.stageMove=a=>{const[id,d]=a.split('|');const p=P(id);if(p&&p.status==='done'&&+d<0){p.status='active';p.stage=lastStage(p)+1}return _sm55(a)};
+const _bs55=breakdownShort;breakdownShort=function(p){let h=_bs55(p);if(TYPES[p.type].episodic&&!(p.episodes&&p.episodes.length)&&canEditProj(p))h=h.replace('<div class="list">',`<div class="row" style="margin:-4px 0 12px;gap:10px"><span class="tiny faint grow">No episodes on this series yet — add them to track scenes, shots and sound.</span><a class="btn sm pri" data-act="projEdit" data-arg="${p.id}">${ic('plus',14)}Add episodes</a></div><div class="list">`);return h};
+
+/* ================= client titles are typed, not picked ================= */
+const _nu55=ACT.newUser;ACT.newUser=()=>{_nu55();const f=document.querySelector('#modal form[data-form=user]');if(!f)return;const sel=f.querySelector('select[name=job]');
+ const lab=document.createElement('label');lab.className='full ctl55';lab.innerHTML='Title<input name="ctitle" placeholder="Type their title — e.g. Executive Producer">';sel.closest('label').after(lab);
+ const sync=()=>{const j=JOBS[sel.value];const on=!!j&&j.dash==='client';lab.style.display=on?'':'none';lab.querySelector('input').required=on};sel.addEventListener('change',sync);sync()};
+const _fu55=FORM.user;FORM.user=fd=>{const t=String(fd.get('ctitle')||'').trim();const j=JOBS[String(fd.get('job')||'')];if(!t||!j||j.dash!=='client')return _fu55(fd);
+ const m=mkUser;mkUser=o=>{const u=m(o);u.title=t;u.titleCustom=true;return u};try{return _fu55(fd)}finally{mkUser=m}};
+
+/* ================= notifications switched on for everyone ================= */
+/* SCENEDROME Chat tells the group */
+const _gs55=FORM.groupSend;FORM.groupSend=fd=>{const u=me();const n=S.msgs.length;_gs55(fd);const m=S.msgs[S.msgs.length-1];if(!u||S.msgs.length===n||!m||m.user!==u.id)return;
+ const to=S.users.filter(x=>x.id!==u.id&&inGroup(x)).map(x=>x.id);notify(to,`${u.name} in SCENEDROME Chat: “${(m.text||'').slice(0,70)||'📎 attachment'}”`,{v:'group'});save()};
+/* ask on every device until they're on (computers too), back after 3 days if dismissed */
+appBanner=function(){if(!LIVE||!me())return'';const st=APP.state;if(st==='on'||st==='unsupported'&&!isIOS)return'';let t=0;try{t=+localStorage.getItem('sd-push-tip')||0}catch(e){}if(Date.now()-t<3*864e5)return'';
+ const inst=isStandalone();const ios=isIOS&&!inst;const blocked=st==='denied';
+ return`<div class="card row pushtip" style="margin-bottom:14px;gap:12px;border-color:var(--gold)"><span class="pushic">🔔</span><div class="grow"><b style="font-weight:600">${blocked?'Notifications are blocked on this device':'Turn on notifications'}</b><div class="tiny faint">${blocked?'Allow them in your browser or phone settings so nothing slips past you.':ios?'On iPhone: add the Hub to your home screen first, then turn them on.':'Tasks, messages, reviews and deliveries — the moment they need you, even with the Hub closed.'}</div></div>${blocked?`<a class="btn sm" data-act="appHelp">How to allow</a>`:ios?`<a class="btn pri sm" data-act="appHelp">How</a>`:`<a class="btn pri sm" data-act="pushOn">Turn on</a>`}<a class="faint" data-act="pushTipOff" style="cursor:pointer" title="Remind me later">${ic('x',15)}</a></div>`};
+ACT.pushTipOff=()=>{try{localStorage.setItem('sd-push-tip',String(Date.now()))}catch(e){}render()};
+/* the bell offers it too */
+const _sh55=shellHTML;shellHTML=function(){let h=_sh55();if(!LIVE||APP.state==='on'||(APP.state==='unsupported'&&!isIOS))return h;
+ return h.replace(/(<div class="bellpanel" id="bellpanel">[\s\S]*?Mark all read<\/a><\/div>)/,`$1<div class="row belltip"><span class="grow tiny">🔔 Get these on this device, even when the Hub is closed</span><a class="btn sm pri" data-act="${isIOS&&!isStandalone()?'appHelp':APP.state==='denied'?'appHelp':'pushOn'}">${APP.state==='denied'?'How to allow':'Turn on'}</a></div>`)};
+/* a soft chime when something new lands while the Hub is open */
+let CH55=null;function chime55(){try{CH55=CH55||new(window.AudioContext||window.webkitAudioContext)();const c=CH55,t=c.currentTime;[880,1320].forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t+i*.12);g.gain.linearRampToValueAtTime(.07,t+i*.12+.02);g.gain.exponentialRampToValueAtTime(.0001,t+i*.12+.5);o.connect(g).connect(c.destination);o.start(t+i*.12);o.stop(t+i*.12+.55)})}catch(e){}}
+const _ts55=toast;toast=function(m){if(typeof m==='string'&&m.startsWith('🔔 '))chime55();return _ts55.apply(this,arguments)};
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
