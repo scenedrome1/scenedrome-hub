@@ -492,6 +492,8 @@ html[data-theme=light] .brand img{background:var(--forest);padding:8px 10px;bord
 html[data-theme] .modal{width:min(560px,96vw)}html[data-theme] .modal.wide{width:min(860px,96vw)}html[data-theme] .modal .formgrid{gap:12px 14px}
 .jdesc{border:1px solid var(--line);border-radius:10px;padding:8px 12px}.jdesc summary{cursor:pointer;color:var(--muted);font-weight:500}.jdesc[open] summary{margin-bottom:8px}
 .cbxrow{gap:22px}.cbx{display:inline-flex!important;align-items:center;gap:8px;flex-direction:row!important;font:500 14px var(--body)!important;color:var(--text)!important;cursor:pointer}.cbx input{width:18px;height:18px;margin:0}.biocard{margin-top:14px;padding:14px 18px}
+.pwdrow{display:flex;justify-content:flex-start}
+@media (max-width:760px){.profwrap{display:flex;flex-direction:column}.profwrap>*{order:1}.profwrap>.prefrow,.profwrap>.card:has(>.row>img[src*="icon-192"]){order:50}.profwrap>.prefrow{margin-top:14px}}
 </style>
 </head>
 <body>
@@ -1260,7 +1262,7 @@ ${self?`<div class="row" style="margin-top:14px"><span class="tiny faint">Cover<
 :`<h3>About</h3><div>${esc(u.bio)||'<span class="faint">No bio yet</span>'}</div>${(u.skills||[]).length?`<div class="eyebrow" style="margin:16px 0 8px">Skills</div>${u.skills.map(s=>`<span class="tag">${esc(s)}</span>`).join('')}`:''}${(u.tools||[]).length?`<div class="eyebrow" style="margin:10px 0 8px">Tools</div>${u.tools.map(s=>`<span class="tag">${esc(s)}</span>`).join('')}`:''}`}</div>
 <div class="col"><div class="card"><div class="row" style="margin-bottom:10px"><h3 style="margin:0">From the studio</h3>${canStudio?`<a class="btn sm right" data-act="editStudio" data-arg="${u.id}">${ic('edit',14)}Edit</a>`:`<span class="lock right">${ic('lock',12)}Set by ${isExt(u)?'SCENEDROME':'the studio'}</span>`}</div><dl class="kv">${studioRows.map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>${isStaff(u)&&!isOwner(u)&&(self||can('admin.users'))?`<div class="tiny faint" style="margin-top:10px">${esc(jobOf(u).sum)}</div>`:''}</div>
 ${ps.length?`<div class="card pt">${sec('ptog'+u.id,`${self?'Projects':'Projects together'} <span class="cnt">${ps.length}</span>`,'',`<div class="list">${ps.map(p=>`<div class="item click" data-act="openProject" data-arg="${p.id}"><div class="grow"><b style="font-weight:500">${esc(p.name)}</b></div><span class="chip ${p.status==='done'?'ok':'gold'}">${p.status==='done'?'Delivered':projProg(p)+'%'}</span></div>`).join('')}</div>`,false)}</div>`:''}
-${self?`<div class="card"><h3>Password</h3><form data-form="pwd" class="col"><label>Current password<input type="password" name="cur" required></label><label>New password<input type="password" name="n1" minlength="8" required></label><label>Repeat new password<input type="password" name="n2" minlength="8" required></label><button class="btn" type="submit">${ic('lock',14)}Change password</button></form></div>`:''}</div></div>`};
+${self?`<div class="pwdrow"><a class="btn" data-act="pwdOpen">${ic('lock',14)}Change password</a></div>`:''}</div></div>`};
 
 /* ================= modals & toasts ================= */
 function modal(title,html,wide){document.getElementById('modal').innerHTML=`<div class="modal-bg" data-act="closeModalBg"><div class="modal ${wide?'wide':''}"><div class="mh"><h2>${title}</h2><a class="iconbtn" data-act="closeModal">${ic('x')}</a></div>${html}</div></div>`}
@@ -3179,6 +3181,12 @@ const _vp44=VIEWS.profile;VIEWS.profile=()=>{let h=_vp44();const v=me();const u=
  h=h.replace(/(<h3[^>]*>)Contact &amp; links|(<h3[^>]*>)Contact & links/,(m,a,b)=>(a||b)+'Links').replace(/<dt>Email<\/dt><dd>[^<]*<\/dd>(<dt>Phone[^<]*<\/dt><dd>[^<]*<\/dd>)?(?=[\s\S]*?Profile data|[\s\S]*?From the studio)/,'');
  h=h.replace(/<div class="card"><div class="row" style="margin-bottom:10px"><h3 style="margin:0">From the studio<\/h3>[\s\S]*?<\/dl>(?:<div class="tiny faint" style="margin-top:10px">[\s\S]*?<\/div>)?<\/div>/,card);
  return h};
+
+/* change password opens on demand */
+ACT.pwdOpen=()=>modal('Change password',`<form data-form="pwd" class="col"><label>Current password<input type="password" name="cur" required autocomplete="current-password"></label><label>New password<input type="password" name="n1" minlength="8" required autocomplete="new-password"></label><label>Repeat new password<input type="password" name="n2" minlength="8" required autocomplete="new-password"></label><div class="row" style="margin-top:6px"><a class="btn ghost" data-act="closeModal">Cancel</a><button class="btn pri right" type="submit">${ic('lock',14)}Change password</button></div></form>`);
+const _pw45=FORM.pwd;FORM.pwd=fd=>{const n=document.querySelectorAll('#toasts .toast').length;_pw45(fd);const t0=Date.now();const chk=()=>{const ts=[...document.querySelectorAll('#toasts .toast')].slice(n);if(ts.some(x=>!x.classList.contains('bad'))){closeModal();return}if(ts.some(x=>x.classList.contains('bad')))return;if(Date.now()-t0<8000)setTimeout(chk,300)};setTimeout(chk,200)};
+/* on phones, personal settings sit at the bottom of your profile */
+const _vp45=VIEWS.profile;VIEWS.profile=()=>{const h=_vp45();const v=me();const x=U(V.p);if(x&&x.id!==v.id)return h;return`<div class="profwrap">${h}</div>`};
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
