@@ -3462,6 +3462,7 @@ const _vp52=VIEWS.project;VIEWS.project=()=>{const p=P(V.p);const u=me();if(!p||
  /* Thread and Deal sit under the project status, like Message on a profile */
  const acts=`<div class="row phbtns"><a class="btn sm ${V.tab==='thread'?'pri':''}" data-act="tab" data-arg="thread">${ic('chat',14)}Thread</a>${canMoney(p)?`<a class="btn sm ${V.tab==='money'?'pri':''}" data-act="tab" data-arg="money">${ic('wallet',14)}Deal</a>`:''}</div>`;
  h=h.replace(/(<div class="card phead">[\s\S]*?)(<span class="chip [^"]*">[^<]*<\/span>)(<\/div>)/,(m,a,chip,end)=>`${a}<div class="phright">${chip}${acts}</div>${end}`);
+ if(['thread','tasks','files','drives','report'].includes(V.tab)){const L={thread:'Thread',tasks:'Tasks',files:'Files & links',drives:'Drives',report:'Status report'}[V.tab];h=h.replace(bar,bar+`<div class="row subhead"><a class="btn sm ghost" data-act="tab" data-arg="overview">${ic('back',14)}Overview</a><b>${L}</b></div>`)}
  /* opened from Overview: a way back */
  
  return h};
