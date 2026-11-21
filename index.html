@@ -557,6 +557,71 @@ html[data-theme] .crumb.hidate{display:block!important;font-size:12px;letter-spa
 .hero56 .hi1{font:500 40px/1.1 var(--display);letter-spacing:-.015em;color:var(--text)}.hero56 .hi2{font:700 64px/1.05 var(--display);letter-spacing:-.02em;color:var(--gold2)}
 @media (max-width:860px){.hero56{margin:0 0 16px}.hero56 .hidate{font-size:10.5px}.hero56 .hi1{font-size:28px}.hero56 .hi2{font-size:44px}}
 </style>
+<style id="look-v3">
+/* ===== Look v3 · graded-film section colours, status pills, alternating rows, flat media, chat doodles ===== */
+:root{--sig-overview:#d8ccb0;--sig-footage:#6aa39a;--sig-edit:#c8915f;--sig-grading:#b48aa3;--sig-vfx:#7c97c2;--sig-sound:#9389bd;--sig-creative:#c38a92;--sig-finance:#a7ad6e;--sig-clients:#79aec2;--sig-partners:#c4ad86;--sig-team:#a3aca7;--sig-marketing:#a68bbf;
+ --st-wait:#d9b45a;--st-done:#6fae80;--st-bad:#c9605a;--st-none:#5d6a66;--zebra-ink:#ffffff}
+html[data-theme=light],html[data-theme=mixed]{--zebra-ink:#12392E}
+
+/* side menu + phone bottom bar: same icons, the active one in its section colour */
+.nav a{--sig:var(--sig-overview)}
+.nav a[data-arg=finance]{--sig:var(--sig-finance)}.nav a[data-arg=team]{--sig:var(--sig-team)}.nav a[data-arg=clients]{--sig:var(--sig-clients)}
+.nav a[data-arg=partners]{--sig:var(--sig-partners)}.nav a[data-arg=storage]{--sig:var(--sig-footage)}.nav a[data-arg=marketing]{--sig:var(--sig-marketing)}.nav a[data-arg=handbook]{--sig:var(--sig-team)}
+html[data-theme] .nav a.on svg,html[data-theme] .nav a:hover svg{color:var(--sig)!important}
+
+/* project tabs: icon + name, each service in its colour */
+.ptabs2 a{--sig:var(--sig-overview)}
+.ptabs2 a[data-arg=footage]{--sig:var(--sig-footage)}.ptabs2 a[data-arg=edit]{--sig:var(--sig-edit)}.ptabs2 a[data-arg=grading]{--sig:var(--sig-grading)}
+.ptabs2 a[data-arg=vfx]{--sig:var(--sig-vfx)}.ptabs2 a[data-arg=sound]{--sig:var(--sig-sound)}.ptabs2 a[data-arg=creative]{--sig:var(--sig-creative)}
+html[data-theme] .ptabs2 a.on{background:color-mix(in srgb,var(--sig) 20%,transparent)!important;color:var(--text)!important;box-shadow:inset 0 -3px 0 var(--sig)!important;border-color:transparent!important;font-weight:600}
+html[data-theme] .ptabs2 a.on svg{color:var(--sig)!important}
+html[data-theme] .ptabs2 a.indeal:not(.on){color:var(--text)!important;background:color-mix(in srgb,var(--sig) 9%,transparent)!important;box-shadow:none!important;font-weight:600}
+html[data-theme] .ptabs2 a.indeal svg{color:var(--sig)!important}
+html[data-theme] .ptabs2 a.out:not(.on){opacity:.62}
+html[data-theme] .ptabs2 a .pdot{background:var(--sig)!important}
+
+/* status pills: one meaning per colour (dark mode) */
+html[data-theme=dark] .chip{background:#33413c;color:#e6ece9;border-color:transparent;font-weight:600}
+html[data-theme=dark] .chip.gold{background:color-mix(in srgb,var(--sig-edit) 24%,transparent);color:#e8c7a6}
+html[data-theme=dark] .chip.warn{background:var(--st-wait);color:#1c1500}
+html[data-theme=dark] .chip.ok{background:var(--st-done);color:#071a0e}
+html[data-theme=dark] .chip.bad{background:var(--st-bad);color:#1a0605}
+html[data-theme=dark] .chip.info{background:color-mix(in srgb,var(--sig-clients) 24%,transparent);color:#c4dde7}
+html[data-theme=dark] .chip.lilac{background:color-mix(in srgb,var(--sig-marketing) 24%,transparent);color:#dccfe8}
+
+/* same-format rows alternate slightly: EP under EP, day under day, scene under scene, checkpoint under checkpoint */
+html[data-theme] .ep:nth-child(even of .ep):not(.open){background:color-mix(in srgb,var(--zebra-ink) 6%,var(--panel))}
+/* overview tiles: graded tones instead of saturated blocks */
+.tile.mint{--tone:var(--st-done)}.tile.honey{--tone:var(--st-wait)}.tile.blue{--tone:var(--sig-clients)}.tile.coral{--tone:var(--st-bad)}
+html[data-theme=dark] .tile.mint,html[data-theme=dark] .tile.honey,html[data-theme=dark] .tile.blue,html[data-theme=dark] .tile.coral{background:color-mix(in srgb,var(--tone) 12%,#0d241e);color:#e8ece9}
+html[data-theme=dark] .tile::before{background:var(--tone,currentColor);opacity:1}
+html[data-theme=dark] .tile .tl{color:var(--tone)}
+/* the gold gradient is kept for milestones: progress cards get a flat top line */
+html[data-theme] .card.hero::after{background:var(--sig-overview)}
+html[data-theme] .sb>.list>.item{border-top:0;padding:10px 10px;border-radius:8px}
+html[data-theme] .sb>.list>.item:nth-child(even){background:color-mix(in srgb,var(--zebra-ink) 4.5%,transparent)}
+html[data-theme] .ep.open{box-shadow:inset 3px 0 0 var(--sig-edit)}
+html[data-theme] .ep.open:has(> .dyrow[data-arg^="dy"]){box-shadow:inset 3px 0 0 var(--sig-footage)}
+
+/* media sits flat: no shadow or edge beside images and video previews */
+html[data-theme] .cmedia,html[data-theme] .cmedias img,html[data-theme] .cmedias video,html[data-theme] .chat img,html[data-theme] .chat video{box-shadow:none!important;border:0!important}
+
+/* chat: WhatsApp-style cinema doodles */
+html[data-theme=dark] .chat-scroll{background:#06140f url("assets/chat-doodles.svg") 0 0/260px 260px repeat}
+html[data-theme=light] .chat-scroll,html[data-theme=mixed] .chat-scroll{background:var(--bg) url("assets/chat-doodles-light.svg") 0 0/260px 260px repeat}
+
+/* Overview: episodes + shooting days and the progress tiles at the top */
+.ovsum60{margin:0 0 16px}
+.ovsum60 .bothk{margin-bottom:12px!important}
+.ovsum60 .bothk>.card:first-child{box-shadow:inset 0 3px 0 var(--sig-edit)}
+.ovsum60 .bothk>.card:first-child .eyebrow{color:var(--sig-edit)}
+.ovsum60 .bothk>.card:nth-child(2){box-shadow:inset 0 3px 0 var(--sig-footage)}
+.ovsum60 .bothk>.card:nth-child(2) .eyebrow{color:var(--sig-footage)}
+
+/* Branding: section and status swatches */
+.sigsw{display:inline-flex;align-items:center;gap:7px;padding:4px 10px 4px 6px;border-radius:99px;background:color-mix(in srgb,var(--sig) 16%,transparent);font-size:12.5px;font-weight:500}
+.sigsw i{width:12px;height:12px;border-radius:50%;background:var(--sig);display:inline-block}
+</style>
 </head>
 <body>
 <div id="app"></div>
@@ -3587,6 +3652,38 @@ const _sh55=shellHTML;shellHTML=function(){let h=_sh55();if(!LIVE||APP.state==='
 /* a soft chime when something new lands while the Hub is open */
 let CH55=null;function chime55(){try{CH55=CH55||new(window.AudioContext||window.webkitAudioContext)();const c=CH55,t=c.currentTime;[880,1320].forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t+i*.12);g.gain.linearRampToValueAtTime(.07,t+i*.12+.02);g.gain.exponentialRampToValueAtTime(.0001,t+i*.12+.5);o.connect(g).connect(c.destination);o.start(t+i*.12);o.stop(t+i*.12+.55)})}catch(e){}}
 const _ts55=toast;toast=function(m){if(typeof m==='string'&&m.startsWith('🔔 '))chime55();return _ts55.apply(this,arguments)};
+
+/* ================= look v3: graded-film colours, every tone in Branding, summaries on the Overview ================= */
+const SIG60=[['sigOverview','Overview & Dashboard','overview'],['sigFootage','Footage & Storage','footage'],['sigEdit','Edit','edit'],['sigGrading','Grading','grading'],['sigVfx','VFX','vfx'],['sigSound','Sound','sound'],['sigCreative','Creative','creative'],['sigFinance','Deal & Finance','finance'],['sigClients','Clients','clients'],['sigPartners','Partner studios','partners'],['sigTeam','Team','team'],['sigMarketing','Marketing','marketing']];
+const ST60=[['stNone','Not started','none'],['stWait','Waiting','wait'],['stDone','Done','done'],['stBad','Blocked / overdue','bad']];
+Object.assign(BRAND0,{sigOverview:'#d8ccb0',sigFootage:'#6aa39a',sigEdit:'#c8915f',sigGrading:'#b48aa3',sigVfx:'#7c97c2',sigSound:'#9389bd',sigCreative:'#c38a92',sigFinance:'#a7ad6e',sigClients:'#79aec2',sigPartners:'#c4ad86',sigTeam:'#a3aca7',sigMarketing:'#a68bbf',stNone:'#5d6a66',stWait:'#d9b45a',stDone:'#6fae80',stBad:'#c9605a'});
+Object.keys(BRAND0).forEach(k=>{if(BRAND[k]==null)BRAND[k]=BRAND0[k]});
+const COLK60=[...SIG60,...ST60].map(x=>x[0]);
+const _ab60=applyBrand;applyBrand=function(b){const r0=_ab60.apply(this,arguments);b=b||BRAND;const r=document.documentElement.style;
+ SIG60.forEach(([k,,v])=>r.setProperty('--sig-'+v,b[k]||BRAND0[k]));ST60.forEach(([k,,v])=>r.setProperty('--st-'+v,b[k]||BRAND0[k]));return r0};
+applyBrand();
+const _bset60=CHG.brandSet;CHG.brandSet=(k,el)=>{if(!COLK60.includes(k))return _bset60(k,el);let v=String(el.value||'').trim();
+ if(!/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)){toast('Use a colour like #6aa39a','bad');return}v=v[0]==='#'?v:'#'+v;BRAND[k]=v;brandSave();
+ if(el.type!=='color')render();else document.querySelectorAll(`input[data-arg="${k}"]:not([type=color])`).forEach(i=>{i.value=v})};
+const _vbr60=VIEWS.branding;VIEWS.branding=()=>{const h=_vbr60();if(!isOwner())return h;const b=B();
+ const col=(k,l)=>`<label>${esc(l)}<div class="row" style="margin-top:6px"><input type="color" value="${esc(b[k]||BRAND0[k])}" data-change="brandSet" data-arg="${k}" style="width:46px;height:36px;padding:2px"><input value="${esc(b[k]||BRAND0[k])}" data-change="brandSet" data-arg="${k}" style="font-family:monospace"></div></label>`;
+ const sig=`<div class="sec-title"><h2>Section colours</h2></div><div class="card"><div class="tiny faint" style="margin-bottom:12px">Graded-film tones. Each area keeps its colour on its menu icon, its project tab, its headers and its open rows.</div><div class="grid g3">${SIG60.map(([k,l])=>col(k,l)).join('')}</div><div class="row wrap" style="margin-top:14px;gap:8px">${SIG60.map(([,l,v])=>`<span class="sigsw" style="--sig:var(--sig-${v})"><i></i>${esc(l)}</span>`).join('')}</div></div>`;
+ const st=`<div class="sec-title"><h2>Status colours</h2></div><div class="card"><div class="tiny faint" style="margin-bottom:12px">Used only for states — never for sections.</div><div class="grid g4">${ST60.map(([k,l])=>col(k,l)).join('')}</div><div class="row wrap" style="margin-top:14px;gap:8px"><span class="chip">Not started</span><span class="chip gold">In progress</span><span class="chip warn">Waiting</span><span class="chip ok">Done</span><span class="chip bad">Blocked</span></div></div>`;
+ const mark='<div class="sec-title"><h2>Fonts</h2></div>';return h.includes(mark)?h.replace(mark,sig+st+mark):h+sig+st};
+/* Episodes · Shooting days and the progress tiles live at the top of the Overview, not on Footage or Edit */
+const isKpi60=e=>!!e.querySelector('.kpi')&&/Show progress/.test(e.textContent);
+function strip60(h){const t=document.createElement('template');t.innerHTML=h;let n=0;
+ t.content.querySelectorAll('.bothk').forEach(e=>{e.remove();n++});t.content.querySelectorAll('.grid.g4').forEach(e=>{if(isKpi60(e)){e.remove();n++}});return n?t.innerHTML:h}
+const _vp60=VIEWS.project;
+function sum60(p){const on=pSvc(p);let bk='',kp='';const keepT=V.tab,keepM=V.bkMode,keepO=Object.assign({},V.open);
+ const grab=tab=>{let h='';V.tab=tab;try{h=_vp60()}catch(e){h=''}finally{V.tab=keepT;V.bkMode=keepM;V.open=Object.assign(V.open,keepO)}
+  const t=document.createElement('template');t.innerHTML=h;if(!bk){const a=t.content.querySelector('.bothk');if(a)bk=a.outerHTML}
+  if(!kp){const g=[...t.content.querySelectorAll('.grid.g4')].find(isKpi60);if(g)kp=g.outerHTML}};
+ if(on.includes('edit'))grab('edit');if((!bk||!kp)&&on.includes('footage'))grab('footage');return bk||kp?`<div class="ovsum60">${bk}${kp}</div>`:''}
+VIEWS.project=()=>{let h=_vp60();const p=P(V.p);const u=me();if(!p||!u||!staffTabs(p,u)||!(TYPES[p.type]||{}).episodic)return h;
+ if(V.tab==='footage'||V.tab==='edit')return strip60(h);
+ if(V.tab==='overview'){const s=sum60(p);if(s)h=h.replace(/(<div class="seg ptabs2"[\s\S]*?<\/div>)/,`$1${s}`)}
+ return h};
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
