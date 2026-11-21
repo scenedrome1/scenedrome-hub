@@ -4215,6 +4215,31 @@ if(!CLIENT_FINANCE){
  const _ov8=TABS.overview;TABS.overview=function(p){const h=_ov8(p);return isCl()?strip(h,c=>{[...c.querySelectorAll('.card>h3')].filter(x=>/^(Quotation|Payments?|Money)$/.test(x.textContent.trim())).forEach(x=>x.parentElement.remove())}):h};
  const _rw8=rewardsBlock;rewardsBlock=function(){const h=_rw8();return isCl()?strip(h,c=>{c.querySelectorAll('.tier').forEach(e=>e.remove());[...c.querySelectorAll('.eyebrow')].filter(e=>/^Your points$/.test(e.textContent.trim())).forEach(e=>{const card=e.closest('.card');if(card)card.remove()});c.querySelectorAll('.offer .tiny').forEach(e=>{e.textContent=e.textContent.replace(/\d+% off /i,'Special ')})}):h};
 }
+/* ---------- 9. nothing overlaps or drifts when the screen shrinks ---------- */
+(function(){const s=document.createElement('style');s.textContent=`
+.content .grid>*,.content .row>*,.content .item>*,.card>*{min-width:0}
+.content .grid.g3{grid-template-columns:repeat(auto-fill,minmax(min(270px,100%),1fr))!important}
+.content .grid.g2{grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr))!important}
+.content .grid.g4{grid-template-columns:repeat(auto-fill,minmax(min(190px,100%),1fr))!important}
+.ucard .l1,.ucard .l2{flex-wrap:wrap!important;row-gap:6px}
+.ucard .l1>.grow{flex:1 1 130px}
+.ucard .un{white-space:normal!important;overflow-wrap:anywhere}
+.ucard .pens{flex-wrap:wrap}
+.ucard .l2 .chip{flex:none}
+.exportbar{display:flex!important;flex-wrap:wrap;gap:8px;align-items:center}
+.exportbar>.grow,.exportbar>.tiny{flex:1 1 100%!important}
+.exportbar .btn{flex:1 1 220px;white-space:normal;text-align:center;justify-content:center;height:auto;min-height:38px}
+.btn{max-width:100%}
+.btn:not(.sm){white-space:normal}
+.chip{max-width:100%;overflow-wrap:anywhere}
+.row.wrap,.content .row{flex-wrap:wrap}
+.tiny,.muted,b,h1,h2,h3{overflow-wrap:anywhere}
+.card label.row{min-width:0}
+.card .tablewrap,.content .tablewrap{max-width:100%;overflow-x:auto}
+img,video,svg:not(.i){max-width:100%}
+.kanban{max-width:100%}
+.ptabs{display:flex;flex-wrap:wrap;gap:6px;max-width:100%}.ptabs a{white-space:nowrap}
+`;document.head.appendChild(s)})();
 /* ---------- 7. pull down from the top to refresh ---------- */
 (function(){const bar=document.createElement('div');bar.style.cssText='position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 8px);transform:translate(-50%,-70px);z-index:300;padding:8px 14px;border-radius:999px;background:var(--panel);border:1px solid var(--line2,var(--line));font-size:13px;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.35)';bar.textContent='↓ Pull to refresh';document.body.appendChild(bar);
  let y0=null,dy=0,go_=false;const TH=90;
