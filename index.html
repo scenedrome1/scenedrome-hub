@@ -621,6 +621,12 @@ html[data-theme=light] .chat-scroll,html[data-theme=mixed] .chat-scroll{backgrou
 /* Branding: section and status swatches */
 .sigsw{display:inline-flex;align-items:center;gap:7px;padding:4px 10px 4px 6px;border-radius:99px;background:color-mix(in srgb,var(--sig) 16%,transparent);font-size:12.5px;font-weight:500}
 .sigsw i{width:12px;height:12px;border-radius:50%;background:var(--sig);display:inline-block}
+
+/* clients on the project */
+.clic .clirow{align-items:flex-start}
+.clic .clirow .iconbtn.sm{width:32px;height:32px}
+.ptag61{cursor:pointer;text-decoration:none}.ptag61 i{font-style:normal;opacity:.75}
+.ctl61 .ctpick,.ctl61 .ctlph{grid-column:auto}
 </style>
 </head>
 <body>
@@ -3684,6 +3690,84 @@ VIEWS.project=()=>{let h=_vp60();const p=P(V.p);const u=me();if(!p||!u||!staffTa
  if(V.tab==='footage'||V.tab==='edit')return strip60(h);
  if(V.tab==='overview'){const s=sum60(p);if(s)h=h.replace(/(<div class="seg ptabs2"[\s\S]*?<\/div>)/,`$1${s}`)}
  return h};
+
+/* ================= clients on the project: titles, contact, and what each person sees ================= */
+const CTITLES=['Showrunner','Executive Producer','Director','DOP','CEO','Producer','Line Producer','Post Producer',"Director's Producer",'Asst. Director','Asst. Producer'];
+const CNUM=['Asst. Director','Asst. Producer'];
+CLIENT_ROLES.length=0;CLIENT_ROLES.push(...CTITLES);
+const CPERM=[['status','Status & progress','Flow, episodes and the status report'],['previews','Previews','Watch the cuts shared with the client'],['approve','Approve previews','Approve or ask for changes'],['thread','Client thread','Talk with the studio'],['files','Files & links','Files shared with the client']];
+const CPERM_DEF={status:true,previews:true,approve:false,thread:true,files:false};
+const ccAcc=pm=>pm.approve?'approve':(pm.previews||pm.thread||pm.files)?'review':pm.status?'report':'credit';
+const ccOf=(p,id)=>((p&&p.clientCrew)||[]).find(x=>x.id===id);
+const ccEditor=p=>!!p&&isStaff()&&canManage(p);
+/* client people on a project count as project crew: they see the project, its members list carries them */
+const _crl61=crewList;crewList=function(p){return[..._crl61(p),...((p&&p.clientCrew)||[]).map(x=>Object.assign({k:'client'},x))]};
+const _ctb61=crewTabs;crewTabs=function(p,u){const c=ccOf(p,u.id);if(!c)return _ctb61(p,u);const pm=c.perms||{};const ep=TYPES[p.type].episodic&&p.episodes;
+ return['overview',...(ep&&pm.status?['report']:[]),...(pm.thread?['thread']:[]),...(pm.files?['files']:[])]};
+const _pvh61=previewsHTML;previewsHTML=function(p){const u=me();const c=u&&crewOnly(p,u)&&ccOf(p,u.id);if(c&&!(c.perms||{}).previews&&!(c.perms||{}).approve)return'';return _pvh61(p)};
+/* the title picker: the list, a number for assistants, or any other title */
+function ctPick(cur,label){cur=cur||'';const m=cur.match(/^(Asst\. (?:Director|Producer))(?:\s+(\d+))?$/);const base=m?m[1]:(CTITLES.includes(cur)?cur:(cur?'__other':''));const num=m&&m[2]?m[2]:'1';
+ return`<label class="full ctpick">${esc(label||'Title on the client side')}<div class="row wrap" style="gap:8px;margin-top:6px"><select name="cbase" data-change="ctBase" style="flex:1;min-width:180px"><option value="">Choose a title…</option>${CTITLES.map(t=>`<option ${base===t?'selected':''}>${esc(t)}</option>`).join('')}<option value="__other" ${base==='__other'?'selected':''}>Other…</option></select><input name="cnum" type="number" min="1" max="20" value="${num}" aria-label="Number" style="width:80px;${CNUM.includes(base)?'':'display:none'}"><input name="cother" placeholder="Type the title" value="${base==='__other'?esc(cur):''}" style="flex:1;min-width:160px;${base==='__other'?'':'display:none'}"></div></label>`}
+CHG.ctBase=(a,el)=>{const w=el.closest('.ctpick');if(!w)return;const v=el.value;w.querySelector('[name=cnum]').style.display=CNUM.includes(v)?'':'none';w.querySelector('[name=cother]').style.display=v==='__other'?'':'none'};
+function ctRead(fd){const b=String(fd.get('cbase')||'');if(!b)return'';if(b==='__other')return String(fd.get('cother')||'').trim();return CNUM.includes(b)?`${b} ${Math.max(1,parseInt(fd.get('cnum'),10)||1)}`:b}
+const permBoxes=pm=>`<div class="full"><div class="eyebrow" style="margin:6px 0 8px">What they can see on this project</div><div class="jobpick" style="max-height:none">${CPERM.map(([k,l,d])=>`<label class="jp"><input type="checkbox" name="perm" value="${k}" ${pm[k]?'checked':''}><span><b>${esc(l)}</b><i>${esc(d)}</i></span></label>`).join('')}</div><div class="tiny faint" style="margin-top:8px">Quotation & payments stay with the project’s main client contact. Internal tasks, costs, rates and studio notes are never shown to clients.</div></div>`;
+const permChips=pm=>CPERM.filter(([k])=>pm[k]).map(([,l])=>`<span class="chip" style="font-size:11px">${esc(l)}</span>`).join(' ')||'<span class="tiny faint">Credit only — no Hub access</span>';
+/* contact line: mail and mobile, tappable */
+function ccContact(x){const em=x.email&&!String(x.email).startsWith('mockup.')?x.email:'';const ph=x.phone||'';
+ return[em?`<a href="mailto:${esc(em)}">${esc(em)}</a>`:'',ph?`<a href="tel:${esc(ph.replace(/[^\d+]/g,''))}">${esc(ph)}</a>`:''].filter(Boolean).join(' · ')||'<span class="faint">No mail or mobile yet</span>'}
+/* the Clients card on the project, next to Crew */
+function clientsCard61(p){const u=me();if(!isStaff(u)||!(canManage(p)||seesClients(u)))return'';const ed=ccEditor(p);const k='cli'+p.id;const open=V.open[k]===true;
+ const main=U(p.client);const list=(p.clientCrew||[]).filter(x=>U(x.id));const n=list.length+(main?1:0);
+ const row=(x,title,sub,acts)=>`<div class="item clirow">${av(x,32)}<div class="grow" style="min-width:0"><div class="row wrap" style="gap:6px"><b style="font-weight:500;cursor:pointer" data-act="profile" data-arg="${x.id}">${esc(x.name)}</b><span class="chip gold" style="font-size:11px">${esc(title||'Title not set')}</span>${x.company?`<span class="tiny faint">${esc(x.company)}</span>`:''}</div><div class="tiny" style="margin-top:2px">${ccContact(x)}</div><div style="margin-top:6px">${sub}</div></div>${acts||''}</div>`;
+ const rows=[main?row(main,'Main contact',`<span class="tiny faint">Sees the full client view, quotation and payments</span>`):'',
+  ...list.map(c=>{const x=U(c.id);return row(x,c.title||x.title,permChips(c.perms||{}),ed?`<a class="iconbtn sm" data-act="ccEdit" data-arg="${p.id}|${x.id}" title="Title and what they see" aria-label="Edit ${esc(x.name)}">${ic('edit',14)}</a><a class="iconbtn sm" data-act="ccDel" data-arg="${p.id}|${x.id}" title="Remove from this project" aria-label="Remove ${esc(x.name)}">${ic('x',14)}</a>`:'')})].join('');
+ const cand=S.users.filter(x=>x.role==='client'&&!x.removed&&!x.suspended&&x.id!==p.client&&!ccOf(p,x.id));
+ const add=ed?`<div class="row wrap" style="gap:8px;margin-top:12px">${cand.length?`<select data-change="ccAdd" data-arg="${p.id}" style="flex:1;min-width:200px"><option value="">＋ Add a client person…</option>${cand.map(x=>`<option value="${x.id}">${esc(x.name)} — ${esc(x.title||'')}${x.company?' · '+esc(x.company):''}</option>`).join('')}</select>`:''}<a class="btn sm" data-act="ccNew" data-arg="${p.id}">${ic('plus',14)}New client person</a></div>`:'';
+ return`<div class="card crewc clic ${open?'open':''}"><h3 class="crewh" data-act="tog" data-arg="${k}|0"><span class="faint">${open?'▾':'▸'}</span> Clients <span class="cnt">${n}</span></h3><div class="list">${rows||'<div class="empty tiny">No client people on this project yet</div>'}</div>${add}</div>`}
+const _ov61=TABS.overview;TABS.overview=p=>{let h=_ov61(p);const u=me();if(!u)return h;
+ /* client people without Status & progress don't get the flow */
+ const c=crewOnly(p,u)&&ccOf(p,u.id);
+ if(c&&!(c.perms||{}).status){const t=document.createElement('template');t.innerHTML=h;const f=[...t.content.querySelectorAll('h3')].find(x=>x.textContent.trim()==='Flow');if(f){const nx=f.nextElementSibling;if(nx)nx.remove();f.textContent='Brief'}h=t.innerHTML}
+ const card=clientsCard61(p);if(!card)return h;
+ const t=document.createElement('template');t.innerHTML=h;const cr=t.content.querySelector('.crewc');if(cr){cr.insertAdjacentHTML('afterend',card);return t.innerHTML}
+ return h+card};
+Object.assign(CHG,{ccAdd:(pid,el)=>{const p=P(pid);const x=U(el.value);if(!ccEditor(p)||!x)return;p.clientCrew=p.clientCrew||[];if(ccOf(p,x.id))return;
+ const perms=Object.assign({},CPERM_DEF);p.clientCrew.push({id:x.id,title:x.title||'',perms,access:ccAcc(perms)});V.open['cli'+pid]=true;
+ notify([x.id],`${me().name} added you to ${p.name}`,{v:'project',p:p.id});save();render();ACT.ccEdit(pid+'|'+x.id)}});
+Object.assign(ACT,{
+ ccEdit:a=>{const[pid,id]=a.split('|');const p=P(pid);const c=ccOf(p,id);const x=U(id);if(!ccEditor(p)||!c||!x)return;
+  modal(esc(x.name)+' · '+esc(p.name),`<form data-form="ccEdit" data-arg="${pid}|${id}" class="formgrid">${ctPick(c.title||x.title,'Title on this project')}${permBoxes(c.perms||{})}<div class="full row"><button class="btn pri right" type="submit">Save</button></div></form>`)},
+ ccDel:a=>{const[pid,id]=a.split('|');const p=P(pid);const x=U(id);if(!ccEditor(p)||!x)return;if(!confirm(`Remove ${x.name} from ${p.name}? They stop seeing this project.`))return;p.clientCrew=(p.clientCrew||[]).filter(c=>c.id!==id);save();render();toast(`${x.name} removed from ${p.name}`,'ok')},
+ ccNew:pid=>{const p=P(pid);if(!ccEditor(p))return;
+  modal('New client person · '+esc(p.name),`<form data-form="ccNew" data-arg="${pid}" class="formgrid"><label>Full name<input name="name" required></label>${ctPick('','Title on this project')}<label>Email (used to sign in)<input type="email" name="email" required></label><label>Mobile<input name="phone" type="tel" placeholder="+20 …" required></label><label class="full">Company <span class="faint">(optional)</span><input name="company" placeholder="Leave empty for an independent person"></label><label>Temporary password<input name="pwd" value="${randPwd()}" required minlength="8"></label>${permBoxes(CPERM_DEF)}<div class="full row"><button class="btn pri right" type="submit">Create and add to ${esc(p.name)}</button></div></form>`)}});
+FORM.ccEdit=(fd,a)=>{const[pid,id]=a.split('|');const p=P(pid);const c=ccOf(p,id);if(!ccEditor(p)||!c)return;const t=ctRead(fd);if(t)c.title=t;
+ const on=new Set(fd.getAll('perm').map(String));const perms={};CPERM.forEach(([k])=>perms[k]=on.has(k));if(perms.approve)perms.previews=true;c.perms=perms;c.access=ccAcc(perms);
+ const x=U(id);if(x&&t&&!x.title)x.title=t;save();closeModal();render();toast('Saved','ok')};
+/* creating a client person: the standard account, then straight onto the project */
+let CCPEND=null;
+FORM.ccNew=(fd,pid)=>{const p=P(pid);if(!ccEditor(p))return;const t=ctRead(fd);if(!t){toast('Choose their title','bad');return}
+ const email=String(fd.get('email')||'').trim();const on=new Set(fd.getAll('perm').map(String));const perms={};CPERM.forEach(([k])=>perms[k]=on.has(k));if(perms.approve)perms.previews=true;
+ const f2=new FormData();['name','email','company','pwd','phone'].forEach(k=>f2.set(k,String(fd.get(k)||'').trim()));f2.set('job','client');f2.set('ctitle',t);
+ CCPEND={pid,email:email.toLowerCase(),title:t,perms,until:Date.now()+30000};FORM.user(f2);ccPoll()};
+function ccPoll(){if(!CCPEND)return;const w=CCPEND;const x=S.users.find(u=>String(u.email||'').toLowerCase()===w.email&&u.role==='client');const p=P(w.pid);
+ if(x&&p){CCPEND=null;p.clientCrew=p.clientCrew||[];if(!ccOf(p,x.id))p.clientCrew.push({id:x.id,title:w.title,perms:w.perms,access:ccAcc(w.perms)});V.open['cli'+p.id]=true;save();render();return}
+ if(Date.now()>w.until){CCPEND=null;return}setTimeout(ccPoll,500)}
+/* every new client account: phone kept, company only when given, title from the list */
+const _fu61=FORM.user;FORM.user=fd=>{const j=JOBS[String(fd.get('job')||'')];if(!j||j.dash!=='client')return _fu61(fd);
+ if(fd.get('cbase')!==null){const t=ctRead(fd);if(!t){toast('Choose their title','bad');return}fd.set('ctitle',t)}
+ const co=String(fd.get('company')||'').trim(),ph=String(fd.get('phone')||'').trim();const m=mkUser;mkUser=o=>{const u=m(o);u.company=co;if(ph)u.phone=ph;return u};
+ try{return _fu61(fd)}finally{mkUser=m}};
+const _nu61=ACT.newUser;ACT.newUser=()=>{_nu61();const f=document.querySelector('#modal form[data-form=user]');if(!f)return;const lab=f.querySelector('.ctl55');if(!lab)return;
+ lab.outerHTML=`<div class="full ctl61" style="display:contents">${ctPick('','Title on the client side')}<label class="ctlph">Mobile<input name="phone" type="tel" placeholder="+20 …"></label></div>`;
+ const sel=f.querySelector('select[name=job]');const sync=()=>{const jj=JOBS[sel.value];const on=!!jj&&jj.dash==='client';f.querySelectorAll('.ctpick,.ctlph').forEach(e=>e.style.display=on?'':'none');const b=f.querySelector('select[name=cbase]');if(b)b.required=on};
+ sel.addEventListener('change',sync);sync()};
+/* Clients page: each project is a tag, with the person's title there; mail and mobile; company is optional */
+const _vcl61=VIEWS.clients;VIEWS.clients=()=>{const h=_vcl61();if(!h||/This page isn|You don/.test(h.slice(0,300)))return h;const t=document.createElement('template');t.innerHTML=h;
+ t.content.querySelectorAll('.item[data-act=profile]').forEach(it=>{const x=U(it.dataset.arg);if(!x||x.role!=='client')return;const sub=it.querySelector('.grow .tiny');if(!sub)return;
+  const ps=S.projects.filter(p=>p.client===x.id||crewList(p).some(k=>k.id===x.id));
+  const tags=ps.map(p=>{const c=ccOf(p,x.id);const tl=p.client===x.id?'Main contact':(c&&c.title)||x.title||'';return`<a class="chip ptag61" data-act="openProject" data-arg="${p.id}">${esc(p.name)}${tl?`<i> · ${esc(tl)}</i>`:''}</a>`}).join('');
+  sub.innerHTML=`<div class="row wrap" style="gap:6px;margin-top:4px">${tags||'<span class="faint">No project yet</span>'}</div><div style="margin-top:4px">${ccContact(x)}</div>`});
+ t.content.querySelectorAll('b').forEach(b=>{if(b.textContent==='No company yet')b.textContent='Independent'});return t.innerHTML};
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
