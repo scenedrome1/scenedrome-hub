@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>try{document.documentElement.dataset.theme=localStorage.getItem("sd-theme")||"mixed"}catch(e){document.documentElement.dataset.theme="mixed"}</script>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem("sd-theme")||"dark"}catch(e){document.documentElement.dataset.theme="dark"}</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest">
@@ -2839,8 +2839,8 @@ document.addEventListener('keydown',e=>{const m=document.querySelector('#modal .
 /* ================= appearance: Light / Dark / Mixed per person ================= */
 Object.assign(IC,{sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',half:'<circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>',dots:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',back:IC.back||'<path d="M15 18l-6-6 6-6"/>',review:'<path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/>'});
 const THEMES=[['light','Light','Bright surfaces throughout','sun'],['dark','Dark','Low-light editing rooms','moon'],['mixed','Mixed','Dark menu, light workspace','half']];
-const themeNow=()=>{const t=document.documentElement.dataset.theme;return THEMES.some(x=>x[0]===t)?t:'mixed'};
-function themeApply(t,persist){if(!THEMES.some(x=>x[0]===t))t='mixed';document.documentElement.dataset.theme=t;try{localStorage.setItem('sd-theme',t)}catch(e){}
+const themeNow=()=>{const t=document.documentElement.dataset.theme;return THEMES.some(x=>x[0]===t)?t:'dark'};
+function themeApply(t,persist){if(!THEMES.some(x=>x[0]===t))t='dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('sd-theme',t)}catch(e){}
  const mc=document.querySelector('meta[name=theme-color]');if(mc)mc.content=t==='light'?'#E2ECE5':t==='dark'?'#06140D':'#0A231D';
  if(persist){const u=me();if(u&&u.theme!==t){u.theme=t;save()}}}
 ACT.theme=t=>{themeApply(t,true);render();toast('Appearance saved for your account','ok')};
@@ -3158,7 +3158,7 @@ const _dm42=devModal;devModal=function(d){_dm42(d);const m=document.querySelecto
 function mainTitles(){S.users.forEach(x=>{if(!isStaff(x)||isOwner(x)||x.titleCustom)return;const t=jobTitles(x);if(t&&x.title!==t){x.title=t;if(!can('admin.users')&&SYNCED.profiles){try{SYNCED.profiles.set(x.id,JSON.stringify(TB[0][2](x)))}catch(e){}}}})}
 let MT_N=-1;const _rd43=render;render=function(){if(me()&&MT_N!==S.users.length){MT_N=S.users.length;try{mainTitles();if(can('admin.users'))setTimeout(save,0)}catch(e){}}_rd43()};
 /* the sign-in page is always dark, on the studio background */
-const _rd43b=render;render=function(){const out=!me();const h=document.documentElement;if(out){if(h.dataset.theme){h.dataset.prevTheme=h.dataset.theme;delete h.dataset.theme}h.style.setProperty('--bgimg',`url("${B().bg||'assets/bg.jpg'}")`)}else if(!h.dataset.theme){h.dataset.theme=(me().theme)||h.dataset.prevTheme||(()=>{try{return localStorage.getItem('sd-theme')}catch(e){return''}})()||'mixed';h.style.setProperty('--bgimg','none')}_rd43b()};
+const _rd43b=render;render=function(){const out=!me();const h=document.documentElement;if(out){if(h.dataset.theme){h.dataset.prevTheme=h.dataset.theme;delete h.dataset.theme}h.style.setProperty('--bgimg',`url("${B().bg||'assets/bg.jpg'}")`)}else if(!h.dataset.theme){h.dataset.theme=(me().theme)||h.dataset.prevTheme||(()=>{try{return localStorage.getItem('sd-theme')}catch(e){return''}})()||'dark';h.style.setProperty('--bgimg','none')}_rd43b()};
 
 /* ================= profile: own bio, studio-set profile data, management flag ================= */
 const BIO_MAX=200;const canProfData=()=>isMgmt()||(me()&&me().dept==='Management');
