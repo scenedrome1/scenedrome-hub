@@ -494,6 +494,7 @@ html[data-theme] .modal{width:min(560px,96vw)}html[data-theme] .modal.wide{width
 .cbxrow{gap:22px}.cbx{display:inline-flex!important;align-items:center;gap:8px;flex-direction:row!important;font:500 14px var(--body)!important;color:var(--text)!important;cursor:pointer}.cbx input{width:18px;height:18px;margin:0}.biocard{margin-top:14px;padding:14px 18px}
 .pwdrow{display:flex;justify-content:flex-start}
 .profwrap{display:flex;flex-direction:column}.profwrap>*{order:1}.profwrap>.prefrow,.profwrap>.card:has(>.row>img[src*="icon-192"]){order:50}.profwrap>.prefrow{margin-top:14px}
+.crewrole select{width:136px;max-width:40vw;padding:5px 6px;font-size:12.5px}.item:has(.crewrole) .grow,.item:has(.chip) .grow{min-width:0}.item:has(.crewrole) .grow b,.item:has(.crewrole) .grow .tiny{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -3194,6 +3195,16 @@ function closeMenus(except){if(except!=='dots'&&DOTS_OPEN){DOTS_OPEN=false;const
  if(typeof ACCT_OPEN!=='undefined'&&ACCT_OPEN&&except!=='acct'){ACCT_OPEN=false;const a=document.getElementById('acctpanel');if(a)a.classList.remove('open')}}
 document.addEventListener('pointerdown',e=>{const t=e.target;if(t.closest('.dotswrap'))return closeMenus('dots');if(t.closest('.bellwrap'))return closeMenus('bell');if(t.closest('.acctwrap'))return closeMenus('acct');closeMenus()},true);
 document.addEventListener('click',e=>{const mi=e.target.closest('#dotspanel .mi:not(.off),#bellpanel .n');if(mi){DOTS_OPEN=false;const p=document.getElementById('dotspanel');if(p)p.classList.remove('open')}},true);
+
+/* crew: each person's role on this project replaces their availability; no separate roles card */
+const _ov46=TABS.overview;TABS.overview=p=>{let h=_ov46(p);const ed=isStaff()&&canManage(p);
+ h=h.replace(/<div class="card"><h3>Roles on this project<\/h3>[\s\S]*?<\/select><\/div>`?\)?[\s\S]*?<\/div><\/div><\/div>/,m=>'');
+ h=h.replace(/(<div class="item click" data-act="profile" data-arg="([^"]+)">[\s\S]*?<div class="grow"><b style="font-weight:500">[^<]*<\/b><div class="tiny faint">)([^<]*)(<\/div><\/div>)<span class="chip[^"]*"><span class="dot"><\/span>[^<]*<\/span>/g,(m,pre,id,sub,mid)=>{const x=U(id);const t=x?(isExt(x)?(x.company||x.title||''):jobTitles(x)||x.title||''):sub;
+  let r;if(id===p.producer)r='<span class="chip">Producer</span>';
+  else if(ed&&(p.team||[]).includes(id))r=`<span data-act="stop" class="crewrole"><select data-change="projRole" data-arg="${p.id}|${id}" aria-label="Role on this project"><option value="">Set role…</option>${Object.entries(PROJ_ROLES).map(([k,l])=>`<option value="${k}" ${pRole(p,id)===k?'selected':''}>${esc(l)}</option>`).join('')}<option value="__add">＋ Add new…</option></select></span>`;
+  else r=pRole(p,id)&&PROJ_ROLES[pRole(p,id)]?`<span class="chip">${esc(PROJ_ROLES[pRole(p,id)])}</span>`:'';
+  return pre+esc(t)+mid+r});
+ return h};
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
