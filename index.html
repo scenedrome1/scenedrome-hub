@@ -3952,6 +3952,268 @@ document.addEventListener('dragover',e=>{const z=e.target.closest('[data-drop]')
 document.addEventListener('dragleave',e=>{const z=e.target.closest('[data-drop]');if(z)z.classList.remove('over')});
 document.addEventListener('drop',e=>{const z=e.target.closest('[data-drop]');if(!z)return;e.preventDefault();z.classList.remove('over');uploadTo(z.dataset.drop,e.dataTransfer.files)});
 document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('.composer textarea')){e.target.style.height='auto';e.target.style.height=Math.min(140,e.target.scrollHeight)+'px'}});
+/* ================= 2026-11-22 · calm UI + mobile fit · project-action notifications · chat avatar → profile · User View · Rooms & booking ================= */
+(function(){
+'use strict';
+IC.cal='<rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 3v3.5M16 3v3.5"/>';
+
+/* ---------- 1. calm UI (no flashing) + everything fits the screen ---------- */
+const css=document.createElement('style');css.textContent=`
+/* re-renders after a tap must never replay entry animations */
+.content>*,.msg,.bellpanel.open,.acctpanel.open,.modal,.modal-bg,.content.entering{animation:none!important}
+.content.leaving{opacity:1!important;transform:none!important;transition:none!important}
+.modal-bg{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+*{-webkit-tap-highlight-color:transparent}
+a,button,.btn,.chip,.iconbtn,.item,.card,[data-act]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text}
+.card,.btn,.iconbtn,.item,.chip{transition:none!important}
+/* fit the screen */
+html,body{max-width:100vw;overflow-x:hidden}
+.shell>main,.content{min-width:0;max-width:100%}
+.modal{max-height:calc(100vh - 20px);max-height:calc(100dvh - 20px);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.modal,.modal *{box-sizing:border-box}
+.modal input,.modal select,.modal textarea{max-width:100%;min-width:0}
+.modal img,.modal video,.content img,.content video{max-width:100%}
+.modal .row{flex-wrap:wrap}.modal .tablewrap,.modal table{max-width:100%}
+.modal table{display:block;overflow-x:auto}
+@media (max-width:760px){
+ .modal-bg{padding:8px!important;padding-bottom:calc(8px + env(safe-area-inset-bottom))!important;align-items:flex-end!important}
+ .modal,.modal.wide,html[data-theme] .modal,html[data-theme] .modal.wide{width:100%!important;max-width:100%!important;max-height:calc(100vh - 16px - env(safe-area-inset-top));max-height:calc(100dvh - 16px - env(safe-area-inset-top));padding:14px!important}
+ .modal .mh{position:sticky;top:-14px;background:var(--panel);z-index:2;padding:6px 0 10px;margin:-6px 0 6px}
+ .modal .formgrid,.content .formgrid{grid-template-columns:minmax(0,1fr)!important}
+ .modal [style*="grid-template-columns"],.content [style*="grid-template-columns"]{max-width:100%}
+ input,select,textarea{font-size:16px!important}
+ .content{padding-left:12px;padding-right:12px}
+ .content .row{flex-wrap:wrap}
+ .content .card{max-width:100%;overflow-x:auto}
+ .content .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+ .content .grid{grid-template-columns:minmax(0,1fr)!important}
+ .content .grid.g4,.content .grid.kp{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .content .item{flex-wrap:wrap;min-width:0}.content .item>.grow{min-width:0}
+ .content select,.content input:not([type=checkbox]):not([type=radio]),.content textarea{max-width:100%}
+ .bellpanel,.acctpanel,.acctpanel.dots{position:fixed!important;left:8px!important;right:8px!important;width:auto!important;max-width:none!important;top:calc(env(safe-area-inset-top) + 60px)!important;max-height:calc(100vh - 90px - env(safe-area-inset-top));max-height:calc(100dvh - 90px - env(safe-area-inset-top));overflow-y:auto}
+ .toast{max-width:calc(100vw - 24px)}
+ #toasts{left:8px;right:8px}
+}
+/* rooms & booking */
+.rmbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}.rmbar .rmdate{font-weight:500;margin:0 6px}
+.rmwrap{overflow:auto;border:1px solid var(--line);border-radius:14px;max-width:100%;-webkit-overflow-scrolling:touch}
+.rmgrid{display:grid;min-width:max-content}
+.rmh{position:sticky;top:0;z-index:3;background:var(--panel);padding:8px 10px;border-bottom:1px solid var(--line);border-left:1px solid var(--line);display:flex;flex-direction:column;gap:2px;font-size:13px}
+.rmh span{font-size:11px;color:var(--faint)}.rmh.corner{border-left:0}
+.rmgut{position:relative;background:var(--panel)}.rmgut i{position:absolute;left:6px;font-style:normal;font-size:10.5px;color:var(--faint);transform:translateY(-6px)}
+.rmcol{position:relative;border-left:1px solid var(--line);background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 43px,var(--line) 43px,var(--line) 44px)}
+.rmcol.can{cursor:copy}
+.rmb{position:absolute;left:3px;right:3px;border-radius:8px;padding:4px 7px;font-size:12px;line-height:1.25;overflow:hidden;cursor:pointer;background:color-mix(in srgb,var(--c) 34%,var(--panel));border-left:3px solid var(--c);color:var(--text);display:flex;flex-direction:column;gap:1px}
+.rmb b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rmb span{font-size:11px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rmb.req{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--c) 26%,transparent) 0 6px,transparent 6px 12px);border:1px dashed var(--c);border-left:3px solid var(--c)}
+.rmb.blk{background:repeating-linear-gradient(135deg,rgba(120,120,120,.28) 0 6px,rgba(120,120,120,.12) 6px 12px);--c:#6b7280}
+.rmb.dim{opacity:.28}
+.rmnow{position:absolute;left:0;right:0;height:2px;background:#e5484d;z-index:2;pointer-events:none}
+.rmdot{width:10px;height:10px;border-radius:50%;flex:none;display:inline-block}
+.rmq .btn{white-space:nowrap}
+`;document.head.appendChild(css);
+
+/* a modal that is already open is updated in place — no re-fade */
+const _modal9=modal;modal=function(t,h,w){const had=!!document.getElementById('modal').innerHTML;_modal9(t,h,w);if(had){const bg=document.querySelector('#modal .modal-bg');if(bg)bg.style.animation='none'}};
+
+/* ---------- 2. preview safety (nothing done in "User View" can leak into the real data) ---------- */
+let PV_DIRTY=false;
+const _notify0=notify;notify=function(a,b,c){if(PREVIEW)return;return _notify0(a,b,c)};
+const _save0=save;save=function(){if(PREVIEW)PV_DIRTY=true;return _save0()};
+const _exit0=ACT.exitPreview;ACT.exitPreview=function(){const d=PV_DIRTY;PV_DIRTY=false;_exit0.apply(this,arguments);if(d&&LIVE){toast('Refreshing your view…');setTimeout(()=>location.reload(),350)}};
+
+/* ---------- 3. chat: tap a profile picture → that person's profile ---------- */
+const _av0=av;av=function(u,s){const h=_av0(u,s);return u&&u.id?h.replace('<span class="av"','<span class="av" data-uid="'+esc(u.id)+'"'):h};
+const _css2=document.createElement('style');_css2.textContent='.msg .av[data-uid]{cursor:pointer}';document.head.appendChild(_css2);
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('.msg .av[data-uid]');if(!a)return;const id=a.dataset.uid;if(!id||!U(id))return;e.preventDefault();e.stopPropagation();go('profile',id)},true);
+
+/* ---------- 4. project actions that used to change things silently now tell the team ---------- */
+const PN={sceneSt:['updated a scene status','breakdown'],sceneDur:['changed a scene duration','breakdown'],importEDL:['imported an EDL','breakdown'],addScene:['added a scene','breakdown'],delScene:['deleted a scene','breakdown'],addVer:['added a scene version','breakdown'],selVer:['selected a scene version','breakdown'],delVer:['removed a scene version','breakdown'],lockScene:['locked / unlocked a scene','breakdown'],addShot:['added a VFX shot','briefs'],delShot:['removed a VFX shot','briefs'],addSnd:['added a sound item','briefs'],delSnd:['removed a sound item','briefs'],projRole:['changed a crew role','overview'],pvDel:['removed a preview','overview'],projDate:['changed the project dates','overview'],projAir:['changed the airing details','overview'],dlvSpec:['updated the delivery spec','overview'],drvDel:['removed a drive','drives'],dayAdd:['added a shooting day','overview'],dayDelOk:['removed a shooting day','overview'],dayLocAdd:['added a shooting location','overview'],dayLocDel:['removed a shooting location','overview'],dayNewScene:['added a scene to the shooting schedule','overview'],ccDel:['removed someone from the client side','overview',1],cpSet:['changed a client-side person’s access','overview',1]};
+function pjNotify(p,what,tab,mgmtOnly){const me0=me();if(!p||!me0)return;const text=`${me0.name} ${what} — ${p.name}`;const now=Date.now();
+ let to=mgmtOnly?[...S.users.filter(u=>u.role==='owner'||u.role==='manager').map(u=>u.id),p.producer]:members(p,'team').filter(i=>U(i)&&isStaff(U(i)));
+ to=to.filter(i=>i&&i!==meId&&U(i)&&!U(i).suspended&&!S.notifs.some(n=>n.to===i&&!n.read&&n.text===text&&now-n.ts<3e5));if(!to.length)return;notify(to,text,{v:'project',p:p.id,tab});save()}
+[ACT,CHG,FORM].forEach(map=>Object.keys(PN).forEach(name=>{const f=map[name];if(typeof f!=='function'||f.__pn)return;
+ const w=function(){const a=arguments[0];let pid=(V.v==='project'&&V.p)||String(typeof a==='string'?a:'').split('|')[0];if(!P(pid)&&typeof arguments[1]==='string')pid=arguments[1].split('|')[0];
+  const p0=P(pid);const before=p0?JSON.stringify(p0):null;const r=f.apply(this,arguments);
+  try{const p1=P(pid);if(p1&&before!==null&&JSON.stringify(p1)!==before)pjNotify(p1,PN[name][0],PN[name][1],PN[name][2])}catch(e){console.warn('[hub] notify',e)}return r};
+ w.__pn=1;map[name]=w}));
+
+/* ---------- 5. User View: what will this person actually see and be able to do? ---------- */
+const canUV=()=>{const v=me();return !!v&&!PREVIEW&&isStaff(v)&&(isMgmt(v)||can('admin.users')||can('people.add')||can('clients.manage'))};
+ACT.viewAs=id=>{const x=U(id);if(!x||!canUV()||x.suspended||(isOwner(x)&&!isOwner()))return;PREVIEW={real:meId,v:JSON.parse(JSON.stringify(V))};closeModal();meId=id;V={v:'home',p:null,tab:'overview',ch:null,open:{}};render();toast('User View: '+x.name+' — read-only')};
+ACT.userView=id=>{const x=U(id);if(!x||!canUV()||(isOwner(x)&&!isOwner()))return;
+ if(x.suspended){modal('User View',`<div class="muted">${esc(x.name)} is suspended and can’t sign in.</div>`);return}
+ const real=meId;let nav=[],projs=[];meId=id;try{nav=navItems().filter(n=>n[0]!=='__');projs=visibleProjects(x)}catch(e){console.warn(e)}finally{meId=real}
+ const on=k=>isOwner(x)?(x.access||{})[k]!==false:!!(x.access&&x.access[k]);
+ const role=isExt(x)?(x.role==='client'?'Client portal':'Collab hub'):jobTitles(x);
+ const permHTML=isExt(x)?'<div class="muted tiny">External accounts only see the projects they are added to; permissions below don’t apply.</div>':PERMS.map(([g,ps])=>`<div class="permgroup"><h4>${esc(g.toUpperCase())}</h4>${ps.map(([k,l])=>`<div class="tiny" style="padding:2px 0;${on(k)?'':'opacity:.45'}">${on(k)?'✓':'—'} ${esc(l)}</div>`).join('')}</div>`).join('');
+ modal(`User View · ${esc(x.name)}`,`<div class="row" style="gap:10px;margin-bottom:12px">${av(x,44)}<div class="grow"><b style="font-weight:600">${esc(x.name)}</b><div class="tiny faint">${esc(role)} · ${esc(x.email||'')}</div></div></div>
+ <div class="eyebrow" style="margin:6px 0">Menu they see</div><div class="row" style="gap:6px;flex-wrap:wrap">${nav.map(n=>`<span class="chip">${esc(n[1])}</span>`).join('')||'<span class="tiny faint">Nothing yet</span>'}</div>
+ <div class="eyebrow" style="margin:14px 0 6px">Projects they see (${projs.length})</div><div class="row" style="gap:6px;flex-wrap:wrap">${projs.slice(0,40).map(p=>`<span class="chip">${esc(p.name)}${p.producer===x.id?' · producer':''}</span>`).join('')||'<span class="tiny faint">None — they are not on any project</span>'}</div>
+ <div class="eyebrow" style="margin:14px 0 6px">What they can do</div><div class="grid g2" style="gap:8px">${permHTML}</div>
+ <div class="row" style="margin-top:16px;gap:8px;flex-wrap:wrap"><a class="btn pri" data-act="viewAs" data-arg="${x.id}">👁 Open their portal (read-only)</a>${canAccessUser(x)?`<a class="btn" data-act="access" data-arg="${x.id}">${ic('key',14)}Change access</a>`:''}</div>`,true)};
+const _vAdmin9=VIEWS.admin;VIEWS.admin=()=>{const h=_vAdmin9();if(!canUV()||typeof h!=='string')return h;const t=document.createElement('template');t.innerHTML=h;
+ t.content.querySelectorAll('tbody tr').forEach((tr,i)=>{const x=S.users[i];const c=tr.querySelector('td:last-child .row');if(c&&x&&x.id!==meId&&!x.suspended&&!(isOwner(x)&&!isOwner()))c.insertAdjacentHTML('afterbegin',`<a class="btn sm" data-act="userView" data-arg="${x.id}">👁 User View</a>`)});return t.innerHTML};
+const _vAcc9=VIEWS.access;VIEWS.access=()=>{const h=_vAcc9();const x=U(V.p);if(!canUV()||!x||typeof h!=='string')return h;return h.replace(/<a class="btn right" data-act="viewAs"[^>]*>[^<]*<\/a>/,`<a class="btn right" data-act="userView" data-arg="${x.id}">👁 User View</a>`)};
+
+/* ---------- 6. Edit suites & grading rooms: booking coordinated by project requests ---------- */
+PERMS.push(['Rooms & booking',[['rooms.view','See the room schedule','Edit suites & grading rooms — who is in which room, and when'],['rooms.request','Request a room for a project','For the projects they are on'],['rooms.manage','Confirm, move & block bookings','Runs the schedule and the request queue']]]);
+['rooms.view','rooms.request','rooms.manage'].forEach(k=>{if(!ALLPERMS.includes(k))ALLPERMS.push(k)});
+PERMNAME['rooms.view']='Room schedule';PERMNAME['rooms.request']='Request rooms';PERMNAME['rooms.manage']='Manage the room schedule';
+TB.push(['rooms','rooms',x=>({id:x.id,data:x})],
+ ['bookings','bookings',x=>({id:x.id,project_id:x.project||null,by_user:x.by,status:x.status,start_ts:x.start,end_ts:x.end,data:x}),r=>Object.assign({},r.data,{id:r.id,status:r.status,start:+r.start_ts,end:+r.end_ts,by:r.by_user,project:r.project_id||null})]);
+const RM_OPEN=8,RM_CLOSE=24,RM_PX=44,RM_PURP=['Offline edit','Online / conform','Colour grading','Review / client session','Sound check','Other'],RM_KIND={edit:'Edit suite',grading:'Grading room'};
+const RM=()=>S.rooms||(S.rooms=[]),BK=()=>S.bookings||(S.bookings=[]),rmRoom=id=>RM().find(r=>r.id===id);
+const rmView=()=>{const u=me();return !!u&&isStaff(u)&&(can('rooms.view')||can('rooms.request')||can('rooms.manage'))};
+const rmReq=()=>{const u=me();return !!u&&isStaff(u)&&(can('rooms.request')||can('rooms.manage'))};
+const rmMgr=()=>{const u=me();return !!u&&isStaff(u)&&can('rooms.manage')};
+const day0=ms=>{const d=new Date(ms);d.setHours(0,0,0,0);return d.getTime()};
+const dISO=ms=>{const d=new Date(ms);return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())};
+const tHM=ms=>{const d=new Date(ms);return pad2(d.getHours())+':'+pad2(d.getMinutes())};
+const rmMk=(iso,hm)=>{const[y,m,d]=iso.split('-').map(Number);const[h,mi]=hm.split(':').map(Number);return new Date(y,m-1,d,h,mi).getTime()};
+const fmtDay=ms=>new Date(ms).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+const pcol=pid=>{if(!pid)return'#6b7280';let h=0;for(const c of String(pid))h=(h*31+c.charCodeAt(0))>>>0;return COLS[h%COLS.length]};
+const rs=()=>V.rm||(V.rm={date:day0(Date.now()),mode:'day',kind:'all',room:'',proj:''});
+const bkHidden=b=>{const p=b.project&&P(b.project);return !!(p&&p.private&&!privOK(p))};
+const bkLabel=b=>b.block?('Blocked'+(b.note?' · '+b.note:'')):bkHidden(b)?'Booked':(b.project&&P(b.project)?P(b.project).name:'Studio');
+const roomText=b=>b.room?(rmRoom(b.room)?rmRoom(b.room).name:'(removed room)'):'Any '+(RM_KIND[b.want]||'room').toLowerCase();
+const bkConf=b=>BK().filter(x=>x.id!==b.id&&x.status==='confirmed'&&x.room&&x.room===b.room&&x.start<b.end&&b.start<x.end);
+const rmMgrIds=()=>[...withPerm('rooms.manage')];
+function freeSlots(want,room,from,dur,limit,ex){const rooms=RM().filter(r=>r.active!==false&&(room?r.id===room:(!want||want==='any'||r.kind===want)));const out=[];const now=Date.now();
+ for(let d=0;d<21&&out.length<limit;d++){const base=new Date(from);base.setHours(0,0,0,0);base.setDate(base.getDate()+d);const y=base.getFullYear(),m=base.getMonth(),dd=base.getDate();
+  rooms.forEach(r=>{if(out.length>=limit)return;const closeAt=new Date(y,m,dd,RM_CLOSE,0).getTime();
+   for(let t=RM_OPEN*60;t<RM_CLOSE*60;t+=30){const s=new Date(y,m,dd,0,t).getTime();const e=s+dur;if(e>closeAt)break;if(s<now||s<from)continue;
+    if(!BK().some(x=>x.status==='confirmed'&&x.id!==ex&&x.room===r.id&&x.start<e&&s<x.end)){out.push({room:r.id,start:s,end:e});break}}})}
+ return out}
+const stChip=s=>`<span class="chip ${({confirmed:'ok',requested:'warn',declined:'bad'})[s]||''}">${({confirmed:'Confirmed',requested:'Waiting for confirmation',declined:'Declined',cancelled:'Cancelled'})[s]||s}</span>`;
+
+function bkBlock(b,ds,R){const o=ds+RM_OPEN*H,c=ds+RM_CLOSE*H;const s=Math.max(b.start,o),e=Math.min(b.end,c);if(e<=s)return'';const top=(s-o)/H*RM_PX,ht=Math.max(20,(e-s)/H*RM_PX-2);const who=b.op&&U(b.op)?first(U(b.op)):'';const dim=R.proj&&b.project!==R.proj&&!b.block;
+ return`<div class="rmb ${b.status==='requested'?'req':''} ${b.block?'blk':''} ${dim?'dim':''}" style="top:${top}px;height:${ht}px;--c:${pcol(b.project)}" data-act="rmOpen" data-arg="${b.id}" title="${esc(bkLabel(b))} · ${tHM(b.start)}–${tHM(b.end)}"><b>${esc(bkLabel(b))}</b><span>${tHM(b.start)}–${tHM(b.end)}${b.status==='requested'?' · requested':''}</span>${ht>48?`<span>${esc(b.purpose||'')}${who?' · '+esc(who):''}</span>`:''}</div>`}
+function rmGridHTML(cols,R){const hrs=RM_CLOSE-RM_OPEN,HH=hrs*RM_PX,now=Date.now(),t0=day0(now),req=rmReq();
+ let h=`<div class="rmgrid" style="grid-template-columns:54px repeat(${cols.length},minmax(150px,1fr))"><div class="rmh corner"></div>${cols.map(c=>`<div class="rmh"><b>${esc(c.title)}</b><span>${esc(c.sub||'')}</span></div>`).join('')}<div class="rmgut" style="height:${HH}px">${Array.from({length:hrs},(_,i)=>`<i style="top:${i*RM_PX}px">${pad2(RM_OPEN+i)}:00</i>`).join('')}</div>`;
+ cols.forEach(c=>{const ds=c.day,de=new Date(ds);de.setDate(de.getDate()+1);const list=BK().filter(b=>b.room===c.room&&(b.status==='confirmed'||b.status==='requested')&&b.start<de.getTime()&&b.end>ds);
+  const nl=ds===t0&&now>ds+RM_OPEN*H&&now<ds+RM_CLOSE*H?`<div class="rmnow" style="top:${(now-ds-RM_OPEN*H)/H*RM_PX}px"></div>`:'';
+  h+=`<div class="rmcol ${req?'can':''}" style="height:${HH}px" ${req?`data-act="rmCol" data-arg="${c.room}|${ds}"`:''}>${list.map(b=>bkBlock(b,ds,R)).join('')}${nl}</div>`});
+ return h+'</div>'}
+function qRow(b){const p=b.project&&P(b.project),rq=U(b.by),mgr=rmMgr(),own=b.by===meId;const c=b.room?bkConf(b):[];
+ const free=b.room?null:RM().filter(r=>r.active!==false&&r.kind===b.want&&!bkConf({id:b.id,room:r.id,start:b.start,end:b.end}).length).length;const kn=(RM_KIND[b.want]||'room').toLowerCase();
+ return`<div class="item rmq"><span class="rmdot" style="background:${pcol(b.project)}"></span><div class="grow" style="min-width:0"><b style="font-weight:500">${esc(bkLabel(b))}</b>${b.ep?` <span class="chip">${esc(b.ep)}</span>`:''}<div class="tiny faint">${esc(fmtDay(b.start))} · ${tHM(b.start)}–${tHM(b.end)} · ${esc(roomText(b))} · ${esc(b.purpose||'')} · by ${esc(first(rq))}${p&&p.due&&!bkHidden(b)?` · project due ${esc(fmtDay(p.due))}`:''}</div>${c.length?`<div class="tiny" style="color:var(--bad,#e5484d)">Clashes with ${esc(bkLabel(c[0]))} (${tHM(c[0].start)}–${tHM(c[0].end)})</div>`:free===0?`<div class="tiny" style="color:var(--warn,#d6a03d)">No ${kn} is free then — move it to another time</div>`:free>0?`<div class="tiny faint">${free} ${kn}${free>1?'s':''} free then</div>`:''}</div>
+ <div class="row" style="gap:6px;flex:none">${mgr?`<a class="btn sm pri" data-act="rmConfirm" data-arg="${b.id}">Confirm</a><a class="btn sm" data-act="rmEdit" data-arg="${b.id}">Move</a><a class="btn sm ghost" data-act="rmDecline" data-arg="${b.id}">Decline</a>`:own?`<a class="btn sm" data-act="rmEdit" data-arg="${b.id}">Edit</a><a class="btn sm ghost" data-act="rmCancel" data-arg="${b.id}">Cancel</a>`:''}</div></div>`}
+
+VIEWS.rooms=()=>{if(!rmView())return deny();const R=rs();if(V.p&&/^\d{9,}$/.test(String(V.p))){R.date=day0(+V.p);R.mode='day';V.p=null}
+ const rooms=RM().filter(r=>r.active!==false),mgr=rmMgr(),req=rmReq(),now=Date.now(),t0=day0(now);
+ const conf=BK().filter(b=>b.status==='confirmed'),inUse=conf.filter(b=>b.start<=now&&now<b.end&&b.room),today=conf.filter(b=>day0(b.start)===t0&&!b.block);
+ const pend=BK().filter(b=>b.status==='requested'&&(mgr||b.by===meId)).sort((a,b)=>((P(a.project)||{}).due||9e15)-((P(b.project)||{}).due||9e15)||a.start-b.start);
+ const mine=conf.filter(b=>b.end>now&&(b.by===meId||b.op===meId)&&!b.block).sort((a,b)=>a.start-b.start)[0];
+ const head=`<div class="hello"><div class="grow"><h1>Rooms & booking</h1><div class="muted">Edit suites and grading rooms. Producers and editors request a slot for their project; the studio confirms, so nothing double-books.</div></div><div class="col" style="align-items:flex-end;gap:6px"><div class="row" style="gap:8px">${req?`<a class="btn pri" data-act="rmNew">${ic('plus')}${mgr?'Book a room':'Request a room'}</a>`:''}${mgr?`<a class="btn" data-act="rmRooms">Rooms</a>`:''}</div></div></div>`;
+ if(!RM().length)return head+`<div class="card empty">${mgr?`<b style="font-weight:500">No rooms are set up yet.</b><div class="muted" style="margin:6px 0 12px">Add your edit suites and grading rooms — you can rename or change them any time.</div><div class="row" style="justify-content:center;gap:8px"><a class="btn pri" data-act="rmPreset">Add 2 edit suites + 1 grading room</a><a class="btn" data-act="rmRooms">Add my own</a></div>`:'The studio hasn’t set up the rooms yet.'}</div>`;
+ const kindRooms=rooms.filter(r=>R.kind==='all'||r.kind===R.kind);
+ let cols=[];if(R.mode==='week'){if(!kindRooms.some(r=>r.id===R.room))R.room=(kindRooms[0]||{}).id||'';const w=new Date(R.date);w.setHours(0,0,0,0);w.setDate(w.getDate()-w.getDay());for(let i=0;i<7;i++){const d=new Date(w);d.setDate(w.getDate()+i);cols.push({title:d.toLocaleDateString('en-GB',{weekday:'short'}),sub:d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}),room:R.room,day:d.getTime()})}}
+ else cols=kindRooms.map(r=>({title:r.name,sub:RM_KIND[r.kind]||'',room:r.id,day:R.date}));
+ const title=R.mode==='week'?`Week of ${fmtDay(cols[0].day)}`:new Date(R.date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+ const projs=visibleProjects(me()).filter(p=>p.status!=='done');
+ const bar=`<div class="rmbar"><a class="btn sm" data-act="rmNav" data-arg="-1">◀</a><a class="btn sm" data-act="rmNav" data-arg="0">Today</a><a class="btn sm" data-act="rmNav" data-arg="1">▶</a><span class="rmdate">${esc(title)}</span>
+ <span class="seg"><a class="${R.mode==='day'?'on':''}" data-act="rmMode" data-arg="day">Day</a><a class="${R.mode==='week'?'on':''}" data-act="rmMode" data-arg="week">Week</a></span>
+ <span class="seg"><a class="${R.kind==='all'?'on':''}" data-act="rmKind" data-arg="all">All</a><a class="${R.kind==='edit'?'on':''}" data-act="rmKind" data-arg="edit">Edit suites</a><a class="${R.kind==='grading'?'on':''}" data-act="rmKind" data-arg="grading">Grading</a></span>
+ ${R.mode==='week'?`<select data-change="rmRoomSel" style="width:auto">${kindRooms.map(r=>`<option value="${r.id}" ${r.id===R.room?'selected':''}>${esc(r.name)}</option>`).join('')}</select>`:''}
+ <select data-change="rmProj" style="width:auto;max-width:100%"><option value="">All projects</option>${projs.map(p=>`<option value="${p.id}" ${R.proj===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>`;
+ const up=conf.filter(b=>b.end>now&&!b.block&&(!R.proj||b.project===R.proj)).sort((a,b)=>a.start-b.start).slice(0,12);
+ return head+kpis([['In use now',inUse.length,`${Math.max(0,rooms.length-new Set(inUse.map(b=>b.room)).size)} of ${rooms.length} rooms free`,'hero'],['Booked today',today.length,'confirmed sessions'],['Requests waiting',BK().filter(b=>b.status==='requested').length,mgr?'in the queue below':'all requests'],['My next session',mine?`${fmtDay(mine.start)} ${tHM(mine.start)}`:'—',mine?esc(roomText(mine)):'nothing booked']])
+ +(pend.length?`<div class="sec-title"><h2>${mgr?'Request queue':'My pending requests'}</h2><span class="chip warn">${pend.length}</span></div><div class="card"><div class="list">${pend.map(qRow).join('')}</div>${mgr?'<div class="tiny faint" style="margin-top:8px">Ordered by the project’s delivery date, then by time.</div>':''}</div>`:'')
+ +`<div class="sec-title"><h2>Schedule</h2></div>${bar}${cols.length?`<div class="rmwrap">${rmGridHTML(cols,R)}</div>`:'<div class="card empty">No rooms of that type.</div>'}${req?'<div class="tiny faint" style="margin-top:6px">Tap an empty slot to request it. Dashed = waiting for confirmation.</div>':''}`
+ +`<div class="sec-title"><h2>Coming up</h2></div><div class="card"><div class="list">${up.map(b=>`<div class="item click" data-act="rmOpen" data-arg="${b.id}"><span class="rmdot" style="background:${pcol(b.project)}"></span><div class="grow"><b style="font-weight:500">${esc(bkLabel(b))}</b><div class="tiny faint">${esc(fmtDay(b.start))} · ${tHM(b.start)}–${tHM(b.end)} · ${esc(roomText(b))} · ${esc(b.purpose||'')}</div></div></div>`).join('')||'<div class="muted">Nothing booked yet.</div>'}</div></div>`};
+
+function rmForm(b,pre){pre=pre||{};const mgr=rmMgr();const rooms=RM().filter(r=>r.active!==false);if(!rooms.length){toast('No rooms are set up yet','bad');return}
+ const ps=visibleProjects(me()).filter(p=>p.status!=='done'||(b&&b.project===p.id));const st=b?b.start:pre.start||(()=>{const d=new Date();d.setMinutes(0,0,0);d.setHours(Math.min(Math.max(d.getHours()+1,RM_OPEN),RM_CLOSE-2));return d.getTime()})();const en=b?b.end:pre.end||st+2*H;
+ const sel=b?(b.room||'any:'+b.want):(pre.room||'any:edit');const staff=S.users.filter(u=>isStaff(u)&&!u.suspended);
+ modal(b?'Edit booking':mgr?'Book a room':'Request a room',`<form data-form="rmReq" data-arg="${b?b.id:''}" class="formgrid">
+ <label class="full">Project<select name="project">${mgr?'<option value="">— Studio / internal —</option>':'<option value="">Pick the project…</option>'}${ps.map(p=>`<option value="${p.id}" ${(b?b.project:pre.project)===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>
+ <label>Room<select name="room"><option value="any:edit" ${sel==='any:edit'?'selected':''}>Any edit suite</option><option value="any:grading" ${sel==='any:grading'?'selected':''}>Any grading room</option>${rooms.map(r=>`<option value="${r.id}" ${sel===r.id?'selected':''}>${esc(r.name)}</option>`).join('')}</select></label>
+ <label>Purpose<select name="purpose">${RM_PURP.map(x=>`<option ${b&&b.purpose===x?'selected':''}>${x}</option>`).join('')}</select></label>
+ <label>Date<input type="date" name="date" required value="${dISO(st)}"></label>
+ <label>${b?'':'Days in a row'}<input type="${b?'hidden':'number'}" name="days" min="1" max="14" value="1"></label>
+ <label>From<input type="time" name="start" step="900" required value="${tHM(st)}" min="0${RM_OPEN}:00"></label>
+ <label>To<input type="time" name="end" step="900" required value="${tHM(en)}"></label>
+ <label>Episodes / scenes<input name="ep" placeholder="e.g. EP03 sc 4–9" value="${esc(b?b.ep||'':'')}"></label>
+ <label>Who works in the room<select name="op">${staff.map(u=>`<option value="${u.id}" ${(b?b.op:meId)===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></label>
+ <label class="full">Note<textarea name="note" rows="2" placeholder="Anything the studio should know — drives, monitors, client attending…">${esc(b?b.note||'':'')}</textarea></label>
+ ${mgr&&!b?`<label class="full cbx"><input type="checkbox" name="block"> Block this time for the studio (maintenance / hold) instead of a project booking</label>`:''}
+ <div class="full"><a class="btn sm" data-act="rmFind">Find a free slot</a><div id="rmSug" class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px"></div></div>
+ <div class="full row"><button class="btn pri right" type="submit">${b?'Save':mgr?'Book it':'Send request'}</button></div></form>`)}
+Object.assign(ACT,{
+ rmNav:a=>{const R=rs();const n=+a;if(!n)R.date=day0(Date.now());else{const d=new Date(R.date);d.setDate(d.getDate()+n*(R.mode==='week'?7:1));R.date=d.getTime()}render()},
+ rmMode:a=>{rs().mode=a;render()},rmKind:a=>{rs().kind=a;render()},
+ rmNew:()=>rmForm(null,{start:(()=>{const R=rs();const d=new Date(R.date);const n=new Date();if(day0(n)===R.date){d.setHours(Math.min(Math.max(n.getHours()+1,RM_OPEN),RM_CLOSE-2),0,0,0)}else d.setHours(10,0,0,0);return d.getTime()})()}),
+ rmCol:(a,el,e)=>{if(!rmReq())return;const[room,ds]=a.split('|');const y=(e&&e.clientY||0)-el.getBoundingClientRect().top;const mins=Math.round(y/RM_PX*2)/2;const s=+ds+RM_OPEN*H+Math.floor(mins*2)/2*H;const d=new Date(s);rmForm(null,{room,start:Math.max(d.getTime(),+ds+RM_OPEN*H),end:Math.max(d.getTime(),+ds+RM_OPEN*H)+2*H})},
+ rmEdit:id=>{const b=BK().find(x=>x.id===id);if(!b||!(rmMgr()||b.by===meId))return;rmForm(b)},
+ rmOpen:id=>{const b=BK().find(x=>x.id===id);if(!b)return;const p=b.project&&P(b.project),hid=bkHidden(b),mgr=rmMgr(),own=b.by===meId,live=b.status==='requested'||b.status==='confirmed';
+  const rows=[['Project',hid?'Private project':p?esc(p.name):b.block?'':'Studio'],['Room',esc(roomText(b))],['When',`${esc(fmtDay(b.start))} · ${tHM(b.start)}–${tHM(b.end)}`],['Purpose',esc(b.purpose||'')],['Episodes / scenes',esc(b.ep||'')],['In the room',U(b.op)?esc(U(b.op).name):''],['Requested by',U(b.by)?`${esc(U(b.by).name)} · ${ago(b.ts||0)}`:''],['Status',stChip(b.status)],['Note',esc(b.note||'')],['Reason',esc(b.reason||'')]].filter(r=>r[1]);
+  modal(esc(bkLabel(b)),`<div class="list">${rows.map(([k,v])=>`<div class="item"><span class="tiny faint" style="width:110px;flex:none">${k}</span><div class="grow">${v}</div></div>`).join('')}</div><div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">${mgr&&b.status==='requested'?`<a class="btn pri" data-act="rmConfirm" data-arg="${b.id}">Confirm</a><a class="btn" data-act="rmDecline" data-arg="${b.id}">Decline</a>`:''}${live&&(mgr||own)?`<a class="btn" data-act="rmEdit" data-arg="${b.id}">${mgr?'Move / edit':'Edit'}</a><a class="btn ghost" data-act="rmCancel" data-arg="${b.id}">Cancel booking</a>`:''}${mgr&&!live?`<a class="btn ghost" data-act="rmDelete" data-arg="${b.id}">Remove from history</a>`:''}${p&&!hid?`<a class="btn ghost" data-act="rmProj" data-arg="${p.id}">Open project</a>`:''}</div>`)},
+ rmProj:id=>{closeModal();go('project',id,'overview')},
+ rmFind:()=>{const f=document.querySelector('form[data-form=rmReq]');if(!f)return;const v=n=>f.elements[n]?f.elements[n].value:'';const sel=v('room');const want=sel.startsWith('any:')?sel.slice(4):'';const room=want?'':sel;const date=v('date')||dISO(Date.now());
+  const s=rmMk(date,v('start')||'10:00'),e=rmMk(date,v('end')||'12:00');if(!(e>s)){toast('Set the From / To first — I use the length','bad');return}
+  const ex=f.dataset.arg||'';const sl=freeSlots(want,room,s,e-s,6,ex);const box=document.getElementById('rmSug');
+  box.innerHTML=sl.length?sl.map(x=>`<a class="btn sm" data-act="rmPick" data-arg="${x.room}|${x.start}|${x.end}">${esc(fmtDay(x.start))} ${tHM(x.start)}–${tHM(x.end)} · ${esc(rmRoom(x.room).name)}</a>`).join(''):'<span class="tiny faint">Nothing free for that length in the next 3 weeks.</span>'},
+ rmPick:a=>{const[room,s,e]=a.split('|');const f=document.querySelector('form[data-form=rmReq]');if(!f)return;f.elements.room.value=room;f.elements.date.value=dISO(+s);f.elements.start.value=tHM(+s);f.elements.end.value=tHM(+e)},
+ rmConfirm:id=>{const b=BK().find(x=>x.id===id);if(!b||!rmMgr()||b.status!=='requested')return;
+  if(!b.room){const opts=RM().filter(r=>r.active!==false&&r.kind===b.want);modal('Choose the room',`<form data-form="rmAssign" data-arg="${b.id}" class="formgrid"><div class="full muted">${esc(bkLabel(b))} · ${esc(fmtDay(b.start))} ${tHM(b.start)}–${tHM(b.end)}</div><label class="full">Room<select name="room">${opts.map(r=>{const busy=bkConf({id:b.id,room:r.id,start:b.start,end:b.end});return`<option value="${r.id}" ${busy.length?'disabled':''}>${esc(r.name)} — ${busy.length?'busy '+tHM(busy[0].start)+'–'+tHM(busy[0].end):'free'}</option>`}).join('')}</select></label><div class="full row"><button class="btn pri right" type="submit">Confirm</button></div></form>`);return}
+  const c=bkConf(b);if(c.length){toast(`${rmRoom(b.room).name} is already booked ${tHM(c[0].start)}–${tHM(c[0].end)} (${bkLabel(c[0])}) — move or decline this one`,'bad');return}
+  rmDecide(b,'confirmed')},
+ rmDecline:id=>{const b=BK().find(x=>x.id===id);if(!b||!rmMgr())return;modal('Decline request',`<form data-form="rmDecline" data-arg="${b.id}" class="formgrid"><div class="full muted">${esc(bkLabel(b))} · ${esc(fmtDay(b.start))} ${tHM(b.start)}–${tHM(b.end)}</div><label class="full">Reason (they will see it)<textarea name="reason" rows="2" placeholder="e.g. Suite 1 is blocked for client review — try Suite 2 at 14:00"></textarea></label><div class="full row"><button class="btn pri right" type="submit">Decline</button></div></form>`)},
+ rmCancel:id=>{const b=BK().find(x=>x.id===id);if(!b||!(rmMgr()||b.by===meId)||!confirm('Cancel this booking?'))return;const was=b.status;b.status='cancelled';
+  const who=[b.by,b.op,...(P(b.project)?[P(b.project).producer]:[]),...(was==='confirmed'?rmMgrIds():[])];notify(who,`${me().name} cancelled ${roomText(b)} · ${fmtDay(b.start)} ${tHM(b.start)}–${tHM(b.end)} (${bkLabel(b)})`,{v:'rooms',p:String(day0(b.start))});save();closeModal();render();toast('Booking cancelled','ok')},
+ rmDelete:id=>{const i=BK().findIndex(x=>x.id===id);if(i<0||!rmMgr())return;BK().splice(i,1);save();closeModal();render()},
+ rmPreset:()=>{if(!rmMgr()||RM().length)return;[['Edit Suite 1','edit'],['Edit Suite 2','edit'],['Grading Room','grading']].forEach(([name,kind])=>RM().push({id:uid('rm'),name,kind,active:true}));save();render();toast('Rooms added — rename them any time from “Rooms”','ok')},
+ rmRooms:id=>{if(!rmMgr())return;const e=id&&rmRoom(id);
+  modal('Edit suites & grading rooms',`<div class="list">${RM().map(r=>`<div class="item"><span class="rmdot" style="background:${r.kind==='grading'?'#a8543f':'#3b7d9c'};opacity:${r.active===false?.3:1}"></span><div class="grow"><b style="font-weight:500">${esc(r.name)}</b><div class="tiny faint">${RM_KIND[r.kind]||''}${r.note?' · '+esc(r.note):''}${r.active===false?' · paused':''}</div></div><a class="btn sm" data-act="rmRooms" data-arg="${r.id}">Edit</a><a class="btn sm ghost" data-act="rmRoomOff" data-arg="${r.id}">${r.active===false?'Resume':'Pause'}</a><a class="iconbtn sm" data-act="rmRoomDel" data-arg="${r.id}" title="Remove">${ic('trash',14)}</a></div>`).join('')||'<div class="muted">No rooms yet.</div>'}</div>
+  <form data-form="rmRoom" data-arg="${e?e.id:''}" class="formgrid" style="margin-top:14px"><label>Name<input name="name" required value="${esc(e?e.name:'')}" placeholder="e.g. Edit Suite 3"></label><label>Type<select name="kind"><option value="edit" ${e&&e.kind==='edit'?'selected':''}>Edit suite</option><option value="grading" ${e&&e.kind==='grading'?'selected':''}>Grading room</option></select></label><label class="full">Note<input name="note" value="${esc(e?e.note||'':'')}" placeholder="Monitors, speakers, software…"></label><div class="full row"><button class="btn pri right" type="submit">${e?'Save room':'Add room'}</button></div></form>`,true)},
+ rmRoomOff:id=>{const r=rmRoom(id);if(!r||!rmMgr())return;r.active=r.active===false;save();ACT.rmRooms();render()},
+ rmRoomDel:id=>{const r=rmRoom(id);if(!r||!rmMgr())return;if(BK().some(b=>b.room===id&&(b.status==='confirmed'||b.status==='requested')&&b.end>Date.now())){toast('This room has upcoming bookings — pause it instead','bad');return}if(!confirm(`Remove ${r.name}?`))return;S.rooms=RM().filter(x=>x.id!==id);save();ACT.rmRooms();render()}});
+Object.assign(CHG,{rmRoomSel:(a,el)=>{rs().room=el.value;render()},rmProj:(a,el)=>{rs().proj=el.value;render()}});
+function rmDecide(b,status,reason){b.status=status;b.decidedBy=meId;b.decidedAt=Date.now();if(reason!==undefined)b.reason=reason;const p=P(b.project);
+ const txt=status==='confirmed'?`Room confirmed: ${roomText(b)} · ${fmtDay(b.start)} ${tHM(b.start)}–${tHM(b.end)} (${bkLabel(b)})`:`Room request declined: ${bkLabel(b)} · ${fmtDay(b.start)} ${tHM(b.start)}${reason?' — '+reason:''}`;
+ notify([b.by,b.op,...(status==='confirmed'&&p?[p.producer]:[])],txt,{v:'rooms',p:String(day0(b.start))});save();closeModal();render();toast(status==='confirmed'?'Confirmed — they’ve been notified':'Declined — they’ve been notified','ok')}
+Object.assign(FORM,{
+ rmReq:(fd,id)=>{if(!rmReq())return;const g=k=>String(fd.get(k)||'').trim();const old=id?BK().find(x=>x.id===id):null,mgr=rmMgr();const block=!!(mgr&&fd.get('block'));
+  const project=g('project')||null;if(!block&&!project&&!mgr){toast('Pick the project this is for','bad');return}if(project&&!P(project)){toast('Project not found','bad');return}
+  const sel=g('room');let room='',want='';if(sel.startsWith('any:'))want=sel.slice(4);else room=sel;if(block&&!room){toast('Pick the room to block','bad');return}
+  const date=g('date'),st=g('start'),en=g('end');if(!date||!st||!en){toast('Add the date and times','bad');return}
+  const s0=rmMk(date,st),e0=rmMk(date,en);if(e0<=s0){toast('The end must be after the start','bad');return}
+  const d0=day0(s0);if(s0<d0+RM_OPEN*H||e0>d0+RM_CLOSE*H+1){toast(`Rooms run ${pad2(RM_OPEN)}:00–24:00`,'bad');return}if(!old&&e0<Date.now()){toast('That time has already passed','bad');return}
+  const days=old?1:Math.max(1,Math.min(14,+g('days')||1)),list=[];for(let i=0;i<days;i++){const a=new Date(s0),b=new Date(e0);a.setDate(a.getDate()+i);b.setDate(b.getDate()+i);list.push([a.getTime(),b.getTime()])}
+  if(room){for(const[s,e]of list){const c=bkConf({id:old&&old.id,room,start:s,end:e});if(c.length){toast(`${fmtDay(s)}: ${rmRoom(room).name} is taken ${tHM(c[0].start)}–${tHM(c[0].end)} (${bkLabel(c[0])})`,'bad');return}}}
+  const f={project,room,want,purpose:block?'Blocked':g('purpose')||RM_PURP[0],ep:g('ep'),op:g('op')||meId,note:g('note'),block};
+  const mgrIds=rmMgrIds(),pn=block?'the studio':project?P(project).name:'the studio';
+  if(old){const moved=old.start!==list[0][0]||old.end!==list[0][1]||old.room!==room||old.want!==want;Object.assign(old,f,{start:list[0][0],end:list[0][1]});if(!mgr&&old.status==='confirmed')old.status='requested';
+   if(moved){notify(mgr?[old.by,old.op]:mgrIds,`${me().name} ${mgr?'moved':'changed'} a booking: ${roomText(old)} · ${fmtDay(old.start)} ${tHM(old.start)}–${tHM(old.end)} (${pn})`,{v:'rooms',p:String(day0(old.start))})}
+   save();closeModal();render();toast('Saved','ok');return}
+  const status=mgr&&room?'confirmed':'requested',series=days>1?uid('sr'):'';
+  list.forEach(([s,e])=>BK().push(Object.assign({id:uid('bk'),by:meId,status,ts:Date.now(),series,start:s,end:e},f)));
+  const when=`${fmtDay(list[0][0])} ${tHM(list[0][0])}–${tHM(list[0][1])}${days>1?` (+${days-1} more day${days>2?'s':''})`:''}`;
+  if(status==='requested')notify(mgrIds,`${me().name} requested ${roomText(f)} for ${pn} · ${when}`,{v:'rooms',p:String(day0(list[0][0]))});
+  else if(!block){const p=P(project);notify([f.op,...(p?[p.producer]:[])],`Room booked: ${roomText(f)} · ${when} (${pn})`,{v:'rooms',p:String(day0(list[0][0]))})}
+  save();closeModal();render();toast(status==='confirmed'?(block?'Time blocked':'Booked'):'Request sent — the studio will confirm','ok')},
+ rmAssign:(fd,id)=>{const b=BK().find(x=>x.id===id);if(!b||!rmMgr())return;const room=String(fd.get('room')||'');if(!room)return;const c=bkConf({id:b.id,room,start:b.start,end:b.end});if(c.length){toast('That room just got taken','bad');return}b.room=room;rmDecide(b,'confirmed')},
+ rmDecline:(fd,id)=>{const b=BK().find(x=>x.id===id);if(!b||!rmMgr())return;rmDecide(b,'declined',String(fd.get('reason')||'').trim())},
+ rmRoom:(fd,id)=>{if(!rmMgr())return;const name=String(fd.get('name')||'').trim();if(!name)return;const kind=String(fd.get('kind'))==='grading'?'grading':'edit',note=String(fd.get('note')||'').trim();
+  if(id&&rmRoom(id))Object.assign(rmRoom(id),{name,kind,note});else RM().push({id:uid('rm'),name,kind,note,active:true});save();ACT.rmRooms();render();toast('Saved','ok')}});
+
+const _nav9=navItems;navItems=function(){const N=_nav9();if(!me()||!rmView())return N;let at=-1;N.forEach((x,k)=>{if(['storage','marketing','handbook'].includes(x[0]))at=k});
+ if(at>=0)N.splice(at+1,0,['rooms','Rooms & booking','cal']);else{const y=N.findIndex(x=>x[0]==='__'&&x[1]==='You');const it=[['__','Studio'],['rooms','Rooms & booking','cal']];if(y>=0)N.splice(y,0,...it);else N.push(...it)}return N};
+const _shell9=shellHTML;shellHTML=function(){const h=_shell9();return V.v==='rooms'?h.replace('<h2></h2>','<h2>Rooms & booking</h2>'):h};
+
+/* ---------- 7. pull down from the top to refresh ---------- */
+(function(){const bar=document.createElement('div');bar.style.cssText='position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 8px);transform:translate(-50%,-70px);z-index:300;padding:8px 14px;border-radius:999px;background:var(--panel);border:1px solid var(--line2,var(--line));font-size:13px;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.35)';bar.textContent='↓ Pull to refresh';document.body.appendChild(bar);
+ let y0=null,dy=0,go_=false;const TH=90;
+ const free=t=>{if(document.getElementById('modal').innerHTML||(window.scrollY||document.documentElement.scrollTop)>0)return false;const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return false;for(let el=t;el&&el!==document.body;el=el.parentElement){if(el.scrollTop>0)return false}return true};
+ document.addEventListener('touchstart',e=>{y0=null;dy=0;go_=false;if(e.touches.length!==1||!me()||!free(e.target))return;y0=e.touches[0].clientY},{passive:true});
+ document.addEventListener('touchmove',e=>{if(y0==null)return;dy=e.touches[0].clientY-y0;if(dy<=0){bar.style.transform='translate(-50%,-70px)';return}if(!free(e.target)){y0=null;return}const k=Math.min(dy,TH*1.4)*.5;go_=dy>=TH;bar.textContent=go_?'↑ Release to refresh':'↓ Pull to refresh';bar.style.transform=`translate(-50%,${k-70+30}px)`},{passive:true});
+ const end=()=>{if(y0!=null&&go_){bar.textContent='Refreshing…';bar.style.transform='translate(-50%,24px)';setTimeout(()=>location.reload(),150)}else bar.style.transform='translate(-50%,-70px)';y0=null;dy=0;go_=false};
+ document.addEventListener('touchend',end,{passive:true});document.addEventListener('touchcancel',end,{passive:true});
+ const c=document.createElement('style');c.textContent='html,body{overscroll-behavior-y:contain}';document.head.appendChild(c)})();
+})();
+
 if(LIVE){meId='…';render();liveBoot().catch(e=>{console.error(e);if(booted){toast('Something didn’t load: '+e.message,'bad');return}bootMsg='Couldn’t reach the Hub database: '+e.message;booted=false;meId=null;render()});sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){booted=false;meId=null;render()}})}else render();
 })();
 </script>
