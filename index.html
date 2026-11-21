@@ -541,6 +541,9 @@ form[data-form=groupSend] .composer{gap:6px}form[data-form=groupSend] .composer 
 .phright{display:flex;flex-direction:column;align-items:flex-end;gap:8px;margin-left:auto}.phbtns{gap:8px}
 @media (max-width:760px){.phright{align-items:flex-start;margin-left:0;width:100%}}
 .subhead{gap:12px;margin:-4px 0 12px}.ovfold{margin-top:14px;display:flex;flex-direction:column;gap:12px}
+.ptabs2 a.out{opacity:.78}.ptabs2 a .pdot{width:6px;height:6px;border-radius:50%;background:var(--lav-fg);display:inline-block;margin-left:2px}
+.bform{border:1px dashed var(--line2);border-radius:10px;padding:10px}.bform select,.bform input{width:auto}.brow{gap:10px;align-items:flex-start}
+@media (max-width:760px){.ptabs2{display:grid!important;grid-template-columns:repeat(4,1fr);width:100%;gap:4px}.ptabs2 a{flex-direction:column;gap:4px;padding:10px 2px!important;min-height:58px;justify-content:center}.ptabs2 a span{display:block!important;font-size:11.5px}.ptabs2 a svg{width:20px!important;height:20px!important}.ptabs2 a .pdot{position:absolute;top:8px;right:10px}.ptabs2 a{position:relative}}
 </style>
 </head>
 <body>
@@ -3381,8 +3384,8 @@ ACT.svcAdd=a=>{const[pid,k]=a.split('|');const p=P(pid);if(!p||!canManage(p)||!k
 CHG.svcAdd=(pid,el)=>{if(el.value)ACT.svcAdd(pid+'|'+el.value)};
 ACT.svcRemove=a=>{const[pid,k]=a.split('|');const p=P(pid);if(!p||!canManage(p))return;p.services=pSvc(p).filter(x=>x!==k);if(((V.bkMode||{})[pid])===k)V.bkMode[pid]='';save();render()};
 function servicesCard(p){if(!isStaff())return'';const on=pSvc(p);const mg=canManage(p);const left=svcFit(p).filter(k=>!on.includes(k));
- return`<div class="card svccard"><div class="row" style="margin-bottom:10px"><h3 style="margin:0">Services <span class="cnt">${on.length}</span></h3>${mg&&left.length?`<label class="right svcadd">${ic('plus',14)}<select data-change="svcAdd" data-arg="${p.id}" aria-label="Add service"><option value="">Add service</option>${left.map(k=>`<option value="${k}">${(SVCS.find(x=>x[0]===k)||[])[1]}</option>`).join('')}</select></label>`:''}</div>
- <div class="row wrap" style="gap:8px">${on.length?on.map(k=>{const s=SVCS.find(x=>x[0]===k);return`<span class="svcchip"><a data-act="svcGo" data-arg="${p.id}|${k}">${ic(s[2],15)}${esc(s[1])}</a>${mg?`<a class="x" data-act="svcRemove" data-arg="${p.id}|${k}" title="Remove ${esc(s[1])}" aria-label="Remove ${esc(s[1])}">✕</a>`:''}</span>`}).join(''):'<span class="tiny faint">No services yet</span>'}</div></div>`}
+ return`<div class="card svccard"><div class="row" style="margin-bottom:10px"><h3 style="margin:0">Services in the deal <span class="cnt">${on.length}</span></h3>${mg&&left.length?`<label class="right svcadd">${ic('plus',14)}<select data-change="svcAdd" data-arg="${p.id}" aria-label="Add service"><option value="">Add service</option>${left.map(k=>`<option value="${k}">${(SVCS.find(x=>x[0]===k)||[])[1]}</option>`).join('')}</select></label>`:''}</div>
+ <div class="row wrap" style="gap:8px">${on.length?on.map(k=>{const s=SVCS.find(x=>x[0]===k);return`<span class="svcchip"><a data-act="svcGo" data-arg="${p.id}|${k}">${ic(s[2],15)}${esc(s[1])}</a>${mg?`<a class="x" data-act="svcRemove" data-arg="${p.id}|${k}" title="Remove ${esc(s[1])}" aria-label="Remove ${esc(s[1])}">✕</a>`:''}</span>`}).join(''):'<span class="tiny faint">None yet — every service runs as a partner brief</span>'}</div></div>`}
 ACT.svcGo=a=>{const[pid,k]=a.split('|');V.bkMode=Object.assign({},V.bkMode,{[pid]:k});V.tab='breakdown';render()};
 /* status · person · notes for one service on one scene (or deliverable) */
 const svcRec=(o,k)=>{if(k==='sound')return{st:o.sndSt||'todo',by:o.sndBy||'',note:o.sndBrief||''};o.sv=o.sv||{};return o.sv[k]||{st:'todo',by:'',note:''}};
@@ -3471,6 +3474,52 @@ const _ov52=TABS.overview;TABS.overview=p=>{let h=_ov52(p);const u=me();if(!staf
 /* old links into removed tabs still land somewhere sensible */
 const _rt52=ACT.tab;ACT.tab=t=>{if(t==='breakdown'){const p=P(V.p);t=p?(pSvc(p)[0]||'overview'):'overview'}return _rt52(t)};
 ACT.svcGo=a=>{const[pid,k]=a.split('|');V.tab=k;render()};
+
+/* ================= every service is part of the flow; outside the deal it runs as a partner brief ================= */
+const BRIEF_SCOPE={edit:[['ep','Episode'],['scene','Scene'],['shot','Shot']],grading:[['ep','Episode'],['scene','Scene']],vfx:[['shot','Shot'],['scene','Scene notes']],sound:[['ep','Episode'],['scene','Scene']],creative:[['type','Service type']]};
+const flowSvcs=p=>SVCS.map(x=>x[0]).filter(k=>svcFit(p).includes(k));
+const partnersOf=p=>(p.partners||[]).map(U).filter(Boolean).concat(S.users.filter(x=>x.role==='partner'&&!(p.partners||[]).includes(x.id)&&!x.suspended));
+function briefView(p,k){const q=NP(p);const ed=canEditFlow(q)||canManage(q);const ep=TYPES[q.type].episodic&&q.episodes;const L=(q.pbriefs||[]).filter(b=>b.svc===k);const S_=SVCS.find(x=>x[0]===k);
+ const scopes=BRIEF_SCOPE[k].filter(([s])=>ep||s==='shot'||s==='type'||s==='scene');const sc0=(V.bScope||{})[k]||scopes[0][0];const ep0=(V.bEp||{})[k]||(ep?q.episodes[0].n:'');
+ const epSel=ep?`<select name="ep" data-change="bEp" data-arg="${k}">${allEps(q).map(e=>`<option value="${e.n}" ${String(ep0)===String(e.n)?'selected':''}>${epL(e.n)}</option>`).join('')}</select>`:'';
+ const scenes=ep?((epFind(q,ep0)||{}).scenes||[]):[];
+ const form=ed?`<form class="bform" data-form="pbrief" data-arg="${q.id}|${k}"><div class="row wrap" style="gap:8px"><select name="scope" data-change="bScope" data-arg="${k}">${scopes.map(([v,l])=>`<option value="${v}" ${sc0===v?'selected':''}>By ${l.toLowerCase()}</option>`).join('')}</select>
+  ${sc0==='type'?`<select name="kind">${CREATIVE_K.map(c=>`<option>${c}</option>`).join('')}</select>`:''}${sc0!=='type'&&ep?epSel:''}
+  ${(sc0==='scene'||sc0==='shot')?(scenes.length?`<select name="scene">${scenes.map(s=>`<option value="${esc(s.n)}">Sc ${esc(s.n)}</option>`).join('')}</select>`:`<input name="scene" placeholder="Scene no." style="width:110px">`):''}
+  ${sc0==='shot'?`<input name="shot" placeholder="Shot no. / name" style="width:150px">`:''}
+  <select name="partner"><option value="">Partner studio…</option>${partnersOf(q).map(x=>`<option value="${x.id}">${esc(x.company||x.name)} · ${esc(first(x))}</option>`).join('')}</select></div>
+  <textarea name="note" rows="2" placeholder="What the partner needs to do — references, timecodes, delivery notes…" required style="width:100%;margin-top:8px"></textarea><div class="row" style="margin-top:8px"><span class="grow"></span><button class="btn pri" type="submit">${ic('send',14)}Send brief</button></div></form>`:'';
+ const row=b=>{const st=SVC_ST.find(x=>x[0]===b.st)||SVC_ST[0];const where=b.scope==='type'?esc(b.kind):[b.ep?epL(b.ep):'',b.scene?'Sc '+esc(b.scene):'',b.shot?'Shot '+esc(b.shot):''].filter(Boolean).join(' · ')||'Whole project';const pa=U(b.partner);
+  return`<div class="item brow"><div class="grow" style="min-width:0"><b style="font-weight:500">${where}</b><div class="tiny">${esc(b.note)}</div><div class="tiny faint">${pa?esc(pa.company||pa.name):'No partner yet'} · ${ago(b.ts)}</div></div>${ed?`<select data-change="pbSt" data-arg="${q.id}|${b.id}" style="width:130px">${SVC_ST.map(([v,l])=>`<option value="${v}" ${b.st===v?'selected':''}>${l}</option>`).join('')}</select><a class="iconbtn sm" data-act="pbDel" data-arg="${q.id}|${b.id}" title="Remove brief" aria-label="Remove brief">${ic('trash',14)}</a>`:`<span class="chip ${st[2]}">${st[1]}</span>`}</div>`};
+ return`<div class="card"><div class="row" style="margin-bottom:6px"><h3 style="margin:0">${esc(S_[1])} · partner brief <span class="cnt">${L.length}</span></h3>${canManage(q)?`<a class="btn sm right" data-act="svcAdd" data-arg="${q.id}|${k}">${ic('plus',14)}Add to the deal</a>`:''}</div>
+ <div class="tiny faint" style="margin-bottom:12px">Not in this project’s deal — handled by a partner studio through briefs.</div>${form}<div class="list" style="margin-top:10px">${L.slice().reverse().map(row).join('')||'<div class="empty tiny">No briefs yet</div>'}</div></div>`}
+CHG.bScope=(k,el)=>{V.bScope=Object.assign({},V.bScope,{[k]:el.value});render()};
+CHG.bEp=(k,el)=>{V.bEp=Object.assign({},V.bEp,{[k]:el.value});render()};
+FORM.pbrief=(fd,a)=>{const[pid,k]=a.split('|');const p=P(pid);if(!p||!(canEditFlow(p)||canManage(p)))return;const g=x=>String(fd.get(x)||'').trim();const note=g('note');if(!note)return;
+ const b={id:uid('pb'),svc:k,scope:g('scope'),ep:g('ep')?+g('ep'):'',scene:g('scene'),shot:g('shot'),kind:g('kind'),note,partner:g('partner'),st:'todo',by:meId,ts:Date.now()};
+ p.pbriefs=p.pbriefs||[];p.pbriefs.push(b);if(b.partner&&!(p.partners||[]).includes(b.partner)){p.partners=(p.partners||[]).concat(b.partner)}
+ if(b.partner)notify([b.partner],`${me().name} sent you a ${(SVCS.find(x=>x[0]===k)||[])[1]} brief on ${p.name}`,{v:'project',p:p.id,tab:'briefs'});save();render();toast('Brief sent','ok')};
+CHG.pbSt=(a,el)=>{const[pid,id]=a.split('|');const p=P(pid);const b=p&&(p.pbriefs||[]).find(x=>x.id===id);if(!b)return;b.st=el.value;save();render()};
+ACT.pbDel=a=>{const[pid,id]=a.split('|');const p=P(pid);const b=p&&(p.pbriefs||[]).find(x=>x.id===id);if(!b||!confirm('Remove this brief?'))return;p.pbriefs=p.pbriefs.filter(x=>x.id!==id);save();render()};
+/* partners see their briefs at the top of their briefs tab */
+const _tbr53=TABS.briefs;TABS.briefs=p=>{const u=me();const mine=(p.pbriefs||[]).filter(b=>u.role!=='partner'||b.partner===u.id);let h=_tbr53(p);if(!mine.length)return h;
+ return`<div class="card" style="margin-bottom:14px"><h3>Briefs from the studio <span class="cnt">${mine.length}</span></h3><div class="list">${mine.slice().reverse().map(b=>{const st=SVC_ST.find(x=>x[0]===b.st)||SVC_ST[0];const where=b.scope==='type'?esc(b.kind):[b.ep?epL(b.ep):'',b.scene?'Sc '+esc(b.scene):'',b.shot?'Shot '+esc(b.shot):''].filter(Boolean).join(' · ')||'Whole project';return`<div class="item"><div class="grow"><b style="font-weight:500">${esc((SVCS.find(x=>x[0]===b.svc)||[])[1])} · ${where}</b><div class="tiny">${esc(b.note)}</div></div><span class="chip ${st[2]}">${st[1]}</span></div>`}).join('')}</div></div>`+h};
+/* tabs: every service, deal ones in-house, the rest as partner briefs */
+const _vp53=VIEWS.project;VIEWS.project=()=>{const p=P(V.p);const u=me();if(!p||!staffTabs(p,u))return _vp53();const all=flowSvcs(p),on=pSvc(p);
+ if(SVC_TABS.includes(V.tab)&&!on.includes(V.tab)&&all.includes(V.tab)){const k=V.tab;V.tab='overview';let h;try{h=_vp53()}finally{V.tab=k}
+  const i=h.indexOf('<div class="seg ptabs2"');return(i>0?h.slice(0,i):h)+tabBar(p,all,on)+`<div class="tabbody">${briefView(p,k)}</div>`}
+ let h=_vp53();return h.replace(/<div class="seg ptabs2"[\s\S]*?<\/div>/,tabBar(p,all,on))};
+function tabBar(p,all,on){const items=[['overview','Overview','home'],...SVCS.filter(([k])=>all.includes(k))];
+ return`<div class="seg ptabs2" role="tablist" aria-label="Project sections">${items.map(([k,l,i])=>{const out=k!=='overview'&&!on.includes(k);return`<a class="${V.tab===k?'on':''} ${out?'out':''}" role="tab" aria-selected="${V.tab===k}" aria-label="${esc(l)}${out?' (partner brief)':''}" title="${esc(l)}${out?' — partner brief, not in the deal':''}" data-act="tab" data-arg="${k}">${ic(i,16)}<span>${esc(l==='Creative Services'?'Creative':l)}</span>${out?'<i class="pdot"></i>':''}</a>`}).join('')}</div>`}
+/* Deal: attach quotations, contracts and invoices */
+const _tmo53=TABS.money;TABS.money=p=>{const h=_tmo53(p);if(!canMoney(p))return h;const docs=S.files.filter(f=>f.project===p.id&&f.deal).sort((a,b)=>b.ts-a.ts);
+ return h+`<div class="card" style="margin-top:14px"><div class="row" style="margin-bottom:10px"><h3 style="margin:0">Deal attachments <span class="cnt">${docs.length}</span></h3><label class="btn sm pri right" style="cursor:pointer">${ic('clip',14)}Attach<input type="file" hidden multiple accept=".pdf,.txt,image/*" data-change="dealAttach" data-arg="${p.id}"></label></div>
+ ${docs.length?`<div class="list">${docs.map(f=>{const k=freg(f);return`<div class="item"><a class="grow" data-act="fview" data-arg="${k}" style="cursor:pointer;min-width:0">${ic(f.kind==='image'?'img':'doc',15)} <b style="font-weight:500">${esc(f.name)}</b> <span class="tiny faint">${kb(f.size||0)} · ${ago(f.ts)}</span></a>${isOwner()?`<a class="iconbtn sm" data-act="dealDocDel" data-arg="${f.id}" title="Delete attachment" aria-label="Delete attachment">${ic('trash',14)}</a>`:''}</div>`}).join('')}</div>`:'<div class="empty tiny">Quotations, contracts and invoices for this deal — PDF, TXT or images.</div>'}</div>`};
+CHG.dealAttach=async(pid,el)=>{const p=P(pid);if(!p||!canMoney(p))return;await handleFiles(el.files,r=>{S.files.push({id:uid('f'),project:pid,name:r.name,kind:r.kind,size:r.size,path:r.path,mime:r.mime,data:r.kind==='image'?r.data:(LIVE?undefined:r.data),by:meId,ts:Date.now(),share:['team'],deal:true,dl:true});save();render();toast(r.name+' attached','ok')});el.value=''};
+ACT.dealDocDel=id=>{const f=S.files.find(x=>x.id===id);if(!f||!isOwner())return;modal('Delete “'+esc(f.name)+'”?',`<p class="muted" style="margin-top:0">The file is removed from this deal and deleted from storage. This can’t be undone.</p><div class="row"><a class="btn right" data-act="closeModal">Keep</a><a class="btn pri" data-act="dealDocDelOk" data-arg="${id}">Delete ${esc(f.name)}</a></div>`)};
+ACT.dealDocDelOk=async id=>{const f=S.files.find(x=>x.id===id);closeModal();if(!f||!isOwner())return;if(LIVE&&f.path){try{const{error}=await sb.storage.from('hub').remove([f.path]);if(error)throw error}catch(e){toast('Couldn’t delete the stored file: '+(e.message||e),'bad');return}}S.files=S.files.filter(x=>x.id!==id);save();render();toast('Attachment deleted','ok')};
+/* deal papers stay out of the general Files list for people without deal access */
+if(TABS.files){const _tf53=TABS.files;TABS.files=p=>{if(canMoney(p))return _tf53(p);const keep=S.files;S.files=keep.filter(f=>!f.deal);try{return _tf53(p)}finally{S.files=keep}}}
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
