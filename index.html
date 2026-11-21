@@ -483,6 +483,7 @@ html[data-theme] .top{position:sticky;top:0;z-index:20;padding-top:max(16px,calc
 .card.pt{padding:0}.card.pt>.sec{margin:0;border:0;box-shadow:none}.aboutro .kv{margin:6px 0 0}.prefrow{padding:12px 16px}
 .recacts{display:inline-flex;gap:6px;margin-left:auto}.iconbtn.sm{width:32px;height:32px}.recbar{margin-bottom:10px;gap:8px}.danger{color:var(--coral-fg)!important}.btn.danger{border-color:color-mix(in srgb,var(--coral-fg) 40%,var(--line))}.btn.danger:not(:disabled):hover{background:var(--coral-bg)}button.btn:disabled{opacity:.45;cursor:not-allowed}
 .pen{margin-left:4px}.card.hover .row{gap:8px}
+.figbar{gap:10px;margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -3016,7 +3017,7 @@ function dotsHTML(){const N=navItems().filter(x=>x[0]!=='__'&&!['home','projects
  <a class="mi ${UNDO.length?'':'off'}" data-act="undo">${ic('undo',16)}Undo</a><a class="mi ${REDO.length?'':'off'}" data-act="redo">${ic('redo',16)}Redo</a>${isOwner()?`<a class="mi" data-act="bbOpen">${ic('star',16)}Style this page</a>`:''}<hr><a class="mi" data-act="logout">${ic('out',16)}Log out</a></div></div>`}
 const _sh35=shellHTML;shellHTML=function(){let h=_sh35();const u=me();
  h=h.replace(/<div class="acctwrap">[\s\S]*?<\/div><\/div><\/div><\/header>/,dotsHTML()+'</div></header>');
- if(!finPage())h=h.replace(/<a class="iconbtn[^"]*" data-act="finEye"[\s\S]*?<\/a>/,'');
+ h=h.replace(/<a class="iconbtn[^"]*" data-act="finEye"[\s\S]*?<\/a>/,'');
  const mu=msgUnread();if(mu)h=h.replace(/(<a class="[^"]*" data-act="go" data-arg="messages"[^>]*>[\s\S]*?)(<\/a>)/,`$1<span class="nbadge">${mu>99?'99+':mu}</span>$2`);
  h=h.replace(/<a class="navmore[^"]*"[\s\S]*?<\/a>/,`<a class="navme ${V.v==='profile'&&(!V.p||V.p===u.id)?'on':''}" data-act="go" data-arg="profile" aria-label="My profile">${av(u,30)}<span>Me</span></a>`);
  return h};
@@ -3142,6 +3143,11 @@ const _hb39=VIEWS.handbook;if(_hb39)VIEWS.handbook=()=>isMgmt()?_hb39():deny();
 
 /* Cashflow lives on the owner's Finance page */
 const _vf40=VIEWS.finance;VIEWS.finance=()=>{const h=_vf40();if(!isOwner()||h.includes('data-act="cfOpen"'))return h;return`<div class="card prefrow" style="margin-bottom:14px"><div class="row wrap" style="gap:12px">${ic('wallet',20)}<div class="grow"><b style="font-weight:500">Cashflow</b><div class="tiny faint">The studio Cashflow, live from every approved money entry and book. Owner only.</div></div><a class="btn pri" data-act="cfOpen">${ic('wallet',16)}Open Cashflow</a></div></div>`+h};
+
+/* the Show figures switch sits on the money pages themselves, not in the top bar */
+const figBar=()=>finAny()?`<div class="row figbar">${eyeBtn('btn sm')}<span class="tiny faint">${FIN_SHOW?'Figures are showing — they hide again after 3 minutes':'Figures are hidden'}</span></div>`:'';
+const _vf41=VIEWS.finance;VIEWS.finance=()=>{const h=_vf41();return h.includes('data-act="finEye"')?h:figBar()+h};
+if(TABS.money){const _tm41=TABS.money;TABS.money=p=>{const h=_tm41(p);return h.includes('data-act="finEye"')?h:figBar()+h}}
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
