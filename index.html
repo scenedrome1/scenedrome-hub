@@ -436,13 +436,48 @@ html[data-theme] .top>div:first-child{min-width:0;flex:1}html[data-theme] .top h
 html[data-theme] .composer{background:var(--panel);border-top:0}html[data-theme] .bubble{background:var(--card2);color:var(--text)}html[data-theme] .msg.me .bubble{background:var(--sel);color:var(--text)}
 html[data-theme] .kcol{background:var(--card2)}html[data-theme] .kcard{background:var(--panel)}
 .navmore{display:none!important}
-@media (max-width:860px){.nav>a.navmore{display:flex!important}.nav>a:nth-of-type(n+4):not(.navmore){display:none!important}.side.more .nav{flex-wrap:wrap}
- .side.more{padding-top:10px;box-shadow:0 -20px 40px -10px rgba(0,0,0,.35)}.side.more .nav>a:nth-of-type(n+4):not(.navmore){display:flex!important}.nav{display:flex;flex-wrap:nowrap;justify-content:space-around}.nav>a{flex:1 1 0}.side.more .nav>a{flex:0 0 25%}}
+
 .thm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}.thc{display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid var(--line);border-radius:10px;cursor:pointer;text-decoration:none;color:var(--text)}.thc.on{border-color:var(--gold);box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 30%,transparent)}
 .tp{display:flex;height:70px;border-radius:7px;overflow:hidden;border:1px solid var(--line)}.tp b{width:28%}.tp span{flex:1}.tp.light b{background:#E2ECE5}.tp.light span{background:#F3F1EA}.tp.dark b{background:#06140D}.tp.dark span{background:#102D23}.tp.mixed b{background:#0A231D}.tp.mixed span{background:#F3F1EA}
 .grid.g3:has(>.card.span2){align-items:start}
 @media (max-width:760px){.thm{grid-template-columns:1fr}}
 html[data-theme] .tabs{scrollbar-width:thin;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);padding-right:40px}
+
+.cnt{display:inline-grid;place-items:center;min-width:22px;height:20px;padding:0 6px;border-radius:99px;background:var(--card2);border:1px solid var(--line);font:500 11.5px var(--body);color:var(--muted);margin-left:6px;vertical-align:2px}
+.tile .scope{font-style:normal;font-weight:500;letter-spacing:0;text-transform:none;opacity:.7;margin-left:8px;font-size:11px}
+.tiles.t1{grid-template-columns:minmax(0,1fr)}.tiles.t2{grid-template-columns:repeat(2,minmax(0,1fr))}.tiles.t4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.calm{display:flex;align-items:center;gap:8px;padding:12px 16px;border-radius:10px;background:var(--mint-bg);color:var(--mint-fg);font-weight:500;margin-bottom:14px}
+.tgrid.one{grid-template-columns:minmax(0,1fr)}.today-h{margin:-4px 0 14px}
+.nbadge{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--gold);color:var(--forest);font:600 11px/20px var(--body);text-align:center}
+.navme{display:none!important}
+.tabmore{display:none}
+.seg3{display:inline-flex;padding:3px;gap:2px;border-radius:10px;background:var(--card2);border:1px solid var(--line)}
+.seg3 a{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer;text-decoration:none}
+.seg3 a.on{background:var(--panel);color:var(--text);box-shadow:0 0 0 1.5px var(--gold),var(--shadow)}.seg3 a.on svg{color:var(--gold2)}
+.dotswrap{position:relative}.acctpanel.dots{width:250px}.acctpanel .mi.on{background:var(--sel);font-weight:500}.dnav{display:none}
+/* desktop: sidebar stays put while the page scrolls */
+@media (min-width:1025px){html[data-theme] .side{position:sticky;top:0;height:100vh;overflow-y:auto;align-self:start}}
+/* top bar clears the iPhone camera and speaker */
+html[data-theme] .top{position:sticky;top:0;z-index:20;padding-top:max(16px,calc(env(safe-area-inset-top) + 8px))}
+/* tablet + phone: bottom bar with Dashboard · Projects · Messages · you */
+@media (max-width:1024px){html[data-theme] .shell{grid-template-columns:minmax(0,1fr)}
+ html[data-theme] .side{position:fixed;bottom:0;top:auto;left:0;right:0;height:auto;flex-direction:row;border-right:0;border-top:1px solid var(--railline);z-index:30;padding-bottom:env(safe-area-inset-bottom)}
+ html[data-theme] .brand,html[data-theme] .side-foot,html[data-theme] .draftnote,html[data-theme] .nav h6{display:none}
+ html[data-theme] .nav{display:flex;flex-direction:row;flex-wrap:nowrap;width:100%;padding:4px 6px;justify-content:space-around;overflow:visible}
+ html[data-theme] .nav>a{display:none!important}
+ html[data-theme] .nav>a[data-arg=home],html[data-theme] .nav>a[data-arg=projects],html[data-theme] .nav>a[data-arg=messages],html[data-theme] .nav>a.navme{display:flex!important;flex:1 1 0;flex-direction:column;align-items:center;gap:3px;font-size:11px;padding:7px 4px;min-width:0;position:relative}
+ html[data-theme] .nav>a .nbadge{position:absolute;top:2px;left:calc(50% + 6px);margin:0}
+ .navme .av{outline:2px solid transparent;outline-offset:1px}.navme.on .av{outline-color:var(--gold)}
+ .dnav{display:block}.acctpanel.dots{position:fixed;top:calc(env(safe-area-inset-top) + 62px);right:10px;width:min(300px,calc(100vw - 20px));max-height:70vh;overflow:auto}
+ html[data-theme] .content{padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+ .tiles.t4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.tabs>a.tx{display:none}.tabs>a.tx.on{display:inline-block}.tabmore{display:inline-flex;align-items:center;margin-left:auto}
+ .tabmore select{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:6px 8px;font-size:14px;max-width:150px}.tabmore.on select{border-color:var(--gold)}
+ html[data-theme] .tabs{-webkit-mask-image:none;mask-image:none;padding-right:0;overflow:visible;flex-wrap:nowrap}html[data-theme] .tabs a{margin-right:10px;font-size:13.5px;white-space:nowrap}
+ .tiles,.tiles.t2,.tiles.t4{grid-template-columns:1fr}.seg3 a span{display:none}.seg3 a{padding:7px 12px}
+ html[data-theme] .top h2{font-size:19px}}
+.assignbox{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;border:1px dashed color-mix(in srgb,var(--gold) 60%,var(--line));border-radius:10px;margin-bottom:14px;background:color-mix(in srgb,var(--gold) 7%,var(--panel))}.assignbox select{flex:1 1 200px}
+.item.unread b,.item.unread .tiny{color:var(--text)}.item.unread{background:color-mix(in srgb,var(--gold) 6%,transparent)}.mgrp{margin-bottom:12px}.mgrp .item{padding:9px 4px}
 </style>
 </head>
 <body>
@@ -2801,7 +2836,7 @@ function themeApply(t,persist){if(!THEMES.some(x=>x[0]===t))t='mixed';document.d
  const mc=document.querySelector('meta[name=theme-color]');if(mc)mc.content=t==='light'?'#E2ECE5':t==='dark'?'#06140D':'#0A231D';
  if(persist){const u=me();if(u&&u.theme!==t){u.theme=t;save()}}}
 ACT.theme=t=>{themeApply(t,true);render();toast('Appearance saved for your account','ok')};
-const segTheme=()=>`<div class="seg" role="radiogroup" aria-label="Appearance">${THEMES.map(([k,l])=>`<a role="radio" aria-checked="${themeNow()===k}" class="${themeNow()===k?'on':''}" data-act="theme" data-arg="${k}">${l}</a>`).join('')}</div>`;
+let segTheme=()=>`<div class="seg" role="radiogroup" aria-label="Appearance">${THEMES.map(([k,l])=>`<a role="radio" aria-checked="${themeNow()===k}" class="${themeNow()===k?'on':''}" data-act="theme" data-arg="${k}">${l}</a>`).join('')}</div>`;
 /* the person's own choice follows them to every device */
 const _rd31=render;render=function(){const u=me();if(u&&u.theme&&u.theme!==document.documentElement.dataset.theme)themeApply(u.theme,false);_rd31()};
 /* studio branding keeps the gold, fonts, logo and mark; surfaces come from each person's appearance */
@@ -2838,8 +2873,8 @@ function bellListHTML(u){const my=S.notifs.filter(n=>n.to===u.id).sort((a,b)=>(b
 const _nav31=navItems;navItems=function(){return _nav31().map(x=>x[0]==='home'&&x[1]==='Dashboard'?['home','Today','home']:x)};
 
 /* ================= Today · Projects · project cards (design revision 02) ================= */
-const DAYMS=864e5;const dmon=ts=>{const d=new Date(ts);return d.getDate()+' '+d.toLocaleString('en-GB',{month:'short'}).toUpperCase()};
-const whenTxt=ts=>{if(!ts)return'';const d=Math.round((new Date(ts).setHours(0,0,0,0)-new Date().setHours(0,0,0,0))/DAYMS);const hm=new Date(ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});return d===0?'Today':d===1?'Tomorrow':d===-1?'Yesterday':d<0?Math.abs(d)+' days overdue':d<7?new Date(ts).toLocaleDateString('en-GB',{weekday:'long'}):dstr(ts)};
+const DAYMS=864e5;let dmon=ts=>{const d=new Date(ts);return d.getDate()+' '+d.toLocaleString('en-GB',{month:'short'}).toUpperCase()};
+let whenTxt=ts=>{if(!ts)return'';const d=Math.round((new Date(ts).setHours(0,0,0,0)-new Date().setHours(0,0,0,0))/DAYMS);const hm=new Date(ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});return d===0?'Today':d===1?'Tomorrow':d===-1?'Yesterday':d<0?Math.abs(d)+' days overdue':d<7?new Date(ts).toLocaleDateString('en-GB',{weekday:'long'}):dstr(ts)};
 const tag=(t,c)=>`<span class="otag ${c||''}">${esc(t)}</span>`;
 function todayData(){const u=me();const ps=visibleProjects().filter(p=>(p.status||'active')==='active');const pid=new Set(ps.map(p=>p.id));const now=Date.now();
  const open=S.tasks.filter(t=>t.status!=='done'&&pid.has(t.project));const mine=t=>tAs(t,u.id)||P(t.project).producer===u.id||isMgmt();
@@ -2909,6 +2944,120 @@ const _ov34=TABS.overview;TABS.overview=p=>nextUpHTML(p)+_ov34(p);
 const _vp34=VIEWS.profile;VIEWS.profile=()=>{const v=me();const x=U(V.p);const h=_vp34();if(x&&x.id!==v.id)return h;
  return`<div class="card" style="margin-bottom:16px"><div class="row wrap" style="gap:14px"><div class="grow"><h3 style="margin:0">Appearance</h3><div class="tiny faint">Choose how the Hub looks for you — saved to your account on every device.</div></div>${segTheme()}</div>
  <div class="thm">${THEMES.map(([k,l,d])=>`<a class="thc ${themeNow()===k?'on':''}" data-act="theme" data-arg="${k}"><i class="tp ${k}"><b></b><span></span></i><div><b style="font-weight:500">${l}${themeNow()===k?' ✓':''}</b><div class="tiny faint">${d}</div></div></a>`).join('')}</div></div>`+h};
+
+/* ================= revision 03 · A: Dashboard, one source of counts, Cairo dates, navigation ================= */
+/* dates: one clock — Cairo — for Dashboard, cards and tasks */
+const CAIRO=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'});
+const cKey=ts=>CAIRO.format(new Date(ts));const cDiff=ts=>Math.round((Date.parse(cKey(ts))-Date.parse(cKey(Date.now())))/864e5);
+const cShort=ts=>new Date(ts).toLocaleDateString('en-GB',{timeZone:'Africa/Cairo',day:'numeric',month:'short'});
+dueTxt=function(ts){if(!ts)return['No due date',''];const d=cDiff(ts);if(d<0)return[`Overdue by ${-d} day${d<-1?'s':''}`,'bad'];if(d===0)return['Due today','warn'];if(d===1)return['Due tomorrow','warn'];if(d<7)return['Due '+new Date(ts).toLocaleDateString('en-GB',{timeZone:'Africa/Cairo',weekday:'long'}),''];return['Due '+cShort(ts),'']};
+whenTxt=function(ts){if(!ts)return'';const d=cDiff(ts);return d===0?'today':d===1?'tomorrow':d===-1?'yesterday':d<0?`${-d} days ago`:d<7?new Date(ts).toLocaleDateString('en-GB',{timeZone:'Africa/Cairo',weekday:'long'}):cShort(ts)};
+dmon=ts=>cShort(ts).toUpperCase();
+/* who owns a task: only people who still exist count */
+const tPeople=t=>[t.assignee,...(t.assignees||[])].filter(Boolean).filter(id=>U(id));
+const tUnas=t=>!tPeople(t).length;
+/* scope: Studio for owner/management, My projects for producers, My work for everyone else */
+function workScope(u){u=u||me();const ps=visibleProjects().filter(p=>(p.status||'active')==='active');
+ if(isMgmt(u))return{key:'studio',label:'Studio',ps,manage:true};const mine=ps.filter(p=>canManage(p));if(mine.length)return{key:'proj',label:'My projects',ps:mine,manage:true};return{key:'me',label:'My work',ps,manage:false}}
+function workLists(scope){const u=me();const sc=scope||workScope(u);const pid=new Set(sc.ps.map(p=>p.id));const open=S.tasks.filter(t=>t.status!=='done'&&pid.has(t.project));
+ const scoped=sc.manage?open:open.filter(t=>tAs(t,u.id));const soon=7;
+ return{sc,open:scoped,unas:sc.manage?open.filter(tUnas):[],review:sc.manage?open.filter(t=>t.status==='review'):scoped.filter(t=>t.status==='review'),
+  late:scoped.filter(t=>t.due&&cDiff(t.due)<0&&t.status!=='review'),
+  due:[...scoped.filter(t=>t.due&&cDiff(t.due)>=0&&cDiff(t.due)<soon).map(t=>({k:'task',t,ts:t.due})),...sc.ps.filter(p=>p.due&&cDiff(p.due)>=0&&cDiff(p.due)<soon).map(p=>({k:'final',p,ts:p.due}))].sort((a,b)=>a.ts-b.ts)}}
+function projUnas(p){return S.tasks.filter(t=>t.project===p.id&&t.status!=='done'&&tUnas(t))}
+/* what each date is for */
+function dateLabel(x){if(x.k==='final')return`Final delivery ${cShort(x.ts)}`;if(x.k==='day')return`Shooting day ${pad2(x.d.n||0)} · ${cShort(x.ts)}`;const t=x.t;const d=cDiff(t.due);const nm=t.status==='review'?'Review':'Task';return d===0?`${nm} due today`:d===1?`${nm} due tomorrow`:d<0?`${nm} overdue by ${-d} day${d<-1?'s':''}`:`${nm} due ${cShort(t.due)}`}
+/* the exact list behind a count */
+ACT.dashList=k=>{const L=workLists();const T={unas:['Unassigned tasks',L.unas],review:['Waiting for review',L.review],late:['Late tasks',L.late],due:['Due in the next 7 days',L.due.map(x=>x.t||x)]}[k];if(!T)return;
+ modal(`${T[0]} · ${L.sc.label}`,`<div class="list">${T[1].map(x=>x.title?`<div class="item click" data-act="taskOpen" data-arg="${x.id}"><div class="grow"><b style="font-weight:500">${esc(x.title)}</b><div class="tiny faint">${esc((P(x.project)||{}).name||'')} · ${tUnas(x)?'Unassigned':esc(tPeople(x).map(i=>U(i).name).join(', '))}</div></div><span class="chip ${dueTxt(x.due)[1]}">${dueTxt(x.due)[0]}</span></div>`:`<div class="item click" data-act="openProject" data-arg="${x.p.id}"><div class="grow"><b style="font-weight:500">${esc(x.p.name)}</b><div class="tiny faint">Final delivery</div></div><span class="chip warn">${cShort(x.ts)}</span></div>`).join('')||'<div class="empty">Nothing here now.</div>'}</div>`)};
+function dashHTML(){const u=me();const L=workLists();const sc=L.sc;const items=todayData().items.filter(x=>!/^(RV|EP|SH|!)$/.test(x.ini));
+ const tiles=[];if(L.review.length)tiles.push(['blue','Reviews',`${L.review.length} waiting for review`,esc(L.review[0].title),'review']);
+ if(L.unas.length)tiles.push(['honey','Assignments',`${L.unas.length} unassigned task${L.unas.length>1?'s':''}`,esc(L.unas[0].title)+(L.unas[0].due?' · '+dueTxt(L.unas[0].due)[0]:''),'unas']);
+ if(L.late.length)tiles.push(['coral','Late',`${L.late.length} late task${L.late.length>1?'s':''}`,esc(L.late[0].title),'late']);
+ if(L.due.length)tiles.push(['mint','Deliveries',`${L.due.length} due this week`,esc(dateLabel(L.due[0]))+' · '+esc(L.due[0].t?L.due[0].t.title:L.due[0].p.name),'due']);
+ const act=[...L.review.map(t=>({ini:'RV',c:'blue',t:esc(t.title),m:`${esc(P(t.project).name)} · ${dateLabel({k:'task',t})}`,a:'Open review',act:'taskOpen',arg:t.id})),
+  ...L.unas.map(t=>({ini:'AS',c:'honey',t:esc(t.title),m:`Unassigned · ${esc(P(t.project).name)}${t.due?' · '+dateLabel({k:'task',t}):''}`,a:'Assign artist',act:'taskOpen',arg:t.id})),
+  ...L.late.map(t=>({ini:'!',c:'coral',t:esc(t.title),m:`${esc(tPeople(t).map(i=>first(U(i))).join(', ')||'Unassigned')} · ${dateLabel({k:'task',t})}`,a:'Open task',act:'taskOpen',arg:t.id})),...items];
+ const up=[];sc.ps.forEach(p=>{if(p.due&&cDiff(p.due)>=0)up.push({k:'final',p,ts:p.due,act:'openProject',arg:p.id,s:p.name});(p.days||[]).forEach(d=>{const ts=d.date?Date.parse(d.date):0;if(ts&&cDiff(ts)>=0)up.push({k:'day',d,p,ts,act:'openProject',arg:p.id+'|breakdown',s:p.name+(d.loc?' · '+d.loc:'')})})});
+ L.open.filter(t=>t.due&&cDiff(t.due)>=0).forEach(t=>up.push({k:'task',t,ts:t.due,act:'taskOpen',arg:t.id,s:t.title+' · '+P(t.project).name}));up.sort((a,b)=>a.ts-b.ts);
+ const tilesH=tiles.length?`<div class="tiles t${tiles.length}">${tiles.map(([c,l,v,s,k])=>`<a class="tile ${c}" data-act="dashList" data-arg="${k}"><span class="tl">${l}<i class="scope">${sc.label}</i></span><b>${v}</b><span class="ts">${s}</span></a>`).join('')}</div>`:`<div class="calm">${ic('check',16)} Nothing waiting on you · ${sc.label}</div>`;
+ const attH=act.length?`<div class="card att"><h3>Needs your attention <span class="cnt">${act.length}</span></h3><div class="arows">${(V.dashAll?act:act.slice(0,6)).map(x=>`<div class="arow ${x.act?'click':''}" ${x.act&&!x.html?`data-act="${x.act}" data-arg="${x.arg}"`:''}>${tag(x.ini,x.c)}<div class="grow"><b>${x.t}</b><div class="am">${x.m}</div></div>${x.html||`<span class="ago">${esc(x.a)} →</span>`}</div>`).join('')}</div>${act.length>6?`<a class="btn sm ghost" data-act="dashAll" style="margin-top:6px">${V.dashAll?'Show fewer':'Show all '+act.length}</a>`:''}</div>`:'';
+ const upH=sec('dUp',`Coming up <span class="cnt">${up.length}</span>`,'',up.length?up.slice(0,8).map(x=>`<div class="crow click" data-act="${x.act}" data-arg="${x.arg}"><span class="cd">${dmon(x.ts)}</span><div class="grow"><b>${esc(dateLabel(x))}</b><div class="am">${esc(x.s)}</div></div></div>`).join(''):'<div class="empty">Nothing dated ahead.</div>',true);
+ const pjH=sec('dProj',`Active projects <span class="cnt">${sc.ps.length}</span>`,sc.label,`<div class="pgrid">${sc.ps.map(p=>pcardHTML(p)).join('')||'<div class="empty">No projects in production</div>'}</div>`,false);
+ const money_=canPerMoney()?sec('todayMoney','Money · '+perLabel(),'Figures stay hidden until you show them',`<div class="row" style="margin-bottom:10px">${perSel()}${isOwner()?`<a class="btn sm right" data-act="cfOpen">${ic('wallet',14)}Open Cashflow</a>`:''}</div>${perKPIs(S.projects)}`,false):'';
+ return`${(typeof appBanner==='function'?appBanner():'')}<div class="row today-h"><span class="chip">${ic('users',13)} ${sc.label}</span><div class="grow"></div>${isOwner()?`<a class="btn sm" data-act="cfOpen">${ic('wallet',15)}Cashflow</a>`:''}${sc.manage&&sc.ps[0]?`<a class="btn sm pri" data-act="newTask" data-arg="${sc.ps[0].id}">${ic('plus',15)}New task</a>`:''}</div>${tilesH}
+ <div class="tgrid${attH?'':' one'}">${attH}<div>${upH}</div></div><div style="margin-top:14px">${pjH}</div>${money_?`<div style="margin-top:14px">${money_}</div>`:''}`}
+ACT.dashAll=()=>{V.dashAll=!V.dashAll;render()};
+todayHTML=dashHTML;homeLead=dashHTML;homeProducer=dashHTML;
+/* project overview uses the same count */
+const _nu35=nextUpHTML;nextUpHTML=function(p){let h=_nu35(p);const n=projUnas(p).length;return h.replace(/(<span class="tl">Unassigned<\/span><b>)[^<]*(<\/b>)/,`$1${n} task${n!==1?'s':''}$2`)};
+/* openProject can carry a section: "pid|breakdown" */
+const _op35=ACT.openProject;ACT.openProject=a=>{const[id,tab]=String(a).split('|');_op35(id);if(tab&&V.p===id){V.tab=tab;render()}};
+/* nav: Dashboard; profile reached from your photo; Handbook for owner & management */
+const _nav35=navItems;navItems=function(){const u=me();let N=_nav35().map(x=>x[0]==='home'&&x[1]==='Today'?['home','Dashboard','home']:x);N=N.filter(x=>x[0]!=='profile'&&!(x[0]==='handbook'&&!isMgmt(u)));while(N.length&&N[N.length-1][0]==='__')N.pop();return N.filter((x,i)=>!(x[0]==='__'&&(N[i+1]||['__'])[0]==='__'))};
+crumbHTML=(()=>{const _c=crumbHTML;return()=>_c().replace(' / Today',' / Dashboard')})();
+/* unread messages: DMs by “seen”, project threads by your last visit */
+function threadUnread(u){u=u||me();const since=u.readsInit||0;const R=u.reads||{};let n=0;visibleProjects().forEach(p=>{(channelsFor(p,u)||[]).forEach(ch=>{const last=R[p.id+'|'+ch]||since;n+=S.msgs.filter(m=>m.project===p.id&&m.ch===ch&&m.user!==u.id&&m.ts>last).length})});return n}
+function msgUnread(){const u=me();if(!u)return 0;const dm=dmsFor().reduce((a,t)=>a+t.unread,0);return dm+(u.readsInit?threadUnread(u):0)}
+function markThreadRead(){const u=me();if(!u||V.v!=='project'||V.tab!=='thread'||!V.ch||!V.p)return;if(!u.readsInit){u.readsInit=Date.now()}u.reads=u.reads||{};const k=V.p+'|'+V.ch;const last=S.msgs.filter(m=>m.project===V.p&&m.ch===V.ch).reduce((a,m)=>Math.max(a,m.ts||0),0);if((u.reads[k]||0)<last){u.reads[k]=last;save()}}
+/* finance eye only where figures are on the page */
+const finPage=()=>V.v==='finance'||(V.v==='project'&&V.tab==='money')||(V.v==='home'&&canPerMoney())||(V.v==='projects'&&canPerMoney())||V.v==='client';
+/* shell: photo once (sidebar on desktop, bottom bar on phone/tablet), ⋯ menu for everything else */
+var DOTS_OPEN=false;ACT.dots=()=>{DOTS_OPEN=!DOTS_OPEN;const p=document.getElementById('dotspanel');if(p)p.classList.toggle('open',DOTS_OPEN)};
+document.addEventListener('click',e=>{if(DOTS_OPEN&&!e.target.closest('.dotswrap')){DOTS_OPEN=false;const p=document.getElementById('dotspanel');if(p)p.classList.remove('open')}});
+const SEC_ORDER=['finance','team','marketing','clients','partners','storage','branding','admin','handbook'];
+function dotsHTML(){const N=navItems().filter(x=>x[0]!=='__'&&!['home','projects','messages'].includes(x[0])).sort((a,b)=>SEC_ORDER.indexOf(a[0])-SEC_ORDER.indexOf(b[0]));
+ return`<div class="dotswrap"><a class="iconbtn" data-act="dots" aria-label="More" aria-haspopup="true">${ic('dots')}</a><div class="acctpanel dots ${DOTS_OPEN?'open':''}" id="dotspanel">
+ <div class="dnav">${N.map(([k,l,i])=>`<a class="mi ${V.v===k?'on':''}" data-act="go" data-arg="${k}">${ic(i,16)}${esc(l)}</a>`).join('')}<hr></div>
+ <a class="mi ${UNDO.length?'':'off'}" data-act="undo">${ic('undo',16)}Undo</a><a class="mi ${REDO.length?'':'off'}" data-act="redo">${ic('redo',16)}Redo</a>${isOwner()?`<a class="mi" data-act="bbOpen">${ic('star',16)}Style this page</a>`:''}<hr><a class="mi" data-act="logout">${ic('out',16)}Log out</a></div></div>`}
+const _sh35=shellHTML;shellHTML=function(){let h=_sh35();const u=me();
+ h=h.replace(/<div class="acctwrap">[\s\S]*?<\/div><\/div><\/div><\/header>/,dotsHTML()+'</div></header>');
+ if(!finPage())h=h.replace(/<a class="iconbtn[^"]*" data-act="finEye"[\s\S]*?<\/a>/,'');
+ const mu=msgUnread();if(mu)h=h.replace(/(<a class="[^"]*" data-act="go" data-arg="messages"[^>]*>[\s\S]*?)(<\/a>)/,`$1<span class="nbadge">${mu>99?'99+':mu}</span>$2`);
+ h=h.replace(/<a class="navmore[^"]*"[\s\S]*?<\/a>/,`<a class="navme ${V.v==='profile'&&(!V.p||V.p===u.id)?'on':''}" data-act="go" data-arg="profile" aria-label="My profile">${av(u,30)}<span>Me</span></a>`);
+ return h};
+const _rd35=render;render=function(){_rd35();markThreadRead()};
+/* project sections on phones: the most used stay, the rest under More */
+const PHONE_TABS=['overview','breakdown','tasks','thread'];
+const _vp35=VIEWS.project;VIEWS.project=()=>{let h=_vp35();const m=/<div class="tabs">([\s\S]*?)<\/div>/.exec(h);if(!m)return h;const all=[...m[1].matchAll(/<a class="(on)?" data-act="tab" data-arg="([^"]+)">([^<]*)<\/a>/g)];
+ const rest=all.filter(x=>!PHONE_TABS.includes(x[2]));const onRest=rest.find(x=>x[1]);
+ const more=rest.length?`<span class="tabmore ${onRest?'on':''}"><select data-change="tabPick" aria-label="More sections"><option value="">${onRest?esc(onRest[3]):'More sections'}</option>${rest.map(x=>`<option value="${x[2]}">${esc(x[3])}</option>`).join('')}</select></span>`:'';
+ const tabs=all.map(x=>`<a class="${x[1]||''} ${PHONE_TABS.includes(x[2])?'':'tx'}" data-act="tab" data-arg="${x[2]}">${x[3]}</a>`).join('');
+ return h.replace(m[0],`<div class="tabs">${tabs}${more}</div>`)};
+CHG.tabPick=(a,el)=>{if(el.value)ACT.tab(el.value)};
+/* appearance: one compact three-position control */
+segTheme=()=>`<div class="seg3" role="radiogroup" aria-label="Appearance">${THEMES.map(([k,l,,i])=>`<a role="radio" aria-checked="${themeNow()===k}" class="${themeNow()===k?'on':''}" data-act="theme" data-arg="${k}" title="${l}">${ic(i,15)}<span>${l}</span></a>`).join('')}</div>`;
+
+Object.assign(IC,{arrow:'<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>'});
+/* ================= revision 03 · B: tasks say what happens next · Assign artist · Messages by project ================= */
+const NEXT_ACT={todo:['Start work','play'],doing:['Send for review','send'],review:['Mark complete','check']};
+const BACK_ACT={doing:'Back to To do',review:'Return to artist',done:'Reopen'};
+const taskPeople=p=>[...new Set([p.producer,...(p.team||[]),...(p.partners||[])])].map(U).filter(x=>x&&!x.suspended&&x.role!=='client');
+const canAssign=p=>canManage(p)||canDo('proj.tasks',p);
+const _tm36=taskModal;taskModal=function(t){_tm36(t);const m=document.querySelector('#modal .modal');if(!m)return;const p=P(t.project);
+ const un=[...m.querySelectorAll('.chip.warn')].find(x=>x.textContent.trim()==='Unassigned');
+ const ppl=tPeople(t).map(U);
+ if(ppl.length){const row=(un&&un.parentNode)||null;if(row&&!un){} }
+ if(un){const row=un.parentNode;if(canAssign(p)&&t.status!=='done'){row.outerHTML=`<form class="assignbox" data-form="taskAssign" data-arg="${t.id}"><span class="chip warn">Unassigned</span><select name="who" required aria-label="Artist"><option value="">Choose an artist…</option>${taskPeople(p).map(x=>`<option value="${x.id}">${esc(x.name)} — ${esc(x.title||x.company||'')}</option>`).join('')}</select><button class="btn pri" type="submit">${ic('user',15)}Assign artist</button></form>`}}
+ else if(canAssign(p)&&t.status!=='done'){const nm=m.querySelector('.row b');if(nm&&nm.parentNode&&nm.parentNode.parentNode){const r=nm.parentNode.parentNode;if(!r.querySelector('[data-act=taskReassign]'))r.insertAdjacentHTML('beforeend',`<a class="btn sm ghost right" data-act="taskReassign" data-arg="${t.id}">${ic('edit',14)}Change</a>`)}}
+ const fw=m.querySelector('a[data-act=taskMove][data-arg$="|1"]');if(fw&&NEXT_ACT[t.status]){const[l,i]=NEXT_ACT[t.status];fw.innerHTML=`${ic(i==='play'?'arrow':i,16)}${l}`;fw.title={todo:'Moves the task to In progress',doing:'Moves the task to In review and tells the producer',review:'Moves the task to Done'}[t.status]}
+ const bk=m.querySelector('a[data-act=taskMove][data-arg$="|-1"]');if(bk&&BACK_ACT[t.status])bk.textContent=BACK_ACT[t.status];
+ const s=m.querySelector('select[name=who]');if(s&&!/iPhone|iPad|Android/.test(navigator.userAgent))s.focus()};
+FORM.taskAssign=(fd,id)=>{const t=S.tasks.find(x=>x.id===id);const who=fd.get('who');const p=t&&P(t.project);if(!t||!who||!canAssign(p))return;t.assignee=who;t.assignees=[who];
+ notify([who],`${me().name} assigned you “${t.title}” on ${p.name}`,{v:'project',p:p.id,tab:'tasks'});save();render();taskModal(t);toast(`${U(who).name} is on it`,'ok')};
+ACT.taskReassign=id=>{const t=S.tasks.find(x=>x.id===id);if(!t)return;t._re=true;const keep={a:t.assignee,as:t.assignees};t.assignee='';t.assignees=[];taskModal(t);t.assignee=keep.a;t.assignees=keep.as;const f=document.querySelector('#modal .assignbox .chip');if(f)f.textContent='Reassign'};
+/* the board says the same thing on each card */
+const _tt36=TABS.tasks;TABS.tasks=p=>_tt36(p).replace(/<a class="btn sm(?: ghost)?" data-act="taskMove" data-arg="([^"|]+)\|(-?1)">[◀▶]<\/a>/g,(m0,id,d)=>{const t=S.tasks.find(x=>x.id===id);if(!t)return m0;const l=d==='1'?(NEXT_ACT[t.status]||[''])[0]:BACK_ACT[t.status];return l?`<a class="btn sm ${d==='1'?'':'ghost'}" data-act="taskMove" data-arg="${id}|${d}" title="${esc(l)}">${esc(l)}</a>`:m0}).replace(/<span class="tiny faint">Unassigned<\/span>|>Unassigned</g,m0=>m0);
+/* Messages: active conversations first, grouped by project; the rest under Browse projects */
+VIEWS.messages=()=>{const u=me();const R=u.reads||{};const since=u.readsInit||0;const ts=threadsFor();const unr=t=>S.msgs.filter(m=>m.project===t.p.id&&m.ch===t.ch&&m.user!==u.id&&m.ts>(R[t.p.id+'|'+t.ch]||since)).length;
+ const by=new Map();ts.filter(t=>t.last).forEach(t=>{if(!by.has(t.p.id))by.set(t.p.id,{p:t.p,ts:[],last:0});const g=by.get(t.p.id);g.ts.push(t);g.last=Math.max(g.last,t.last.ts)});
+ const groups=[...by.values()].sort((a,b)=>b.last-a.last);const idle=visibleProjects().filter(p=>!by.has(p.id));
+ const row=t=>{const a=U(t.last.user);const n=u.readsInit?unr(t):0;return`<div class="item click ${n?'unread':''}" data-act="openThread" data-arg="${t.p.id}|${t.ch}"><span class="chip ${t.ch==='client'?'info':''}" style="font-size:11px;width:64px;justify-content:center">${chLabel(t.ch)}</span><div class="grow" style="min-width:0"><div class="tiny" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a?`<b style="font-weight:500">${esc(first(a))}:</b> `:''}${esc(t.last.text||'📎 attachment')}</div></div><span class="tiny faint">${ago(t.last.ts)}</span>${n?`<span class="nbadge" style="margin:0">${n}</span>`:''}</div>`};
+ const dms=dmsFor();
+ return`<div class="row" style="margin-bottom:12px"><h2 class="grow" style="margin:0">Conversations</h2><a class="btn pri" data-act="newDM">${ic('plus',16)}New message</a></div>
+ ${dms.length?`<div class="card" style="margin-bottom:14px"><h3>Direct messages</h3><div class="list">${dms.map(t=>{const o=U(t.o);return`<div class="item click ${t.unread?'unread':''}" data-act="openDM" data-arg="${o.id}">${av(o,32)}<div class="grow" style="min-width:0"><b style="font-weight:500">${esc(o.name)}</b><div class="tiny faint" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.last.text||'📎 attachment')}</div></div><span class="tiny faint">${ago(t.last.ts)}</span>${t.unread?`<span class="nbadge" style="margin:0">${t.unread}</span>`:''}</div>`}).join('')}</div></div>`:''}
+ ${groups.length?groups.map(g=>`<div class="card mgrp"><div class="row" style="margin-bottom:4px"><b class="grow" style="font-weight:500;font-size:16px">${esc(g.p.name)}</b><a class="tiny faint" data-act="openProject" data-arg="${g.p.id}">Open project →</a></div><div class="list">${g.ts.sort((a,b)=>b.last.ts-a.last.ts).map(row).join('')}</div></div>`).join(''):'<div class="card empty">No conversations yet. Start one from a project’s Thread tab.</div>'}
+ ${idle.length?`<div style="margin-top:14px">${sec('msgIdle',`Browse projects <span class="cnt">${idle.length}</span>`,'Projects with no messages yet',`<div class="list">${idle.map(p=>`<div class="item">${esc(p.name)}<span class="right row" style="gap:6px">${channelsFor(p,u).map(ch=>`<a class="btn sm" data-act="openThread" data-arg="${p.id}|${ch}">${chLabel(ch)} thread</a>`).join('')}</span></div>`).join('')}</div>`,false)}</div>`:''}`};
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
