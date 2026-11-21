@@ -1,5 +1,5 @@
 /* SCENEDROME Hub · service worker: installable app, offline shell, push notifications */
-const CACHE = 'sd-hub-v1';
+const CACHE = 'sd-hub-v2';
 const SHELL = ['./', './index.html', './config.js', './manifest.webmanifest', './assets/logo.png', './assets/s.png', './assets/bg.jpg', './assets/app/icon-192.png', './assets/app/badge-mono.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => {})); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
@@ -7,7 +7,8 @@ self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Pr
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
   if (e.request.method !== 'GET' || u.origin !== location.origin) return;
-  e.respondWith(fetch(e.request).then(r => { if (r.ok) { const c = r.clone(); caches.open(CACHE).then(x => x.put(e.request, c)); } return r; })
+  const fresh = e.request.mode === 'navigate' || /\.(html|js|webmanifest)$/.test(u.pathname) || u.pathname.endsWith('/');
+  e.respondWith(fetch(fresh ? new Request(e.request, { cache: 'no-cache' }) : e.request).then(r => { if (r.ok) { const c = r.clone(); caches.open(CACHE).then(x => x.put(e.request, c)); } return r; })
     .catch(() => caches.match(e.request).then(r => r || (e.request.mode === 'navigate' ? caches.match('./index.html') : undefined))));
 });
 self.addEventListener('push', e => {
