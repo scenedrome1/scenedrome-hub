@@ -506,6 +506,23 @@ html[data-theme] tr.csrow:hover>td{background:var(--sel)}
  .pcard .pinfo .av{width:72px!important;height:72px!important;font-size:24px!important}.pcard .pinfo h1{font-size:22px!important;line-height:1.2}.pcard .cover{height:110px}
  .modal .formgrid{grid-template-columns:1fr!important}.modal{padding:16px!important}.modal .mh h2{font-size:18px}
 }
+/* scene cards */
+.sccards table{min-width:0!important;width:100%}.sccards td.sccell{padding:0;border-bottom:1px solid var(--line)}
+.scbar{display:flex;align-items:center;gap:12px;padding:10px 12px;cursor:pointer;flex-wrap:wrap}.scbar .scn{min-width:56px}.scbar .sce{font-weight:500;min-width:44px}.scbar .scl{flex:1 1 120px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.scbar .scv{min-width:56px;color:var(--muted)}.scbar .scd{min-width:64px}
+.scbody{padding:4px 14px 14px 36px;display:flex;flex-direction:column;gap:12px}
+.scl1{display:grid;grid-template-columns:90px 110px minmax(0,1fr) 120px;gap:10px;align-items:start}.scl1 .grow2{min-width:0}
+.sclock{display:flex;align-items:center;gap:6px;margin-top:8px;font-weight:500;color:var(--text)}.sclock input{width:16px;height:16px;margin:0}
+.scfull{display:block}.scfull textarea{width:100%}
+.scl3{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}.scl3 .lbl{font:500 12.5px var(--body);color:var(--muted);margin-bottom:6px}.scvers{display:flex;flex-direction:column;gap:6px}
+.scflag{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:8px;font:500 14px var(--body)!important;color:var(--text)!important;padding:8px 12px;border:1px solid var(--line);border-radius:9px;cursor:pointer;margin-top:20px}.scflag input{width:17px;height:17px;margin:0}
+.scsub{border-top:1px dashed var(--line);padding-top:10px}.shothd{font:500 11.5px var(--body);color:var(--muted);padding:0 10px 4px}
+.scdel{display:flex;justify-content:flex-end}
+.dl1{display:grid;grid-template-columns:90px minmax(0,1fr) 150px 160px;gap:12px;align-items:start;margin-bottom:12px}
+.dl2{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.dck{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:8px;padding:7px 12px;border:1px solid var(--line);border-radius:9px;font:500 13.5px var(--body)!important;color:var(--text)!important;cursor:pointer}.dck.dim{opacity:.5}.dck input{width:16px;height:16px;margin:0}
+.dl3{display:block;margin-bottom:12px}.dl3 textarea{width:100%}
+.addsc{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;border:1px dashed color-mix(in srgb,var(--gold) 55%,var(--line));border-radius:10px;margin-bottom:10px;background:color-mix(in srgb,var(--gold) 6%,transparent)}.addsc select{width:auto}.addsc input{width:110px}
+@media (max-width:760px){.scl1{grid-template-columns:1fr 1fr}.scl1 .grow2{grid-column:1/-1}.dl1{grid-template-columns:1fr 1fr}.dl1 .grow2{grid-column:1/-1}.scbody{padding:4px 10px 12px}.scbar{gap:8px}.scflag{margin-top:0}}
+.crewh{cursor:pointer;margin:0!important;display:flex;align-items:center;gap:6px}.crewc.open .crewh{margin-bottom:10px!important}.crewc:not(.open)>*:not(.crewh){display:none!important}
 </style>
 </head>
 <body>
@@ -3216,6 +3233,58 @@ const _ov46=TABS.overview;TABS.overview=p=>{let h=_ov46(p);const ed=isStaff()&&c
   else r=pRole(p,id)&&PROJ_ROLES[pRole(p,id)]?`<span class="chip">${esc(PROJ_ROLES[pRole(p,id)])}</span>`:'';
   return pre+esc(t)+mid+r});
  return h};
+
+/* ================= days & scenes, revision: three-line day, scene cards with a summary bar ================= */
+const SK_KIND=[['ind','ind.','Individual'],['inc','inc.','Including']];
+const scSel=s=>(s.versions||[]).find(v=>v.id===s.sel)||null;
+const scStat=s=>s.locked?['Locked','ok']:(s.versions&&s.versions.length)?['In edit','gold']:['Not cut',''];
+scHead=()=>'';
+scRow=function(p,e,s,ctx,d){if(!hasDays(p))return'';const ce=canEditFlow(p),mg=canManage(p);const edit=ce&&ctx!=='ep';const k='sn'+s.id;const open=V.open[k];
+ const A=f=>`data-change="sc" data-arg="${e.n}|${s.id}|${f}"`;const B=f=>`data-change="bk" data-arg="e${e.n}.s${s.id}.${f}"`;
+ const vs=s.versions||[];const sv=scSel(s);const vi=sv?vs.indexOf(sv)+1:0;const st=scStat(s);
+ const bar=`<div class="scbar" data-act="tog" data-arg="${k}|0"><span class="faint">${open?'▾':'▸'}</span><b class="scn">Sc ${esc(s.n)}</b><span class="sce">${epL(e.n)}</span><span class="scl">${esc(s.loc||'')||'<span class="faint">No location</span>'}</span><span class="scv">${vs.length?`v${vi||'–'}/${vs.length}`:'<span class="faint">No versions</span>'}</span><span class="num scd">${mmss(sv?sv.dur:(s.dur||0))}</span><span class="chip ${st[1]}" style="font-size:11px">${st[0]}</span>${s.vfx&&s.vfx!=='none'?'<span class="chip info" style="font-size:10.5px">VFX</span>':''}${s.snd&&s.snd!=='none'?'<span class="chip" style="font-size:10.5px">♪</span>':''}</div>`;
+ if(!open)return`<tr class="csrow"><td class="sccell">${bar}</td></tr>`;
+ const locL=ctx==='day'&&d?dLocs(d):allLocs(p);const dl='dl'+s.id;
+ const l1=`<div class="scl1"><label>Sc no.${edit?`<input value="${esc(s.n)}" ${B('n')}>`:`<div><b>${esc(s.n)}</b></div>`}</label>
+  ${ctx==='day'?`<label>EP${edit?`<select ${A('ep')}>${epOpts(p,e.n)}</select>`:`<div>${epL(e.n)}</div>`}</label>`:''}
+  <label class="grow2">Location${edit?`<input ${A('loc')} value="${esc(s.loc||'')}" list="${dl}" placeholder="Location"><datalist id="${dl}">${locL.map(l=>`<option value="${esc(l)}">`).join('')}</datalist>`:`<div>${esc(s.loc||'')||'—'}</div>`}</label>
+  <label>Status${edit?`<select ${B('kind')}>${SK_KIND.map(([v,l,t])=>`<option value="${v}" title="${t}" ${(s.kind||'ind')===v?'selected':''}>${l}</option>`).join('')}</select>`:`<div title="${(SK_KIND.find(x=>x[0]===(s.kind||'ind'))||[])[2]}">${(SK_KIND.find(x=>x[0]===(s.kind||'ind'))||[])[1]}</div>`}
+   <span class="sclock"><input type="checkbox" ${s.locked?'checked':''} ${ce?`data-act="lockScene" data-arg="${e.n}|${s.id}"`:'disabled'}> Locked</span></label></div>`;
+ const l2=`<label class="scfull">Scene notes${edit?`<textarea rows="2" ${B('note')} placeholder="Notes for the edit…">${esc(s.note||'')}</textarea>`:`<div>${esc(s.note||'')||'—'}</div>`}</label>`;
+ const vers=`<div class="scvers">${vs.map(v=>{const on=v.id===s.sel;return`<div class="cs-v ${on?'on':''}">${ce?`<a class="cs-pick" data-act="selVer" data-arg="${e.n}|${s.id}|${v.id}" title="${on?'This version counts':'Use this version'}"><span class="vdot">${on?'✓':''}</span></a><input class="cs-vl" value="${esc(v.l)}" ${B('v'+v.id+'.l')}><input class="cs-vd" value="${mmss(v.dur)}" ${B('v'+v.id+'.dur')} title="hh:mm:ss — 142 = 00:01:42"><a class="cs-del" data-act="verDel" data-arg="${e.n}|${s.id}|${v.id}" title="Remove this version">${ic('trash',13)}</a>`:`<span class="vdot">${on?'✓':''}</span><b>${esc(v.l)}</b> <span class="num">${mmss(v.dur)}</span>`}</div>`}).join('')}${ce?`<a class="cs-add" data-act="addVer" data-arg="${e.n}|${s.id}">＋ version</a>`:''}${!vs.length&&!ce?'<span class="faint">—</span>':''}</div>`;
+ const l3=`<div class="scl3"><div class="grow"><div class="lbl">Versions</div>${vers}</div><label class="scflag"><input type="checkbox" ${s.vfx&&s.vfx!=='none'?'checked':''} ${edit?`data-change="scFlag" data-arg="${e.n}|${s.id}|vfx"`:'disabled'}> VFX</label><label class="scflag"><input type="checkbox" ${s.snd&&s.snd!=='none'?'checked':''} ${edit?`data-change="scFlag" data-arg="${e.n}|${s.id}|snd"`:'disabled'}> Sound</label></div>`;
+ const et=editTeam(p)||ce;
+ const vfx=s.vfx&&s.vfx!=='none'?`<div class="scsub">${shotsSec(p,e,s,et).replace(/<div class="tiny faint" style="margin-top:6px">Shots are named[\s\S]*?<\/div>/,'').replace(!(s.shots||[]).length?/$^/:/(<div class="sb">|<div class="sec-b[^"]*">)/,'$1<div class="shot shothd"><span>#</span><span>Name</span><span>Duration</span><span>Artist</span><span>Status</span><span>Approval</span></div>')}</div>`:'';
+ const snd=s.snd&&s.snd!=='none'?`<div class="scsub"><label class="scfull">Scene sound (notes)${et?`<textarea rows="2" ${B('sndBrief')} placeholder="Timecode, what to build or fix, references…">${esc(s.sndBrief||'')}</textarea>`:`<div>${esc(s.sndBrief||'')||'—'}</div>`}</label></div>`:'';
+ const del=(ce||mg)&&ctx!=='ep'?`<div class="scdel"><a class="btn sm ghost danger" data-act="delScene" data-arg="${e.n}|${s.id}">${ic('trash',15)}Delete scene</a></div>`:'';
+ return`<tr class="csrow open"><td class="sccell">${bar}<div class="scbody">${l1}${l2}${l3}${vfx}${snd}${del}</div></td></tr>`};
+CHG.scFlag=(a,el)=>{const[n,sid,f]=a.split('|');const p=bkPrep();if(!p||!canEditFlow(p))return;const e=epFind(p,n);const s=e&&e.scenes.find(x=>x.id===sid);if(!s)return;
+ if(f==='vfx'){s.vfx=el.checked?(s.vfx&&s.vfx!=='none'?s.vfx:'vfx'):'none';s.shots=s.shots||[]}
+ if(f==='snd'){s.snd=el.checked?(s.snd&&s.snd!=='none'?s.snd:(Object.keys(SND_K).find(k=>k!=='none')||'mix')):'none';if(el.checked&&!s.sndSt)s.sndSt='todo'}
+ bkSave(p,e)};
+/* the day: line 1 number · locations · status · date; line 2 checklist; line 3 notes; then the add line, newest scenes first */
+dayBlock=function(p,d,ce,mg){const c=dayCalc(p,d);const k='dy'+d.id;const open=V.open[k]!==false;const L=dLocs(d);const n=dayCk(d);
+ const head=`<div class="ep-row dyrow" data-act="tog" data-arg="${k}|1"><b style="font-family:var(--display);white-space:nowrap">${dayN(d)}</b><span class="tiny" style="flex:1;min-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${L.length?L.map(esc).join(' · '):'<span class="faint">No location</span>'}</span><span class="tiny">${c.sc.length} sc</span><span class="tiny num">${mmss(c.dur)}</span><span class="chip ${n===4?'ok':n?'gold':''}" style="font-size:11px">${n}/4</span>${dsChip(c.st)}${d.date?`<span class="tiny faint">${esc(new Date(d.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}))}</span>`:''}<span class="faint">${open?'▾':'▸'}</span></div>`;
+ if(!open)return`<div class="ep">${head}</div>`;
+ const locs=`<div class="row wrap" style="gap:6px;align-items:center">${L.map((l,i)=>ce?`<span class="chip locchip">${esc(l)}<a data-act="dayLocDel" data-arg="${d.id}|${i}" title="Remove">✕</a></span>`:`<span class="chip">${esc(l)}</span>`).join('')}${ce?`<span class="locadd"><input id="loc-${d.id}" placeholder="Add a location" list="locs-${p.id}" data-key="dayLoc" data-arg="${d.id}"><a class="btn sm" data-act="dayLocAdd" data-arg="${d.id}">${ic('plus',13)}</a></span>`:''}${!L.length&&!ce?'<span class="faint tiny">—</span>':''}</div>`;
+ const l1=`<div class="dl1"><label>Day no.${ce?`<input type="number" min="1" value="${d.n}" data-change="dayF" data-arg="${d.id}|n">`:`<div>${d.n}</div>`}</label><label class="grow2">Location${locs}</label><label>Status${ce?`<select data-change="dayF" data-arg="${d.id}|status"><option value="">Automatic</option>${DAY_ST.map(([kk,l])=>`<option value="${kk}" ${d.status===kk?'selected':''}>${l}</option>`).join('')}</select>`:`<div>${dsChip(c.st)}</div>`}</label><label>Date${ce?`<input type="date" value="${esc(d.date||'')}" data-change="dayF" data-arg="${d.id}|date">`:`<div>${d.date?esc(dstr(new Date(d.date).getTime())):'—'}</div>`}</label></div>`;
+ const l2=`<div class="dl2">${DAYCK.map(([kk,l,t],i)=>{const en=i===0||d[DAYCK[i-1][0]];return`<label class="dck ${en?'':'dim'}"><input type="checkbox" ${ce?`data-change="dayF" data-arg="${d.id}|${kk}"`:'disabled'} ${d[kk]?'checked':''} ${en||!ce?'':'disabled'}> ${i+1} · ${t||l}</label>`}).join('')}</div>`;
+ const l3=`<label class="dl3">Notes${ce?`<textarea rows="2" data-change="dayF" data-arg="${d.id}|note" placeholder="Cast, unit, equipment, weather…">${esc(d.note||'')}</textarea>`:`<div>${esc(d.note||'')||'—'}</div>`}</label>`;
+ const add=ce?`<div class="addsc"><select id="ns-ep-${d.id}">${epOpts(p,V.lastEp||1)}</select><input id="ns-n-${d.id}" placeholder="Scene no."><a class="btn sm pri" data-act="dayNewScene" data-arg="${d.id}">${ic('plus',13)}New scene</a><a class="btn sm" data-act="dayPick" data-arg="${d.id}">Pick existing</a></div>`:'';
+ const sc=c.sc.slice().sort((a,b)=>(b.s.dayOrd||0)-(a.s.dayOrd||0));
+ const rows=sc.length?`<div class="tablewrap scn cs sccards"><table><tbody>${sc.map(x=>scRow(p,x.e,x.s,'day',d)).join('')}</tbody></table></div>`:'<div class="empty tiny" style="padding:14px">No scenes on this day yet</div>';
+ const foot=mg?`<div class="row" style="margin-top:10px"><span class="grow"></span><a class="btn sm ghost danger" data-act="dayDel" data-arg="${d.id}">${ic('trash',13)}Delete day</a></div>`:'';
+ return`<div class="ep open dayblk">${head}<div class="ep-body">${l1}${l2}${l3}${add}${rows}${foot}</div></div>`};
+/* only scenes that are on a day are listed; the not-scheduled list is gone */
+daysHTML=function(p,ce,mg){const days=pDays(p).slice().sort((a,b)=>a.n-b.n);
+ return`<div class="row wrap" style="margin:4px 0 12px;gap:8px">${ce?`<a class="btn pri" data-act="dayAdd">${ic('plus',14)}Add shooting day</a>`:''}${ce?`<span class="grow"></span>${[[TN,'EPS Totalat'],[XN,'EPS X']].map(([nn,l])=>p[SPECIAL[nn].key]?'':`<a class="btn sm" data-act="mkSp" data-arg="${nn}">${ic('plus',13)}${l}</a>`).join('')}`:''}</div>
+ ${days.length?days.map(d=>dayBlock(p,d,ce,mg)).join(''):'<div class="card empty">No shooting days yet</div>'}`};
+/* scenes start folded after every page load */
+Object.keys(V.open||{}).forEach(k=>{if(k.startsWith('sn'))delete V.open[k]});
+
+/* crew folds into an expandable list */
+const _ov48=TABS.overview;TABS.overview=p=>{const h=_ov48(p);const k='crew'+p.id;const open=V.open[k]===true;const n=[p.producer,...(p.team||[]),...(p.partners||[])].filter(x=>x&&U(x)).length;
+ return h.replace('<div class="card"><h3>Crew</h3>',`<div class="card crewc ${open?'open':''}"><h3 class="crewh" data-act="tog" data-arg="${k}|0"><span class="faint">${open?'▾':'▸'}</span> Crew <span class="cnt">${n}</span></h3>`)};
 
 document.addEventListener('click',e=>{const bp=document.getElementById('bellpanel');if(bp&&bp.classList.contains('open')&&!e.target.closest('.bellwrap'))bp.classList.remove('open');
 const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(!f)return;if(el.tagName==='A'&&!el.getAttribute('href'))e.preventDefault();if(el.dataset.act!=='closeModalBg')e.stopPropagation();f(el.dataset.arg,el,e)});
