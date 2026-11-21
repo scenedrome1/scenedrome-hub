@@ -544,6 +544,8 @@ form[data-form=groupSend] .composer{gap:6px}form[data-form=groupSend] .composer 
 .ptabs2 a.out{opacity:.78}.ptabs2 a .pdot{width:6px;height:6px;border-radius:50%;background:var(--lav-fg);display:inline-block;margin-left:2px}
 .bform{border:1px dashed var(--line2);border-radius:10px;padding:10px}.bform select,.bform input{width:auto}.brow{gap:10px;align-items:flex-start}
 @media (max-width:760px){.ptabs2{display:grid!important;grid-template-columns:repeat(4,1fr);width:100%;gap:4px}.ptabs2 a{flex-direction:column;gap:4px;padding:10px 2px!important;min-height:58px;justify-content:center}.ptabs2 a span{display:block!important;font-size:11.5px}.ptabs2 a svg{width:20px!important;height:20px!important}.ptabs2 a .pdot{position:absolute;top:8px;right:10px}.ptabs2 a{position:relative}}
+.ptabs2 a.indeal:not(.on){color:var(--gold2);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--gold) 50%,transparent);font-weight:600}.ptabs2 a.out:not(.on){opacity:.6}
+.svccard .row h3{font-size:17px}
 </style>
 </head>
 <body>
@@ -3428,8 +3430,7 @@ const _tb51=TABS.breakdown;TABS.breakdown=p=>{if(!isStaff())return _tb51(p);cons
 /* Services card on the overview, with tasks count and Add task */
 const _ov51=TABS.overview;TABS.overview=p=>{let h=_ov51(p);if(!isStaff())return h;const open=S.tasks.filter(t=>t.project===p.id&&t.status!=='done').length;
  const tbar=`<div class="row wrap ovbar"><a class="taskbadge" data-act="tab" data-arg="tasks" aria-label="Open tasks">${ic('check',15)} Tasks <span class="cnt">${open}</span></a>${can('proj.tasks')||canManage(p)?`<a class="btn sm pri" data-act="newTask" data-arg="${p.id}">${ic('plus',14)}Add task</a>`:''}</div>`;
- h=tbar+h;
- h=h.replace(/(<div class="card crewc)/,servicesCard(p)+'$1');if(!/svccard/.test(h))h+=servicesCard(p);
+
  h=h.replace(`<a class="btn sm right" data-act="addLink" data-arg="${p.id}|preview">`,`<a class="btn sm right" data-act="tab" data-arg="files">${ic('link',14)}Files & links</a><a class="btn sm" data-act="addLink" data-arg="${p.id}|preview">`);
  return h};
 /* episode header: Thread (episode conversation) and Deal */
@@ -3459,7 +3460,7 @@ const _vp52=VIEWS.project;VIEWS.project=()=>{const p=P(V.p);const u=me();if(!p||
  h=h.replace(/<div class="tabs">[\s\S]*?<\/div>/,bar);
  if(svc)h=h.replace(/<div class="seg svcmenu"[\s\S]*?<\/div>/,'');
  /* Thread and Deal sit under the project status, like Message on a profile */
- const acts=`<div class="row phbtns"><a class="btn sm ${V.tab==='thread'?'pri':''}" data-act="tab" data-arg="thread">${ic('chat',14)}Thread</a>${canMoney(p)?`<a class="btn sm ${V.tab==='money'?'pri':''}" data-act="tab" data-arg="money">${ic('wallet',14)}Deal</a>`:''}</div>`;
+ const acts=`<div class="row phbtns"><a class="btn sm ${V.tab==='thread'?'pri':''}" data-act="tab" data-arg="thread">${ic('chat',14)}Thread</a>${canMoney(p)?`<a class="btn sm ${V.tab==='money'?'pri':''}" data-act="tab" data-arg="money">${ic('wallet',14)}Deal</a>`:''}${can('proj.tasks')||canManage(p)?`<a class="btn sm" data-act="newTask" data-arg="${p.id}">${ic('plus',14)}Add task</a>`:''}</div>`;
  h=h.replace(/(<div class="card phead">[\s\S]*?)(<span class="chip [^"]*">[^<]*<\/span>)(<\/div>)/,(m,a,chip,end)=>`${a}<div class="phright">${chip}${acts}</div>${end}`);
  if(['thread','tasks','files','drives','report'].includes(V.tab)){const L={thread:'Thread',tasks:'Tasks',files:'Files & links',drives:'Drives',report:'Status report'}[V.tab];h=h.replace(bar,bar+`<div class="row subhead"><a class="btn sm ghost" data-act="tab" data-arg="overview">${ic('back',14)}Overview</a><b>${L}</b></div>`)}
  /* opened from Overview: a way back */
@@ -3510,9 +3511,9 @@ const _vp53=VIEWS.project;VIEWS.project=()=>{const p=P(V.p);const u=me();if(!p||
   const i=h.indexOf('<div class="seg ptabs2"');return(i>0?h.slice(0,i):h)+tabBar(p,all,on)+`<div class="tabbody">${briefView(p,k)}</div>`}
  let h=_vp53();return h.replace(/<div class="seg ptabs2"[\s\S]*?<\/div>/,tabBar(p,all,on))};
 function tabBar(p,all,on){const items=[['overview','Overview','home'],...SVCS.filter(([k])=>all.includes(k))];
- return`<div class="seg ptabs2" role="tablist" aria-label="Project sections">${items.map(([k,l,i])=>{const out=k!=='overview'&&!on.includes(k);return`<a class="${V.tab===k?'on':''} ${out?'out':''}" role="tab" aria-selected="${V.tab===k}" aria-label="${esc(l)}${out?' (partner brief)':''}" title="${esc(l)}${out?' — partner brief, not in the deal':''}" data-act="tab" data-arg="${k}">${ic(i,16)}<span>${esc(l==='Creative Services'?'Creative':l)}</span>${out?'<i class="pdot"></i>':''}</a>`}).join('')}</div>`}
+ return`<div class="seg ptabs2" role="tablist" aria-label="Project sections">${items.map(([k,l,i])=>{const out=k!=='overview'&&!on.includes(k);return`<a class="${V.tab===k?'on':''} ${out?'out':k!=='overview'?'indeal':''}" role="tab" aria-selected="${V.tab===k}" aria-label="${esc(l)}${out?' (partner brief)':''}" title="${esc(l)}${out?' — partner brief, not in the deal':''}" data-act="tab" data-arg="${k}">${ic(i,16)}<span>${esc(l==='Creative Services'?'Creative':l)}</span>${out?'<i class="pdot"></i>':''}</a>`}).join('')}</div>`}
 /* Deal: attach quotations, contracts and invoices */
-const _tmo53=TABS.money;TABS.money=p=>{const h=_tmo53(p);if(!canMoney(p))return h;const docs=S.files.filter(f=>f.project===p.id&&f.deal).sort((a,b)=>b.ts-a.ts);
+const _tmo53=TABS.money;TABS.money=p=>{const h0=_tmo53(p);if(!canMoney(p))return h0;const h=servicesCard(p)+h0;const docs=S.files.filter(f=>f.project===p.id&&f.deal).sort((a,b)=>b.ts-a.ts);
  return h+`<div class="card" style="margin-top:14px"><div class="row" style="margin-bottom:10px"><h3 style="margin:0">Deal attachments <span class="cnt">${docs.length}</span></h3><label class="btn sm pri right" style="cursor:pointer">${ic('clip',14)}Attach<input type="file" hidden multiple accept=".pdf,.txt,image/*" data-change="dealAttach" data-arg="${p.id}"></label></div>
  ${docs.length?`<div class="list">${docs.map(f=>{const k=freg(f);return`<div class="item"><a class="grow" data-act="fview" data-arg="${k}" style="cursor:pointer;min-width:0">${ic(f.kind==='image'?'img':'doc',15)} <b style="font-weight:500">${esc(f.name)}</b> <span class="tiny faint">${kb(f.size||0)} · ${ago(f.ts)}</span></a>${isOwner()?`<a class="iconbtn sm" data-act="dealDocDel" data-arg="${f.id}" title="Delete attachment" aria-label="Delete attachment">${ic('trash',14)}</a>`:''}</div>`}).join('')}</div>`:'<div class="empty tiny">Quotations, contracts and invoices for this deal — PDF, TXT or images.</div>'}</div>`};
 CHG.dealAttach=async(pid,el)=>{const p=P(pid);if(!p||!canMoney(p))return;await handleFiles(el.files,r=>{S.files.push({id:uid('f'),project:pid,name:r.name,kind:r.kind,size:r.size,path:r.path,mime:r.mime,data:r.kind==='image'?r.data:(LIVE?undefined:r.data),by:meId,ts:Date.now(),share:['team'],deal:true,dl:true});save();render();toast(r.name+' attached','ok')});el.value=''};
