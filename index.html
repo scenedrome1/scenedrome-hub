@@ -3463,7 +3463,7 @@ const _vp52=VIEWS.project;VIEWS.project=()=>{const p=P(V.p);const u=me();if(!p||
  const acts=`<div class="row phbtns"><a class="btn sm ${V.tab==='thread'?'pri':''}" data-act="tab" data-arg="thread">${ic('chat',14)}Thread</a>${canMoney(p)?`<a class="btn sm ${V.tab==='money'?'pri':''}" data-act="tab" data-arg="money">${ic('wallet',14)}Deal</a>`:''}</div>`;
  h=h.replace(/(<div class="card phead">[\s\S]*?)(<span class="chip [^"]*">[^<]*<\/span>)(<\/div>)/,(m,a,chip,end)=>`${a}<div class="phright">${chip}${acts}</div>${end}`);
  /* opened from Overview: a way back */
- if(['thread','money','tasks','files','drives','report'].includes(V.tab)){const L={thread:'Thread',money:'Deal',tasks:'Tasks',files:'Files & links',drives:'Drives',report:'Status report'}[V.tab];h=h.replace(bar,bar+`<div class="row subhead"><a class="btn sm ghost" data-act="tab" data-arg="overview">${ic('back',14)}Overview</a><b>${L}</b></div>`)}
+ 
  return h};
 /* Overview gathers the rest: Status report and Drives fold open; Files & links and Tasks stay one tap away */
 const _ov52=TABS.overview;TABS.overview=p=>{let h=_ov52(p);const u=me();if(!staffTabs(p,u))return h;
