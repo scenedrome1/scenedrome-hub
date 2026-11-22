@@ -4368,13 +4368,15 @@ function dayTable(p){const ds=pDays(p);const fl=[...new Set(ST(p).files.filter(f
  const rows=keys.map(k=>({d:{id:k},g:daySize(p,k),st:dayGB(p,k),man:hasSet(ds.find(x=>x.id===k)),px:dayProxyGB(p,k),on:[...new Set(ST(p).files.filter(f=>fk(f)===k&&f.store!==STUDIO).map(f=>storeName(p,f.store)))]})).filter(r=>r.d.id&&ds.some(d=>d.id===r.d.id)||r.g||r.px);
  if(!rows.length)return'';const tot=rows.reduce((a,r)=>a+r.g,0);
  return`<div class="sec-title"><h2>Data by shooting day</h2></div><div class="card tablewrap"><table><thead><tr><th>Day / folder</th><th>Day size</th><th>On storages</th><th>Proxies</th><th>Where it is</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.d.id?dayName(p,r.d.id):'No day or folder')}</td><td class="num">${r.g?fg(r.g):'—'}${r.d.id&&r.d.id.slice(0,2)!=='f:'&&dsEdit(p)?` <a class="faint" data-act="daySz" data-arg="${r.d.id}" title="Edit day size" style="cursor:pointer">✎</a>`:''}${r.man?' <span class="tiny faint">(set by hand)</span>':''}</td><td class="num">${r.st?fg(r.st):'—'}</td><td class="num">${r.px?fg(r.px):'—'}</td><td class="tiny">${r.on.length?r.on.map(esc).join(' · '):'<span class="faint">—</span>'}</td></tr>`).join('')}<tr><td><b>Total</b></td><td class="num"><b>${fg(tot)}</b></td><td class="num"><b>${fg(rows.reduce((a,r)=>a+r.st,0))}</b></td><td class="num"><b>${fg(rows.reduce((a,r)=>a+r.px,0))}</b></td><td></td></tr></tbody></table></div>`}
-function stSummary(p){const s=ST(p),ed=stEdit(p);const real=s.items;const cap=real.reduce((a,i)=>a+(+i.capGB||0),0),u=real.reduce((a,i)=>a+used(p,i.id),0),px=used(p,STUDIO);
+function stSummary(p,noBtn){const s=ST(p),ed=stEdit(p)&&!noBtn;const real=s.items;const cap=real.reduce((a,i)=>a+(+i.capGB||0),0),u=real.reduce((a,i)=>a+used(p,i.id),0),px=used(p,STUDIO);
  return`<div class="row wrap" style="gap:10px;margin-bottom:12px"><div class="grow"><h3 style="margin:0">Project storage</h3></div>${ed?`<a class="btn pri" data-act="stAdd">${ic('plus',14)}Add storage</a>`:''}</div>`
  +kpis([['Storage',real.length,real.length?'on this project':'none yet','hero'],['Capacity',fg(cap)],['Used',fg(u),cap?Math.round(u/cap*100)+'% of capacity':''],['Proxies',fg(px)]])}
 function storageView(p){const s=ST(p),ed=stEdit(p),mg=stMgr();const real=s.items;
  const studio={id:STUDIO,name:'Studio internal storage',kind:'internal'};
- return stSummary(p)
+ const addBtn=ed?`<div class="row" style="margin-top:14px;justify-content:flex-start"><a class="btn pri" data-act="stAdd">${ic('plus',14)}Add storage</a></div>`:'';
+ return stSummary(p,true)
  +active(p).map(x=>alertCard(p,x,mg)).join('')
+ +addBtn
  +(real.length?`<div class="col" style="gap:10px;margin-top:12px">${real.map(i=>storeCard(p,i,ed,mg)).join('')}${storeCard(p,studio,ed,mg)}</div>`:`<div class="card empty" style="margin-top:12px">No storage on this project yet.</div>`)
  +dayTable(p)}
 /* the same summary sits on the project Overview */
@@ -4384,6 +4386,7 @@ const _ovS=TABS.overview;TABS.overview=p=>{const h=_ovS(p);try{if(!me()||!staffT
 const _vpS=VIEWS.project;
 VIEWS.project=function(){const p=P(V.p),u=me();if(!p||!u||!staffTabs(p,u))return _vpS();const isSt=V.tab==='storage';let h;
  if(isSt){const keep=TABS.overview;TABS.overview=()=>storageView(p);V.tab='overview';try{h=_vpS()}finally{TABS.overview=keep;V.tab='storage'}}else h=_vpS();
+ if(isSt){const t=document.createElement('template');t.innerHTML=h;t.content.querySelectorAll('.ovsum60').forEach(e=>e.remove());h=t.innerHTML}
  const dot=active(p).length?'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--bad,#e5484d);margin-left:4px;flex:none"></span>':'';
  const item=`<a class="${isSt?'on':''}" role="tab" aria-selected="${isSt}" aria-label="Storage" title="Storage" data-act="tab" data-arg="storage">${ic('drive',16)}<span>Storage</span>${dot}</a>`;
  return h.replace(/(<div class="seg ptabs2"[\s\S]*?)(<\/div>)/,(m,x,y)=>(isSt?x.replace(/class="on(?=[" ])/,'class="'):x)+item+y)};
