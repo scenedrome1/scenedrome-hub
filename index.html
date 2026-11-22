@@ -4038,6 +4038,10 @@ function pjNotify(p,what,tab,mgmtOnly){const me0=me();if(!p||!me0)return;const t
   try{const p1=P(pid);if(p1&&before!==null&&JSON.stringify(p1)!==before)pjNotify(p1,PN[name][0],PN[name][1],PN[name][2])}catch(e){console.warn('[hub] notify',e)}return r};
  w.__pn=1;map[name]=w}));
 
+/* any other episode / scene / shot edit tells the team too (once per person every few minutes, never on top of a specific message) */
+const _bk10=bkSave;bkSave=function(p,e){const r=_bk10.apply(this,arguments);try{const u=me();if(PREVIEW||!u||!p||!isStaff(u))return r;const now=Date.now();
+ if(S.notifs.some(n=>n.link&&n.link.p===p.id&&String(n.text).startsWith(u.name)&&now-n.ts<4000))return r;
+ pjNotify(p,`updated ${e?'EP'+pad2(e.n):'the breakdown'}`,'breakdown')}catch(x){console.warn('[hub] bk notify',x)}return r};
 /* ---------- 5. User View: what will this person actually see and be able to do? ---------- */
 const canUV=()=>{const v=me();return !!v&&!PREVIEW&&isStaff(v)&&(isMgmt(v)||can('admin.users')||can('people.add')||can('clients.manage'))};
 ACT.viewAs=id=>{const x=U(id);if(!x||!canUV()||x.suspended||(isOwner(x)&&!isOwner()))return;PREVIEW={real:meId,v:JSON.parse(JSON.stringify(V))};closeModal();meId=id;V={v:'home',p:null,tab:'overview',ch:null,open:{}};render();toast('User View: '+x.name+' — read-only')};
