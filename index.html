@@ -1869,7 +1869,7 @@ CHG.coverUp=(id,el)=>{const x=U(id);const f=el.files&&el.files[0];if(!x||!f)retu
 function peopleBooted(){const u=me();if(!u)return;
  if(isOwner(u)){let ch=false;S.users.forEach(x=>{if(x.job==='founder'&&(x.title==='CEO'||x.title==='Founder'||x.title==='Owner')&&!x.titleCustom){x.title=jobTitles(x);ch=true}if(x.job==='coowner'&&(x.title==='Co-owner'||x.title==='Owner')&&!x.titleCustom){x.title=jobTitles(x);ch=true}
   if(isStaff(x)&&!isOwner(x)&&x.access&&x.access['people.add']===undefined&&jobsOf(x).some(k=>['lead','producer'].includes(JOBS[k].dash))){x.access['people.add']=true;ch=true}});if(ch)save()}
- if(u.mustChange)setTimeout(()=>modal('Choose your own password',`<form data-form="newPwd" class="col" style="gap:12px"><p class="muted" style="margin:0">You signed in with a temporary password. Choose your own to continue.</p><label>New password<input type="password" name="n1" minlength="8" required autocomplete="new-password"></label><label>Repeat it<input type="password" name="n2" minlength="8" required autocomplete="new-password"></label><button class="btn pri" type="submit">Save password</button></form>`),300)}
+ if(u.mustChange&&!u.pwNoted){u.pwNoted=true;S.notifs.unshift({id:uid('n'),to:u.id,text:'Welcome! Please change your temporary password once — open your profile and choose “Change password”. This is the only time we will ask.',link:{v:'profile'},ts:Date.now(),read:false});save()}}
 const _appBooted=appBooted;appBooted=function(){_appBooted();peopleBooted()};
 const _login2=login;login=function(u){_login2(u);setTimeout(peopleBooted,50)};
 if(LIVE)sb.auth.onAuthStateChange(ev=>{if(ev==='PASSWORD_RECOVERY'){markUnlocked();setTimeout(()=>modal('Choose a new password',`<form data-form="newPwd" class="col" style="gap:12px"><p class="muted" style="margin:0">You opened a password reset link. Choose your new password.</p><label>New password<input type="password" name="n1" minlength="8" required autocomplete="new-password"></label><label>Repeat it<input type="password" name="n2" minlength="8" required autocomplete="new-password"></label><button class="btn pri" type="submit">Save password</button></form>`),600)}});
@@ -2668,10 +2668,9 @@ function kcNames(p,k){const out=[];const add=n=>{n=String(n||'').trim();if(n&&!o
  if(k==='editor')(p.team||[]).forEach(i=>{if(pRole(p,i)==='main'&&U(i))add(U(i).name)});
  return out}
 const kcOn=(p,k)=>!((p.kcOff||{})[k]);
-const kcCrew=p=>KC.filter(([k])=>kcOn(p,k)).map(([k,l])=>[l,kcNames(p,k)]).filter(x=>x[1].length);
+let kcCrew=p=>KC.map(([k,l])=>[l,kcNames(p,k)]).filter(x=>x[1].length);
 function kcCard(p){const ed=kcEdit(p);
  return`<div class="card" style="margin-bottom:18px"><div class="grow" style="margin-bottom:8px"><h3 style="margin:0">Key crew</h3><div class="tiny faint">Client side or in-house — ticked roles are printed on the exported sheets</div></div><div class="list">${KC.map(([k,l])=>{const n=kcNames(p,k);return`<div class="item" style="flex-wrap:wrap;gap:8px"><b style="font-weight:500;min-width:130px">${l}</b><div class="grow" style="min-width:120px">${n.length?esc(n.join(', ')):'<span class="faint">—</span>'}</div>${ed?`<a class="btn sm ghost" data-act="kcEdit" data-arg="${k}">Edit</a>`:''}<label class="cbx tiny" title="Print on exported sheets"><input type="checkbox" ${kcOn(p,k)?'checked':''} ${ed?`data-change="kcOn" data-arg="${k}"`:'disabled'}> In exports</label></div>`}).join('')}</div></div>`}
-const _ovKC=TABS.overview;TABS.overview=p=>{const h=_ovKC(p);try{if(!me()||!isStaff()||!staffTabs(p,me()))return h;return kcCard(p)+h}catch(e){return h}};
 Object.assign(ACT,{kcEdit:k=>{const p=P(V.p);if(!kcEdit(p))return;const cur=(p.credits||{})[k]||[];const ids=new Set(cur.filter(x=>x.id).map(x=>x.id));const other=cur.filter(x=>!x.id).map(x=>x.name).join(', ');
  const ih=S.users.filter(u=>isStaff(u)&&!u.suspended&&!u.removed),cl=S.users.filter(u=>u.role==='client'&&!u.removed);
  const grp=(t,xs)=>xs.length?`<div class="eyebrow" style="margin:10px 0 6px">${t}</div><div class="col" style="gap:4px">${xs.map(u=>`<label class="cbx"><input type="checkbox" name="u" value="${u.id}" ${ids.has(u.id)?'checked':''}> ${esc(u.name)}${u.company?` <span class="tiny faint">· ${esc(u.company)}</span>`:u.title?` <span class="tiny faint">· ${esc(u.title)}</span>`:''}</label>`).join('')}</div>`:'';
@@ -2686,7 +2685,7 @@ function dayReport(p){const q=NP(p);const days=pDays(q).slice().sort((a,b)=>a.n-
  const eps=allEps(q).map(e=>{const ds=[...new Set(e.scenes.filter(s=>s.day).map(s=>{const d=days.find(x=>x.id===s.day);return d?d.n:null}).filter(Boolean))].sort((a,b)=>a-b);return{ep:epL(e.n),scenes:e.scenes.length,dur:epRun(e),target:+e.target||0,shot:e.scenes.filter(s=>s.shoot==='shot').length,days:ds.map(n=>'D'+pad2(n)).join(' '),st:(e.statuses||[]).map(k=>EPST[k]?EPST[k][1]:k).join(', ')}});
  eps.forEach(x=>{if(x.ep==='EPS X'){x.st='Undecided';x.target=0}if(x.ep==='EPS Totalat'){x.st='Location full shots';x.target=0}});const real=eps.filter(x=>x.ep!=='EPS Totalat');return{title:q.name,dir,crew:kcCrew(p),house:q.prodHouse||'',at:new Date(),rows,eps,totDur:real.reduce((a,x)=>a+x.dur,0),totScenes:real.reduce((a,x)=>a+x.scenes,0),days:days.length}}
 ACT.exportDays=pid=>{const p=P(pid);if(!p)return;const r=dayReport(p);const at=r.at.toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'});
- const A=[[r.title],...r.crew.map(([l,n])=>[l,n.join(', ')]),['Production company',r.house||'—'],['Exported',at],[]];const H=A.length;const style={0:1,[H]:2};
+ const A=[[r.title],...r.crew.map(([l,n])=>[l,n.join(', ')]),...(r.house?[['Production company',r.house]]:[]),['Exported',at],[]];const H=A.length;const style={0:1,[H]:2};
  A.push(['Day','Date','Locations','Day status','Episode','Scene','Characters / description','Scene location','Time','Versions','Duration','Convert & sync','Edit status']);
  r.rows.forEach(x=>{if(x.total)style[A.length]=3;A.push(x.total?[x.day,'','','','',x.n+' scenes','','','','',mmss(x.dur),'','']:[x.day,x.date,x.loc,x.dst,x.ep,x.sc,x.desc,x.sloc,x.time||'',x.vers||'',mmss(x.dur),x.sync||'',x.ed])});
  const side=[['Episodes — full durations'],['Episode','Scenes','Shot','Duration','Target','Shooting days','Status'],...r.eps.map(e=>[e.ep,e.scenes,e.shot,mmss(e.dur),mmss(e.target),e.days,e.st]),['Total',r.totScenes,'',mmss(r.totDur),'',r.days+' days','']];
@@ -2698,7 +2697,7 @@ ACT.exportDaysPdf=pid=>{const p=P(pid);if(!p)return;const r=dayReport(p);const B
  const tr=r.rows.map(x=>x.total?`<tr class="t"><td colspan="5">${esc(x.day)}</td><td>${x.n} scenes</td><td colspan="2"></td><td class="n">${mmss(x.dur)}</td><td colspan="2"></td></tr>`:`<tr><td>${esc(x.day)}</td><td>${esc(x.date)}</td><td>${esc(x.loc)}</td><td>${esc(x.ep)}</td><td><b>${esc(x.sc)}</b></td><td>${esc(x.desc)}${x.sloc?`<div class="m">${esc(x.sloc)}</div>`:''}</td><td>${esc(x.time||'')}</td><td>${esc(x.vers||'')}</td><td class="n">${mmss(x.dur)}</td><td>${esc(x.sync||'')}</td><td>${esc(x.ed)}</td></tr>`).join('');
  const side=`<table><thead><tr><th>Episode</th><th>Sc</th><th>Shot</th><th>Duration</th><th>Days</th></tr></thead><tbody>${r.eps.map(e=>`<tr><td><b>${e.ep}</b></td><td>${e.scenes}</td><td>${e.shot}</td><td class="n">${mmss(e.dur)}</td><td>${esc(e.days)}</td></tr>`).join('')}<tr class="t"><td>Total</td><td>${r.totScenes}</td><td></td><td class="n">${mmss(r.totDur)}</td><td>${r.days} days</td></tr></tbody></table>`;
  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(r.title)} — shooting days</title><style>@page{size:A4 landscape;margin:12mm}body{font:11px -apple-system,Helvetica,Arial,sans-serif;color:#111;margin:0}h1{font-size:20px;margin:0 0 4px}.meta{display:flex;flex-wrap:wrap;gap:4px 24px;color:#444;margin-bottom:12px}.meta b{color:#111}.wrap{display:grid;grid-template-columns:1fr 240px;gap:14px;align-items:start}table{width:100%;border-collapse:collapse}th{background:#0d2a23;color:#fff;text-align:left;padding:5px 6px;font-weight:600;font-size:10px}td{padding:4px 6px;border-bottom:1px solid #ddd;vertical-align:top}.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}tr.t td{background:#f3efe2;font-weight:600}.m{color:#777;font-size:10px}.side h2{font-size:12px;margin:0 0 6px}.brand{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #d6a03d;padding-bottom:8px;margin-bottom:10px}thead{display:table-header-group}tr{page-break-inside:avoid}<style>@page{size:A4 landscape;margin:12mm}body{font:11px -apple-system,Helvetica,Arial,sans-serif;color:#111;margin:0}h1{font-size:20px;margin:0 0 4px}.meta{display:flex;gap:24px;color:#444;margin-bottom:12px}.meta b{color:#111}.wrap{display:grid;grid-template-columns:1fr 240px;gap:14px;align-items:start}table{width:100%;border-collapse:collapse}th{background:#0d2a23;color:#fff;text-align:left;padding:5px 6px;font-weight:600;font-size:10px}td{padding:4px 6px;border-bottom:1px solid #ddd;vertical-align:top}.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}tr.t td{background:#f3efe2;font-weight:600}.m{color:#777;font-size:10px}.side h2{font-size:12px;margin:0 0 6px}.brand{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #d6a03d;padding-bottom:8px;margin-bottom:10px}thead{display:table-header-group}tr{page-break-inside:avoid}</style></head><body>
- <div class="brand"><div><h1>${esc(r.title)}</h1><div class="meta">${r.crew.map(([l,n])=>`<span>${esc(l)} <b>${esc(n.join(', '))}</b></span>`).join('')}<span>Production company <b>${esc(r.house||'—')}</b></span><span>Exported <b>${esc(at)}</b></span></div></div><div style="font-weight:800;letter-spacing:.2em">${esc((B0.studio||'SCENEDROME').toUpperCase())}</div></div>
+ <div class="brand"><div><h1>${esc(r.title)}</h1><div class="meta">${r.crew.map(([l,n])=>`<span>${esc(l)} <b>${esc(n.join(', '))}</b></span>`).join('')}${r.house?`<span>Production company <b>${esc(r.house)}</b></span>`:''}<span>Exported <b>${esc(at)}</b></span></div></div><div style="font-weight:800;letter-spacing:.2em">${esc((B0.studio||'SCENEDROME').toUpperCase())}</div></div>
  <div class="wrap"><table><thead><tr><th>Day</th><th>Date</th><th>Location</th><th>Ep</th><th>Sc</th><th>Characters / description</th><th>Time</th><th>Versions</th><th>Duration</th><th>Convert · sync</th><th>Edit</th></tr></thead><tbody>${tr||'<tr><td colspan="11">No scenes scheduled</td></tr>'}</tbody></table><div class="side"><h2>Episodes — full durations</h2>${side}</div></div>
  <script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`;
  const w=window.open('','_blank');if(!w){toast('Allow pop-ups for the Hub to save the PDF','bad');return}w.document.open();w.document.write(html);w.document.close()};
@@ -3403,7 +3402,13 @@ scRow=function(p,e,s,ctx,d){if(!hasDays(p))return'';const ce=canEditFlow(p),mg=c
  const vfx=s.vfx&&s.vfx!=='none'?`<div class="scsub">${shotsSec(p,e,s,et).replace(/<div class="tiny faint" style="margin-top:6px">Shots are named[\s\S]*?<\/div>/,'').replace(!(s.shots||[]).length?/$^/:/(<div class="sb">|<div class="sec-b[^"]*">)/,'$1<div class="shot shothd"><span>#</span><span>Name</span><span>Duration</span><span>Artist</span><span>Status</span><span>Approval</span></div>')}</div>`:'';
  const snd=s.snd&&s.snd!=='none'?`<div class="scsub"><label class="scfull">Scene sound (notes)${et?`<textarea rows="2" ${B('sndBrief')} placeholder="Timecode, what to build or fix, references…">${esc(s.sndBrief||'')}</textarea>`:`<div>${esc(s.sndBrief||'')||'—'}</div>`}</label></div>`:'';
  const del=(ce||mg)&&ctx!=='ep'?`<div class="scdel"><a class="btn sm ghost danger" data-act="delScene" data-arg="${e.n}|${s.id}">${ic('trash',15)}Delete scene</a></div>`:'';
- return`<tr class="csrow open"><td class="sccell">${bar}<div class="scbody">${l1}${l2}${l3}${vfx}${snd}${del}</div></td></tr>`};
+ const mv=(ce||mg)&&e.n===XN&&(p.episodes||[]).length?`<div class="scsub"><label class="scfull">Move this scene to an episode<select data-change="scMove" data-arg="${e.n}|${s.id}"><option value="">Choose the episode…</option>${p.episodes.map(x=>`<option value="${x.n}">${epL(x.n)}</option>`).join('')}</select></label></div>`:'';
+ return`<tr class="csrow open"><td class="sccell">${bar}<div class="scbody">${l1}${l2}${l3}${vfx}${snd}${mv}${del}</div></td></tr>`};
+CHG.scMove=(a,el)=>{const[n,sid]=a.split('|');const to=+el.value;if(!to)return;const p=bkPrep();if(!p||!(canEditFlow(p)||canManage(p)))return;const from=epFind(p,n);const dest=p.episodes.find(x=>x.n===to);const i=from?from.scenes.findIndex(x=>x.id===sid):-1;if(i<0||!dest)return;
+ const sc=from.scenes.splice(i,1)[0];dest.scenes=dest.scenes||[];if(dest.scenes.some(x=>(+x.n)===(+sc.n)))sc.n=dest.scenes.reduce((a,x)=>Math.max(a,+x.n||0),0)+1;dest.scenes.push(sc);dest.scenes.sort((x,y)=>(+x.n||0)-(+y.n||0));
+ V.open['sc'+p.id+dest.n]=true;from.scenes.forEach(scCalc);dest.scenes.forEach(scCalc);
+ try{notify(members(p,'team'),`${me().name} moved a scene from EPS X to ${epL(to)} — ${p.name}`,{v:'project',p:p.id,tab:'breakdown'})}catch(_){}
+ save();render();toast(`Moved to ${epL(to)}`,'ok')};
 CHG.scFlag=(a,el)=>{const[n,sid,f]=a.split('|');const p=bkPrep();if(!p||!canEditFlow(p))return;const e=epFind(p,n);const s=e&&e.scenes.find(x=>x.id===sid);if(!s)return;
  if(f==='vfx'){s.vfx=el.checked?(s.vfx&&s.vfx!=='none'?s.vfx:'vfx'):'none';s.shots=s.shots||[]}
  if(f==='snd'){s.snd=el.checked?(s.snd&&s.snd!=='none'?s.snd:(Object.keys(SND_K).find(k=>k!=='none')||'mix')):'none';if(el.checked&&!s.sndSt)s.sndSt='todo'}
@@ -4039,7 +4044,11 @@ const _modal9=modal;modal=function(t,h,w){const had=!!document.getElementById('m
 
 /* ---------- 2. preview safety (nothing done in "User View" can leak into the real data) ---------- */
 let PV_DIRTY=false;
-const _notify0=notify;notify=function(a,b,c){if(PREVIEW)return;return _notify0(a,b,c)};
+const _notify0=notify;notify=function(a,b,c){if(PREVIEW)return;
+ /* private projects: only owners and the people on the project are ever told anything about them */
+ try{const pr=new Set();if(c&&c.p&&P(c.p)&&P(c.p).private)pr.add(c.p);const t=String(b||'');S.projects.forEach(p=>{if(p.private&&p.name&&t.indexOf(p.name)>=0)pr.add(p.id)});
+  if(pr.size)a=[].concat(a||[]).filter(i=>{const u=U(i);return u&&[...pr].every(id=>privOK(P(id),u))})}catch(e){}
+ return _notify0(a,b,c)};
 const _save0=save;save=function(){if(PREVIEW)PV_DIRTY=true;return _save0()};
 const _exit0=ACT.exitPreview;ACT.exitPreview=function(){const d=PV_DIRTY;PV_DIRTY=false;_exit0.apply(this,arguments);if(d&&LIVE){toast('Refreshing your view…');setTimeout(()=>location.reload(),350)}};
 
@@ -4336,7 +4345,7 @@ const dayName=(p,id)=>{if(!id)return'No day';if(id.slice(0,2)==='f:')return'📁
 const storeName=(p,id)=>id===STUDIO?'Studio internal storage':((ST(p).items.find(i=>i.id===id)||{}).name||'(removed)');
 
 /* who must know: producer, people who run storage on the project, managers and owners */
-function resp(p){const ids=new Set([p.producer]);(p.team||[]).forEach(i=>{const u=U(i);if(u&&isStaff(u)&&(can('storage.manage',u)||['dit','it'].includes(u.job)||['dit','asst','a1'].includes(pRole(p,i))))ids.add(i)});S.users.forEach(u=>{if(!u.suspended&&isMgmt(u))ids.add(u.id)});return[...ids].filter(i=>i&&U(i)&&!U(i).suspended)}
+function resp(p){const ids=new Set([p.producer]);(p.team||[]).forEach(i=>{const u=U(i);if(u&&isStaff(u)&&(can('storage.manage',u)||['dit','it'].includes(u.job)||['dit','asst','a1'].includes(pRole(p,i))))ids.add(i)});S.users.forEach(u=>{if(!u.suspended&&isMgmt(u))ids.add(u.id)});return[...ids].filter(i=>i&&U(i)&&!U(i).suspended&&privOK(p,U(i)))}
 const link=p=>({v:'project',p:p.id,tab:'storage'});
 
 /* the 85% rule: alert everyone responsible; it stays (and re-notifies) until a manager ticks "acknowledged" AND new storage has been added */
@@ -4445,6 +4454,107 @@ const _vhS=VIEWS.home;VIEWS.home=function(){const h=_vhS();if(!isStaff())return 
  return`<div class="card" style="border-color:var(--bad,#e5484d);margin-bottom:12px"><b style="font-weight:600;color:var(--bad,#e5484d)">⚠ Storage alerts</b><div class="list" style="margin-top:6px">${list.map(([p,x])=>`<div class="item click" data-act="stGo" data-arg="${p.id}"><div class="grow"><b style="font-weight:500">${esc(p.name)} · ${esc(x.i.name)} is ${Math.round(pct(p,x.i))}% full</b><div class="tiny faint">${x.a.ack?'Acknowledged — new storage still needed':'Waiting for a manager to acknowledge and for new storage'}</div></div><span class="chip bad">Open</span></div>`).join('')}</div></div>`+h};
 ACT.stGo=id=>go('project',id,'storage');
 const _cs=document.createElement('style');_cs.textContent='.daysz{white-space:nowrap}.dl1{grid-template-columns:90px minmax(0,1fr) 150px 120px 160px}@media (max-width:760px){.dl1{grid-template-columns:1fr 1fr}}';document.head.appendChild(_cs);
+})();
+
+/* ================= round 3: Project settings · Attention · Inhouse Team / Crew · episode progress ================= */
+(function(){
+const st=document.createElement('style');st.textContent=`
+.ddx{border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--panel,transparent)}
+.ddx .ddh{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;min-height:44px}
+.ddx .ddt{font-weight:600}.ddx .dds{flex:1;min-width:0;color:var(--faint,#8a8f98);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ddx .ddb{padding:4px 12px 12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
+.ddx.open{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--gold,#c9a35b) 40%,transparent)}
+.kcin{margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.kcin .kcr{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:6px 0}.kcin .kcr b{font-weight:500;min-width:130px}
+.attrow{display:grid;grid-template-columns:1fr 1fr 1fr 130px 34px;gap:8px;align-items:center;margin-bottom:8px}
+@media (max-width:760px){.attrow{grid-template-columns:1fr 1fr}.attrow>a{justify-self:end}}
+.psnote textarea{width:100%}`;document.head.appendChild(st);
+
+/* ---------- airing tags ---------- */
+AIR.length=0;AIR.push(['tv','TV'],['platform','Platform'],['digital','Digital'],['mobile','Mobile'],['theater','Theater']);
+
+/* ---------- Project settings (was Project specs) ---------- */
+const psEdit=p=>!!p&&isStaff()&&(canManage(p)||canEditProj(p));
+const ddx=(key,title,sum,body)=>{const open=V.open[key]===true;return`<div class="ddx ${open?'open':''}"><a class="ddh" data-act="tog" data-arg="${key}|0"><span class="ddt">${esc(title)}</span><span class="dds">${esc(sum)}</span><span class="faint">${open?'▴':'▾'}</span></a>${open?`<div class="ddb">${body}</div>`:''}</div>`};
+const ckRow=(checked,ed,change,arg,label,sub)=>`<label class="jp" style="${ed?'cursor:pointer':''}"><input type="checkbox" ${checked?'checked':''} ${ed?`data-change="${change}" data-arg="${arg}"`:'disabled'}><span><b>${esc(label)}</b>${sub?`<i>${sub}</i>`:''}</span></label>`;
+projSpecsHTML=function(p){const mg=psEdit(p);const k='ps'+p.id;const open=V.open[k]===true;const air=p.airing||[];const fm=new Set(p.outFormats||[]);const dl=p.dlv||{};const done=DLV.filter(([x])=>dl[x]&&dl[x].done).length;
+ const airTxt=air.map(a=>(AIR.find(x=>x[0]===a)||[0,a])[1]).join(', ');
+ const STS=[['active','In production'],['done','Delivered'],['pitching','Pitching'],['cancelled','Cancelled']];const stNow=(STS.find(x=>x[0]===(p.status||'active'))||STS[0])[1];
+ const nF=fm.size+(p.outCustom?String(p.outCustom).split(',').filter(x=>x.trim()).length:0);
+ let body='';
+ if(open){
+  const cf=p.cf&&isStaff()?`<div class="formgrid mini" style="margin-top:10px"><label>Tax${canManage(p)?`<input value="${esc(p.cf.tax??'')}" data-change="cfSet" data-arg="${p.id}|tax" placeholder="e.g. 10%">`:`<div>${esc(p.cf.tax||'—')}</div>`}</label><label>Carried over from last year${canManage(p)?`<input value="${esc(p.cf.carried||'')}" data-change="cfSet" data-arg="${p.id}|carried" placeholder="e.g. Remaining 50%">`:`<div>${esc(p.cf.carried||'—')}</div>`}</label><label class="full">Notes from the books${canManage(p)?`<textarea rows="2" data-change="cfSet" data-arg="${p.id}|note">${esc(p.cf.note||'')}</textarea>`:`<div>${esc(p.cf.note||'—')}</div>`}</label></div><div class="tiny faint" style="margin-top:6px">Brought in from SCENEDROME Cashflow ${p.cf.at?dstr(p.cf.at):''}</div>`:'';
+  body=`<div class="sb"><div class="formgrid mini"><label>Status${mg?`<select data-change="projStatus" data-arg="${p.id}">${STS.map(([v,l])=>`<option value="${v}" ${(p.status||'active')===v?'selected':''}>${l}</option>`).join('')}</select>`:`<div>${stNow}</div>`}</label></div>
+  <div class="eyebrow" style="margin:14px 0 6px">Airing</div>
+  ${ddx('ddAir'+p.id,'Airing',airTxt||'None selected',AIR.map(([a,l])=>ckRow(air.includes(a),mg,'projAir',p.id+'|'+a,l)).join(''))}
+  <div class="row wrap" style="margin:16px 0 6px;gap:8px"><div class="eyebrow grow" style="margin:0">Delivery requirements</div>${mg?`<a class="btn sm" data-act="psTypical" data-arg="${p.id}">${ic('check',13)}Tick the usual</a><a class="btn sm" data-act="psNone" data-arg="${p.id}">Clear</a>`:''}</div>
+  ${FMTS.map(([g,list],gi)=>{const n=list.filter(([x])=>fm.has(x)).length;return ddx('ddF'+p.id+gi,g,n?n+' selected':'None selected',list.map(([x,l])=>ckRow(fm.has(x),mg,'projFmt',p.id+'|'+x,l,(FMT_TYP[p.type]||[]).includes(x)?'Usual for this type':'')).join(''))}).join('')}
+  <label style="display:block;margin-top:6px">Other deliverables${mg?`<input value="${esc(p.outCustom||'')}" data-change="projFmtX" data-arg="${p.id}" placeholder="Comma separated, e.g. Ramadan promo, 2-min recap">`:`<div>${esc(p.outCustom||'—')}</div>`}</label>
+  <div class="row" style="margin-top:12px"><a class="btn sm" data-act="dlvOpen" data-arg="${p.id}">${ic('doc',14)}Delivery guidelines</a><span class="tiny faint">${done}/${DLV.length} delivery checkpoints done</span></div>
+  ${cf}
+  <label class="psnote" style="display:block;margin-top:14px">Notes${mg?`<textarea rows="3" data-change="projNote" data-arg="${p.id}" placeholder="Anything the team should know about this project’s setup…">${esc(p.settingsNote||'')}</textarea>`:`<div>${esc(p.settingsNote||'—')}</div>`}</label></div>`}
+ return`<div class="sec" style="margin-top:18px"><div class="sh" data-act="tog" data-arg="${k}|0"><span class="faint">${open?'▾':'▸'}</span><b style="font-weight:600">Project settings</b><span class="tiny faint grow">${esc([stNow,airTxt,nF?nF+' deliverable'+(nF===1?'':'s'):''].filter(Boolean).join(' · '))}</span></div>${body}</div>`};
+Object.assign(CHG,{
+ projFmt:(a,el)=>{const[pid,k]=a.split('|');const p=P(pid);if(!psEdit(p))return;const s=new Set(p.outFormats||[]);if(el.checked)s.add(k);else s.delete(k);p.outFormats=[...s];save();render()},
+ projFmtX:(pid,el)=>{const p=P(pid);if(!psEdit(p))return;p.outCustom=String(el.value||'').trim();save();render()},
+ projNote:(pid,el)=>{const p=P(pid);if(!psEdit(p))return;p.settingsNote=String(el.value||'').trim();save();toast('Notes saved','ok')}});
+Object.assign(ACT,{
+ psTypical:pid=>{const p=P(pid);if(!psEdit(p))return;p.outFormats=[...new Set([...(p.outFormats||[]),...(FMT_TYP[p.type]||[])])];save();render()},
+ psNone:pid=>{const p=P(pid);if(!psEdit(p))return;p.outFormats=[];p.outCustom='';save();render()}});
+
+/* ---------- project edit details: Attention, and fewer fields ---------- */
+const attAcc=p=>!!p&&(isMgmt()||(p.producer===meId&&inhouse(me())));
+const ATT_T=['Director','Show producer','Showrunner','Executive Producer','Producer','Line Producer','Writer','DOP','Asst. Director'];
+const normT=t=>String(t||'').trim().toLowerCase().replace(/\./g,'');
+function attRow(p,x){x=x||{};const can=attAcc(p);const pool=S.users.filter(u=>!u.removed&&(u.role==='client'||isStaff(u))).sort((a,b)=>(a.role==='client'?0:1)-(b.role==='client'?0:1));const acc=x.access||'credit';
+ return`<div class="crrow attrow"><input name="att_title" list="att-titles" placeholder="Title" value="${esc(x.title||'')}"><select name="att_id"><option value="">Not on the Hub — type the name →</option>${pool.map(u=>`<option value="${u.id}" ${x.id===u.id?'selected':''}>${esc(u.name)}${u.role==='client'?' · '+esc(u.company||'Client'):' · '+esc(u.title||'Studio')}</option>`).join('')}</select><input name="att_name" placeholder="Name" value="${esc(x.id?'':(x.name||''))}">${can?`<select name="att_acc" title="Review access on the Hub">${Object.entries(CR_ACC).map(([k,[l]])=>`<option value="${k}" ${acc===k?'selected':''}>${l}</option>`).join('')}</select>`:`<span class="tiny faint" title="Management or the in-house producer sets review access">${esc((CR_ACC[acc]||[acc])[0])}<input type="hidden" name="att_acc" value="${acc}"></span>`}<a class="iconbtn" data-act="peDelRow" title="Remove">${ic('x',14)}</a></div>`}
+const attList=p=>[...(p.director||[]).map(x=>Object.assign({title:'Director'},x)),...(p.showProducers||[]).map(x=>Object.assign({title:'Show producer'},x)),...(p.attn||[])];
+const _peA=ACT.projEdit;ACT.projEdit=pid=>{_peA(pid);const p=P(String(pid).split('|')[0]);const f=document.querySelector('#modal form[data-form="projEdit"]');if(!p||!f)return;
+ const secs=[...f.querySelectorAll('.pesec')];const find=t=>secs.find(x=>(x.querySelector('.pesh b')||{}).textContent===t);
+ const fl=f.querySelector('input[name=format]');if(fl&&fl.closest('label'))fl.closest('label').remove();
+ const pl=f.querySelector('select[name=producer]');if(pl&&pl.closest('label'))pl.closest('label').remove();
+ const dirS=find('Director');const att=document.createElement('div');att.className='full pesec';
+ att.innerHTML=`<div class="pesh"><b>Attention</b><span class="tiny faint">Director, show producers or any title — each person gets their own Hub access</span></div><datalist id="att-titles">${ATT_T.map(t=>`<option value="${t}">`).join('')}</datalist><div id="pe-att">${attList(p).map(x=>attRow(p,x)).join('')}</div><a class="btn sm" data-act="attAdd" data-arg="${p.id}">${ic('plus',13)}Add person</a><div class="tiny faint" style="margin-top:8px">${attAcc(p)?Object.values(CR_ACC).map(([l,d])=>`<b>${l}</b> — ${d}`).join(' · '):'Review access is set by management or the in-house producer.'}</div>`;
+ if(dirS)dirS.before(att);else f.insertBefore(att,f.querySelector('.full.row:last-child'));
+ ['Director','Show producers','Partner studios','Deliverables'].forEach(t=>{const s=find(t);if(s)s.remove()})};
+ACT.attAdd=pid=>{const p=P(pid);const b=document.getElementById('pe-att');if(p&&b)b.insertAdjacentHTML('beforeend',attRow(p,{}))};
+const _fpeA=FORM.projEdit;FORM.projEdit=(fd,pid)=>{const p=P(pid);if(!p||!canEditProj(p)||!fd.has('att_id')&&!fd.has('att_title')&&!document.getElementById('pe-att'))return _fpeA(fd,pid);
+ const ids=fd.getAll('att_id'),nm=fd.getAll('att_name'),ti=fd.getAll('att_title'),ac=fd.getAll('att_acc');const dir=[],show=[],att=[];
+ ids.forEach((id,i)=>{id=String(id||'');const name=String(nm[i]||'').trim();if(!id&&!name)return;const title=String(ti[i]||'').trim()||'Crew';const o=id?{id,access:String(ac[i]||'credit')}:{name,access:'credit'};const t=normT(title);
+  if(t==='director')dir.push(o);else if(t==='show producer'||t==='show producers')show.push(o);else att.push(Object.assign({title},o))});
+ const before=crewIds(p);p.attn=att;
+ dir.forEach(o=>{fd.append('director_id',o.id||'');fd.append('director_name',o.name||'');fd.append('director_acc',o.access)});
+ show.forEach(o=>{fd.append('show_id',o.id||'');fd.append('show_name',o.name||'');fd.append('show_acc',o.access)});
+ (p.outFormats||[]).forEach(x=>fd.append('fmt',x));fd.set('fmtx',p.outCustom||'');(p.partners||[]).forEach(x=>fd.append('partner',x));
+ _fpeA(fd,pid);
+ const fresh=att.filter(x=>x.id&&x.access!=='credit'&&!before.includes(x.id)).map(x=>x.id);if(fresh.length)notify(fresh,`You now have access to ${p.name}`,{v:'project',p:p.id})};
+const _clA=crewList;crewList=function(p){return[..._clA(p),...((p&&p.attn)||[]).map(x=>Object.assign({k:'attn'},x))]};
+
+/* ---------- Inhouse Team + Crew (with key crew) ---------- */
+const kcNorm=normT;
+kcNames=function(p,k){const out=[];const lab=(KC.find(x=>x[0]===k)||[])[1]||'';
+ const add=(u,name)=>{let n=String(name||'').trim();if(u){if(u.removed)return;n=u.name+(u.role==='client'&&u.company?' · '+u.company:'')}if(n&&!out.some(x=>x.toLowerCase()===n.toLowerCase()))out.push(n)};
+ ((p.credits||{})[k]||[]).forEach(x=>{const u=x.id&&U(x.id);if(x.id&&!u)return;add(u,x.name)});
+ const same=t=>{const a=kcNorm(t),b=kcNorm(lab);return a===b||(k==='exec'&&(a==='exec producer'||a==='executive producer'))||(k==='editor'&&(a==='main editor'||a==='editor'))};
+ if(k==='director')(p.director||[]).forEach(x=>add(x.id&&U(x.id),x.name));
+ (p.attn||[]).forEach(x=>{if(same(x.title))add(x.id&&U(x.id),x.name)});
+ (p.clientCrew||[]).forEach(c=>{if(U(c.id)&&same(c.title))add(U(c.id))});
+ if(k==='showrunner'||k==='exec'){}
+ if(k==='editor')(p.team||[]).forEach(i=>{if(pRole(p,i)==='main'&&U(i))add(U(i))});
+ return out};
+kcCrew=p=>KC.map(([k,l])=>[l,kcNames(p,k)]).filter(x=>x[1].length);
+function kcInner(p){const ed=kcEdit(p);return`<div class="kcin"><div class="eyebrow" style="margin-bottom:4px">Key crew</div>${KC.map(([k,l])=>{const n=kcNames(p,k);return`<div class="kcr"><b>${l}</b><span class="grow" style="min-width:120px">${n.length?esc(n.join(', ')):'<span class="faint">—</span>'}</span>${ed?`<a class="btn sm ghost" data-act="kcEdit" data-arg="${k}">Edit</a>`:''}</div>`}).join('')}</div>`}
+const _ccK=clientsCard61;clientsCard61=function(p){let h=_ccK(p);if(!h)return h;
+ h=h.replace(/(<\/span> )Clients( <span class="cnt">)/,'$1Crew$2').replace('No client people on this project yet','No client-side crew yet').replace('Add client person','Add crew person');
+ return h.replace(/(<\/h3>)/,'$1'+kcInner(p))};
+const _ovI=TABS.overview;TABS.overview=p=>{let h=_ovI(p);return h.replace(/(<h3 class="crewh"[^>]*>(?:<span class="faint">[^<]*<\/span>)? )Crew( <span class="cnt">)/,'$1Inhouse Team$2')};
+
+/* ---------- episode progress: 70% duration filled, 30% process steps ---------- */
+const _epP=epProg;epProg=function(p,e){if(!e||e.x)return _epP(p,e);const T=TYPES[p.type]||{stages:[]},n=(T.stages||[]).length||1;
+ if((e.statuses||[]).includes('delivered')||(!e.statuses&&!e.checks&&e.stage>=n-1))return 100;
+ const tgt=+e.target||+p.epDur||0;const dur=tgt?Math.min(1,epRun(e)/tgt):0;
+ const steps=e.checks?T.stages.filter((_,i)=>e.checks[i]&&e.checks[i].done).length/n:Math.min(1,(e.stage||0)/n);
+ return Math.min(99,Math.round((dur*0.7+steps*0.3)*100))};
 })();
 
 /* ---------- 7. pull down from the top to refresh ---------- */
