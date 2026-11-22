@@ -1008,7 +1008,7 @@ const mg=[];if(isFinMember()||can('fin.cashflow')||can('fin.projectEntry')||can(
 const ops=[];if(can('storage.view'))ops.push(['storage','Storage & devices','drive']);if(can('mkt.view'))ops.push(['marketing','Marketing','mega']);ops.push(['handbook','Studio handbook','book']);
 if(mg.length){g('Management');N.push(...mg)}g('Studio');N.push(...ops);if(can('admin.users')||can('people.add')||isOwner()){g('Admin');if(can('admin.users')||can('people.add'))N.push(['admin','Users & access','shield']);if(isOwner())N.push(['branding','Branding','star'])}}
 g('You');N.push(['profile','My profile','user']);return N}
-function shellHTML(){const u=me();const titles={group:'SCENEDROME Chat',client:'Client',history:'History',branding:'Branding',home:u.role==='partner'?'Collab hub':u.role==='client'?'Home':'Dashboard',projects:u.role==='partner'?'Our collabs':u.role==='client'?'My projects':'Projects',messages:'Messages',dm:(U(V.p)||{}).name||'Message',team:'Team',finance:'Finance',clients:'Clients',partners:'Partner studios',admin:'Users & access',profile:V.p&&V.p!==u.id?'Profile':'My profile',project:(P(V.p)||{}).name||'Project',rewards:'Offers & rewards',storage:'Storage & devices',marketing:'Marketing',handbook:'Studio handbook',access:'Access'};
+function shellHTML(){const u=me();const titles={group:'SCENEDROME Chat',client:'Client',history:'History',branding:'Branding',home:u.role==='partner'?'Collab hub':u.role==='client'?'Home':'Dashboard',projects:u.role==='partner'?'Our collabs':u.role==='client'?'My projects':'Projects',messages:'Messages',dm:(U(V.p)||{}).name||'Message',team:'Team',finance:'Finance',clients:'Clients',partners:'Partner studios',admin:'Users & access',profile:V.p&&V.p!==u.id?'Profile':'My profile',project:(P(V.p)||{}).name||'Project',rewards:'Offers & rewards',storage:'Storage & devices',assets:'Studio assets',marketing:'Marketing',handbook:'Studio handbook',access:'Access'};
 let body;try{body=(VIEWS[V.v]||VIEWS.home)()}catch(err){console.error('[hub] view',V.v,err);body=`<div class="card empty">This page hit a snag and couldn’t load (${esc(err.message)}). The rest of the Hub still works — try another page, or reload.</div>`}const un=unread();const my=S.notifs.filter(n=>n.to===u.id).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,30);
 const nav=navItems().map(([k,l,i])=>k==='__'?`<h6>${l}</h6>`:`<a class="${V.v===k||(k==='projects'&&V.v==='project')||(k==='admin'&&V.v==='access')||(k==='profile'&&V.v==='profile'&&(!V.p||V.p===u.id))?'on':''}" data-act="go" data-arg="${k}">${ic(i)}<span>${l}</span></a>`).join('');
 const homeT=esc(titles[V.v]||'');
@@ -1632,7 +1632,7 @@ dev:(fd,id)=>{const g=k=>String(fd.get(k)||'');const d=id?S.devices.find(x=>x.id
 Object.assign(d,{code:g('code'),kind:g('kind'),brand:g('brand'),model:g('model'),sn:g('sn'),owner:g('owner'),client:g('client')||null,project:g('project')||null,capGB:+g('capGB')||0,usedGB:+g('usedGB')||0,location:g('location'),dueBack:g('dueBack')?new Date(g('dueBack')).getTime():null,content:g('content'),files:+g('files')||0,camera:g('camera'),formats:g('formats')?g('formats').split(','):d.formats||[],video:+g('video')||d.video||0});
 if(d.owner==='studio'){d.dir='internal';if(!id)d.status='In studio'}
 if(!id){d.log.push({ts:Date.now(),user:meId,text:`Logged · ${d.files?nf.format(d.files)+' files · ':''}${gb(d.usedGB)} used`});S.devices.unshift(d);const p=P(d.project);notify(p?[p.producer]:owners(),`${d.code} received${p?' for '+p.name:''} — ${gb(d.usedGB)}`,{v:'storage'})}else d.log.push({ts:Date.now(),user:meId,text:'Details edited'});
-save();closeModal();if(V.v!=='storage'&&V.tab!=='drives')go('storage');else render();toast(id?'Saved':`${d.code} logged`,'ok')},
+save();closeModal();if(V.v!=='storage'&&V.v!=='assets'&&V.tab!=='drives')go('storage');else render();toast(id?'Saved':`${d.code} logged`,'ok')},
 devLog:(fd,id)=>{const d=S.devices.find(x=>x.id===id);d.log.push({ts:Date.now(),user:meId,text:String(fd.get('text'))});save();devModal(d)},
 mkt:(fd,id)=>{const g=k=>String(fd.get(k)||'');const m=id?S.mkt.find(x=>x.id===id):{id:uid('k'),status:'idea'};Object.assign(m,{title:g('title'),channel:g('channel'),project:g('project')||null,owner:g('owner'),due:new Date(g('due')).getTime(),clientOK:!!fd.get('clientOK'),note:g('note')});if(!id){S.mkt.push(m);if(m.owner!==meId)notify([m.owner],`New marketing task: ${m.title}`,{v:'marketing'})}save();closeModal();render();toast('Saved','ok')}};
 
@@ -2079,7 +2079,7 @@ const _canEditUser=canEditUser;canEditUser=function(x){if(x&&x.role==='client'&&
 /* ================= branding bar: the owner styles each page ================= */
 let BBAR=false,BLAST='';const _applyBrand0=applyBrand;applyBrand=function(b){if(!b)BLAST='';return _applyBrand0(b)};
 const pageKey=()=>V.v||'home';
-const PAGE_NAMES={home:'Dashboard',projects:'Projects',project:'Project pages',messages:'Messages',dm:'Direct messages',finance:'Finance',team:'Team',clients:'Clients',client:'Client pages',partners:'Partner studios',storage:'Storage & devices',marketing:'Marketing',handbook:'Studio handbook',admin:'Users & access',access:'Access',branding:'Branding',profile:'Profiles',history:'History',rewards:'Offers & rewards'};
+const PAGE_NAMES={home:'Dashboard',projects:'Projects',project:'Project pages',messages:'Messages',dm:'Direct messages',finance:'Finance',team:'Team',clients:'Clients',client:'Client pages',partners:'Partner studios',storage:'Storage & devices',assets:'Studio assets',marketing:'Marketing',handbook:'Studio handbook',admin:'Users & access',access:'Access',branding:'Branding',profile:'Profiles',history:'History',rewards:'Offers & rewards'};
 function brandFor(k){return Object.assign({},BRAND,(BRAND.pages||{})[k]||{})}
 function applyPageBrand(){const e=brandFor(pageKey());const sig=JSON.stringify([e.gold,e.gold2,e.bgColor,e.panel,e.text,e.bg,e.display,e.body]);if(sig!==BLAST){BLAST=sig;applyBrand(e)}}
 const _render5=render;render=function(){if(me())applyPageBrand();_render5();if(BBAR&&isOwner()&&me()&&!PREVIEW)document.getElementById('app').insertAdjacentHTML('beforeend',bbarHTML())};
@@ -3187,7 +3187,7 @@ const finPage=()=>V.v==='finance'||(V.v==='project'&&V.tab==='money')||V.v==='cl
 /* shell: photo once (sidebar on desktop, bottom bar on phone/tablet), ⋯ menu for everything else */
 var DOTS_OPEN=false;ACT.dots=()=>{DOTS_OPEN=!DOTS_OPEN;const p=document.getElementById('dotspanel');if(p)p.classList.toggle('open',DOTS_OPEN)};
 document.addEventListener('click',e=>{if(DOTS_OPEN&&!e.target.closest('.dotswrap')){DOTS_OPEN=false;const p=document.getElementById('dotspanel');if(p)p.classList.remove('open')}});
-const SEC_ORDER=['finance','team','marketing','clients','partners','storage','branding','admin','handbook'];
+const SEC_ORDER=['finance','team','marketing','clients','partners','assets','storage','branding','admin','handbook'];
 function dotsHTML(){const N=navItems().filter(x=>x[0]!=='__'&&!['home','projects','messages'].includes(x[0])).sort((a,b)=>SEC_ORDER.indexOf(a[0])-SEC_ORDER.indexOf(b[0]));
  return`<div class="dotswrap"><a class="iconbtn" data-act="dots" aria-label="More" aria-haspopup="true">${ic('dots')}</a><div class="acctpanel dots ${DOTS_OPEN?'open':''}" id="dotspanel">
  <div class="dnav">${N.map(([k,l,i])=>`<a class="mi ${V.v===k?'on':''}" data-act="go" data-arg="${k}">${ic(i,16)}${esc(l)}</a>`).join('')}<hr></div>
@@ -4237,6 +4237,41 @@ Object.assign(FORM,{
 const _nav9=navItems;navItems=function(){const N=_nav9();if(!me()||!rmView())return N;let at=-1;N.forEach((x,k)=>{if(['storage','marketing','handbook'].includes(x[0]))at=k});
  if(at>=0)N.splice(at+1,0,['rooms','Rooms & booking','cal']);else{const y=N.findIndex(x=>x[0]==='__'&&x[1]==='You');const it=[['__','Studio'],['rooms','Rooms & booking','cal']];if(y>=0)N.splice(y,0,...it);else N.push(...it)}return N};
 const _shell9=shellHTML;shellHTML=function(){const h=_shell9();return V.v==='rooms'?h.replace('<h2></h2>','<h2>Rooms & booking</h2>'):h};
+
+/* ================= Studio assets: Overview · Rooms · Devices · Storage (one place, like a project's tabs) ================= */
+const STO_KINDS=['HDD','SSD','RAID','Camera card','LTO tape','NAS'];
+const isSto=d=>STO_KINDS.includes(d.kind);
+const asCan=()=>({s:can('storage.view'),r:rmView()});
+const asSeen=()=>S.devices.filter(d=>visibleDev(d));
+function asTabs(){const c=asCan();const t=[['overview','Overview','home']];if(c.r)t.push(['rooms','Rooms','cal']);if(c.s)t.push(['devices','Devices','scan'],['storage','Storage','drive']);return t}
+function asBar(tabs){return`<div class="seg ptabs2" role="tablist" style="margin-bottom:16px">${tabs.map(([k,l,i])=>`<a class="${V.at===k?'on':''}" role="tab" aria-selected="${V.at===k}" data-act="asTab" data-arg="${k}">${ic(i,16)}<span>${l}</span></a>`).join('')}</div>`}
+function asStoBar(d){const pc=d.capGB?Math.min(100,d.usedGB/d.capGB*100):0;const c=pc>=85?'var(--bad,#e5484d)':pc>=70?'var(--warn,#d6a03d)':'var(--ok,#2a8a6c)';return`<div style="height:6px;border-radius:99px;background:var(--panel2,rgba(255,255,255,.08));overflow:hidden;border:1px solid var(--line);margin-top:5px"><i style="display:block;height:100%;width:${pc.toFixed(1)}%;background:${c}"></i></div>`}
+function asOverview(c){const now=Date.now(),t0=day0(now);const rooms=RM().filter(r=>r.active!==false);const conf=BK().filter(b=>b.status==='confirmed'&&b.room);const inUse=id=>conf.some(b=>b.room===id&&b.start<=now&&now<b.end);const todayN=conf.filter(b=>day0(b.start)===t0&&!b.block).length;const pend=BK().filter(b=>b.status==='requested').length;
+ const mine=asSeen().filter(d=>d.owner==='studio');const devs=mine.filter(d=>!isSto(d)),sto=mine.filter(isSto);const out=devs.filter(d=>['Lent out','Sent out','Out'].includes(d.status)).length;
+ const cap=sto.reduce((a,d)=>a+(+d.capGB||0),0),used=sto.reduce((a,d)=>a+(+d.usedGB||0),0);const cl=asSeen().filter(d=>d.owner==='client'&&!['Returned','Sent out','Archived','Sent back'].includes(d.status)).length;
+ const k=[];if(c.r)k.push(['Rooms',rooms.length,rooms.length?rooms.filter(r=>inUse(r.id)).length+' in use now · '+todayN+' booking'+(todayN===1?'':'s')+' today':'none set up yet','hero']);
+ if(c.s)k.push(['Devices',devs.length,out?out+' out of the studio':'all in the studio'],['Storage',sto.length,cap?gb(used)+' of '+gb(cap)+' used':'no drives yet']);
+ const card=(title,n,tab,body)=>`<div class="card" style="margin-top:14px"><div class="row wrap" style="gap:10px;margin-bottom:8px"><h3 style="margin:0">${title} <span class="faint" style="font-weight:400">· ${n}</span></h3><a class="btn sm right" data-act="asTab" data-arg="${tab}">Open ${title.toLowerCase()}</a></div>${body}</div>`;
+ const roomsC=c.r?card('Rooms',rooms.length,'rooms',rooms.length?`<div class="list">${rooms.map(r=>`<div class="item"><span class="rmdot" style="background:${inUse(r.id)?'var(--bad,#e5484d)':'var(--ok,#2a8a6c)'}"></span><div class="grow"><b style="font-weight:500">${esc(r.name)}</b><div class="tiny faint">${esc(RM_KIND[r.kind]||'Room')}${r.note?' · '+esc(r.note):''}</div></div><span class="tiny ${inUse(r.id)?'':'faint'}">${inUse(r.id)?'In use now':'Free now'}</span></div>`).join('')}</div>${pend?`<div class="tiny" style="margin-top:8px">${pend} booking request${pend>1?'s':''} waiting for the studio</div>`:''}`:'<div class="empty tiny">No rooms set up yet</div>'):'';
+ const devC=c.s?card('Devices',devs.length,'devices',devs.length?`<div class="list">${devs.slice(0,8).map(d=>`<div class="item click" data-act="devOpen" data-arg="${d.id}">${ic('scan',16)}<div class="grow"><b style="font-weight:500">${esc(d.code)} · ${esc((d.brand+' '+d.model).trim())}</b><div class="tiny faint">${esc(d.kind)}${d.holder&&U(d.holder)?' · with '+esc(first(U(d.holder))):''}</div></div><span class="tiny faint">${esc(d.status)}</span></div>`).join('')}</div>${devs.length>8?`<div class="tiny faint" style="margin-top:6px">+ ${devs.length-8} more</div>`:''}`:'<div class="empty tiny">No studio devices logged</div>'):'';
+ const stoC=c.s?card('Storage',sto.length,'storage',(sto.length?`<div class="list">${sto.slice(0,8).map(d=>`<div class="item click" data-act="devOpen" data-arg="${d.id}">${ic('drive',16)}<div class="grow"><div class="row" style="gap:8px"><b style="font-weight:500">${esc(d.code)} · ${esc((d.brand+' '+d.model).trim())}</b><span class="tiny faint right">${d.capGB?gb(d.usedGB)+' / '+gb(d.capGB):''}</span></div>${d.capGB?asStoBar(d):''}</div></div>`).join('')}</div>`:'<div class="empty tiny">No studio storage logged</div>')+`<div class="tiny faint" style="margin-top:8px">${cl} client drive${cl===1?'':'s'} in the studio right now</div>`):'';
+ return`${k.length?kpis(k):''}${roomsC}${devC}${stoC}`}
+function asDevices(){const list=asSeen().filter(d=>d.owner==='studio'&&!isSto(d));const out=list.filter(d=>['Lent out','Sent out','Out'].includes(d.status)),od=list.filter(d=>d.dueBack&&d.dueBack<Date.now()&&!['Returned'].includes(d.status));
+ return kpis([['Studio devices',list.length,'laptops, workstations, cameras, monitors','hero'],['Out of the studio',out.length,od.length+' overdue']])+`<div class="row wrap" style="margin:16px 0 12px">${can('storage.manage')?`<a class="btn pri right" data-act="devNew">${ic('plus',16)}Log a device</a>`:''}</div>${devTable(list)}`}
+function asStorage(){const keep=S.devices;S.devices=keep.filter(isSto);try{return _vsOrig()}finally{S.devices=keep}}
+const _vsOrig=VIEWS.storage;
+VIEWS.assets=()=>{const c=asCan();if(!c.s&&!c.r)return deny();const tabs=asTabs();if(!tabs.some(t=>t[0]===V.at))V.at='overview';
+ let body;if(V.at==='rooms'){const rooms=RM().filter(r=>r.active!==false);body=`<div class="row wrap" style="gap:6px;margin-bottom:12px"><b>${rooms.length} room${rooms.length===1?'':'s'}</b>${rooms.map(r=>`<span class="chip">${esc(r.name)}</span>`).join('')}</div>`+VIEWS.rooms()}
+ else if(V.at==='devices')body=asDevices();else if(V.at==='storage')body=asStorage();else body=asOverview(c);
+ return asBar(tabs)+body};
+VIEWS.storage=()=>{V.at='storage';return VIEWS.assets()};
+ACT.asTab=t=>{V.at=t;V.p=null;render()};
+/* old links (menu, notifications, “Log drive”) land on the right tab */
+const _goAs=go;go=function(v,p,...r){if(v==='storage'){V.at='storage';return _goAs('assets',null,...r)}if(v==='rooms'){V.at='rooms';return _goAs('assets',p,...r)}if(v==='assets')V.at='overview';return _goAs(v,p,...r)};
+const _navAs=navItems;navItems=function(){let N=_navAs();if(!me()||!isStaff())return N;N=N.filter(x=>x[0]!=='rooms'&&x[0]!=='storage');if(!(can('storage.view')||rmView()))return N;const it=['assets','Studio assets','drive'];const at=N.findIndex(x=>['marketing','handbook'].includes(x[0]));
+ if(at>=0)N.splice(at,0,it);else{const y=N.findIndex(x=>x[0]==='__'&&x[1]==='You');const add=[['__','Studio'],it];if(y>=0)N.splice(y,0,...add);else N.push(...add)}return N};
+const _shAs=shellHTML;shellHTML=function(){const h=_shAs();return V.v==='assets'?h.replace('<h2></h2>','<h2>Studio assets</h2>'):h};
+
 
 /* ---------- 8. finance hidden from clients until the owner says otherwise (flip CLIENT_FINANCE to true to bring it back) ---------- */
 const CLIENT_FINANCE=false;
