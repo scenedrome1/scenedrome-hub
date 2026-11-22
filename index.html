@@ -3936,8 +3936,10 @@ const _vm63=VIEWS.messages;VIEWS.messages=()=>{const h=_vm63();if(!isOwner())ret
 /* no flashing: entrance animations only when you actually move to another page or tab, not on every click */
 let RK62=null;const _rd62=render;render=function(){let k='';try{k=me()?routeOf():''}catch(e){}const still=!!k&&k===RK62;document.documentElement.classList.toggle('still',still);const y=window.scrollY;_rd62();if(still&&Math.abs(window.scrollY-y)>2)window.scrollTo(0,y);RK62=k};
 /* one open at a time: opening a collapsed list closes the other open ones on the page (lists inside it stay as they are) */
-const sec62=n=>n.closest('.ep,.dyrow,.item,.card,details')||n.parentElement||n;
-function closeOthers62(el,key){const se=sec62(el);document.querySelectorAll('#app [data-act=tog],#app [data-act=toggleEp]').forEach(o=>{if(o===el)return;const so=sec62(o);if(so!==se&&(so.contains(se)||se.contains(so)))return;
+/* levels: a header's level is the list body it sits in (episode list → episode body → section body → row detail). Opening one closes only its open siblings on that same level — never a parent, never a child level. */
+const LVL62='.ep-body,.sb,.sub';
+const lvl62=n=>n.closest(LVL62)||document.getElementById('app');
+function closeOthers62(el,key){const L=lvl62(el);document.querySelectorAll('#app [data-act=tog],#app [data-act=toggleEp]').forEach(o=>{if(o===el||lvl62(o)!==L)return;
  const a=o.dataset.arg||'';const k=o.dataset.act==='toggleEp'?V.p+'-'+a:a.split('|')[0];if(k!==key)V.open[k]=false})}
 const _tog62=ACT.tog;ACT.tog=(a,el,e)=>{const[k,d]=String(a).split('|');const isOpen=d==='1'?V.open[k]!==false:!!V.open[k];if(!isOpen&&el)closeOthers62(el,k);_tog62(a,el,e)};
 const _tep62=ACT.toggleEp;ACT.toggleEp=(n,el,e)=>{const k=V.p+'-'+n;if(!V.open[k]&&el)closeOthers62(el,k);_tep62(n,el,e)};
