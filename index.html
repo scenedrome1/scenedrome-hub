@@ -4254,6 +4254,116 @@ img,video,svg:not(.i){max-width:100%}
 .kanban{max-width:100%}
 .ptabs{display:flex;flex-wrap:wrap;gap:6px;max-width:100%}.ptabs a{white-space:nowrap}
 `;document.head.appendChild(s)})();
+/* ---------- 11. Project storage (per project, not the studio's own assets) ---------- */
+(function(){
+'use strict';
+const ALERT_AT=85,REMIND_H=6,STUDIO='studio';
+const KINDS=['SSD','HDD','NAS','RAID','Cloud','Card'];
+const ST=p=>{if(!p.stor)p.stor={items:[],files:[],alerts:{},proxyPct:5};p.stor.items=p.stor.items||[];p.stor.files=p.stor.files||[];p.stor.alerts=p.stor.alerts||{};if(!p.stor.proxyPct)p.stor.proxyPct=5;return p.stor};
+const hasStor=p=>!!(p&&p.stor&&((p.stor.items||[]).length||(p.stor.files||[]).length));
+const stEdit=p=>!!p&&isStaff()&&(canManage(p)||drvEdit(p));
+const stMgr=()=>isMgmt();
+const used=(p,id)=>ST(p).files.filter(f=>f.store===id).reduce((a,f)=>a+(+f.gb||0),0);
+const pct=(p,i)=>i.capGB?used(p,i.id)/i.capGB*100:0;
+const orig=(p,dayId)=>ST(p).files.filter(f=>f.kind==='original'&&(f.day||'')===(dayId||''));
+const dayGB=(p,dayId)=>orig(p,dayId).reduce((a,f)=>a+(+f.gb||0),0);
+const dayProxyGB=(p,dayId)=>ST(p).files.filter(f=>f.kind==='proxy'&&(f.day||'')===(dayId||'')).reduce((a,f)=>a+(+f.gb||0),0);
+const fg=g=>g>=1000?(g/1000).toFixed(2).replace(/\.?0+$/,'')+' TB':(g>=100?Math.round(g):(+g.toFixed(1)))+' GB';
+const num=(v,u)=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)&&n>0?n*(u==='TB'?1000:1):0};
+const dayName=(p,id)=>{if(!id)return'No day';const d=pDays(p).find(x=>x.id===id);return d?('D'+pad2(d.n)+(d.date?' · '+dstr(new Date(d.date).getTime()):'')):'Removed day'};
+const storeName=(p,id)=>id===STUDIO?'Studio internal storage':((ST(p).items.find(i=>i.id===id)||{}).name||'(removed)');
+
+/* who must know: producer, people who run storage on the project, managers and owners */
+function resp(p){const ids=new Set([p.producer]);(p.team||[]).forEach(i=>{const u=U(i);if(u&&isStaff(u)&&(can('storage.manage',u)||['dit','it'].includes(u.job)||['dit','asst','a1'].includes(pRole(p,i))))ids.add(i)});S.users.forEach(u=>{if(!u.suspended&&isMgmt(u))ids.add(u.id)});return[...ids].filter(i=>i&&U(i)&&!U(i).suspended)}
+const link=p=>({v:'project',p:p.id,tab:'storage'});
+
+/* the 85% rule: alert everyone responsible; it stays (and re-notifies) until a manager ticks "acknowledged" AND new storage has been added */
+function check(p,quiet){if(!hasStor(p))return false;const s=ST(p);let ch=false;const now=Date.now();
+ s.items.forEach(i=>{const pc=pct(p,i);let a=s.alerts[i.id];
+  if(a&&a.done&&pc<ALERT_AT){delete s.alerts[i.id];a=null;ch=true}
+  if(pc>=ALERT_AT&&(!a||a.done)){s.alerts[i.id]=a={at:now,ack:false,last:now,done:false,pct:Math.round(pc)};ch=true;if(!quiet)notify(resp(p),`⚠ ${p.name}: ${i.name} is ${Math.round(pc)}% full — managers must acknowledge and add new storage`,link(p))}
+  if(a&&!a.done){if(a.ack&&s.items.some(x=>x.id!==i.id&&x.created>=a.at)){a.done=true;a.doneAt=now;ch=true;if(!quiet)notify(resp(p),`✓ ${p.name}: storage alert for ${i.name} resolved — new storage added`,link(p))}
+   else if(!quiet&&now-(a.last||0)>REMIND_H*3600e3){a.last=now;ch=true;notify(resp(p),`⚠ Reminder · ${p.name}: ${i.name} is ${Math.round(pc)}% full — ${a.ack?'add new storage':'acknowledge and add new storage'}`,link(p))}}});
+ return ch}
+const active=p=>hasStor(p)?ST(p).items.filter(i=>{const a=ST(p).alerts[i.id];return a&&!a.done}).map(i=>({i,a:ST(p).alerts[i.id]})):[];
+let lastCk=0;
+const _rdS=render;render=function(){_rdS();try{if(!me()||PREVIEW||!isStaff()||Date.now()-lastCk<20000)return;lastCk=Date.now();let any=false;visibleProjects().forEach(p=>{if(hasStor(p)&&(stEdit(p)||isMgmt()||resp(p).includes(meId))&&check(p))any=true});if(any){save()}}catch(e){console.warn('[hub] storage check',e)}};
+
+/* ---- view ---- */
+function bar(p,i){const pc=pct(p,i);const c=pc>=ALERT_AT?'var(--bad,#e5484d)':pc>=70?'var(--warn,#d6a03d)':'var(--ok,#2a8a6c)';return`<div style="height:8px;border-radius:99px;background:var(--panel2,rgba(255,255,255,.08));overflow:hidden;border:1px solid var(--line)"><i style="display:block;height:100%;width:${Math.min(100,pc).toFixed(1)}%;background:${c}"></i></div>`}
+function fileRows(p,id,ed){const fs=ST(p).files.filter(f=>f.store===id);if(!fs.length)return'<div class="tiny faint" style="padding:6px 0">Nothing on it yet.</div>';
+ const by={};fs.forEach(f=>{(by[f.day||'']=by[f.day||'']||[]).push(f)});const order=['',...pDays(p).map(d=>d.id)];const keys=Object.keys(by).sort((a,b)=>order.indexOf(a)-order.indexOf(b));
+ return keys.map(k=>{const t=by[k].reduce((a,f)=>a+f.gb,0);return`<div style="margin-top:8px"><div class="row" style="gap:8px"><b class="tiny" style="font-weight:600">${esc(dayName(p,k))}</b><span class="tiny faint">${fg(t)}</span></div>${by[k].map(f=>`<div class="row tiny" style="gap:8px;padding:3px 0;border-top:1px solid var(--line)"><span class="grow" style="min-width:0">${esc(f.label)}${f.kind==='copy'?` <span class="chip" style="font-size:10px">copy from ${esc(storeName(p,f.from))}</span>`:f.kind==='proxy'?' <span class="chip info" style="font-size:10px">proxy</span>':''}</span><span class="num">${fg(f.gb)}</span>${ed?`<a class="faint" data-act="stFileDel" data-arg="${f.id}" title="Remove" style="cursor:pointer">✕</a>`:''}</div>`).join('')}</div>`}).join('')}
+function storeCard(p,i,ed,mg){const studio=i.id===STUDIO;const u=used(p,i.id);const pc=pct(p,i);const open=V.open['stg'+i.id]!==false;const al=ST(p).alerts[i.id];const hot=al&&!al.done;
+ return`<div class="card" style="${hot?'border-color:var(--bad,#e5484d)':''}"><div class="row wrap" style="gap:10px;cursor:pointer" data-act="stTog" data-arg="${i.id}"><span class="faint">${open?'▾':'▸'}</span><div class="grow" style="min-width:140px"><b style="font-weight:600">${esc(i.name)}</b><div class="tiny faint">${studio?'Proxies live here — studio’s own storage, not counted against the project storage':esc(i.kind||'')+(i.note?' · '+esc(i.note):'')}</div></div>${studio?`<span class="chip info">Proxies</span>`:`<span class="chip ${pc>=ALERT_AT?'bad':pc>=70?'warn':'ok'}">${Math.round(pc)}%</span>`}<b class="num">${fg(u)}${studio?'':' / '+fg(i.capGB)}</b></div>
+ ${studio?'':`<div style="margin-top:8px">${bar(p,i)}</div>`}
+ ${open?`<div style="margin-top:8px">${fileRows(p,i.id,ed)}<div class="row wrap" style="gap:6px;margin-top:10px">${ed&&!studio?`<a class="btn sm pri" data-act="stContent" data-arg="${i.id}">${ic('plus',13)}Add content</a><a class="btn sm" data-act="stCopy" data-arg="${i.id}">Copy to another storage</a><a class="btn sm" data-act="stProxy" data-arg="${i.id}">Make proxies</a>`:''}${ed&&!studio?`<a class="btn sm ghost" data-act="stDel" data-arg="${i.id}">${ic('trash',13)}Remove storage</a>`:''}</div></div>`:''}</div>`}
+function alertCard(p,x,mg){const{i,a}=x;const added=ST(p).items.some(y=>y.id!==i.id&&y.created>=a.at);
+ return`<div class="card" style="border-color:var(--bad,#e5484d);background:color-mix(in srgb,var(--bad,#e5484d) 10%,var(--panel))"><div class="row wrap" style="gap:10px"><b style="font-weight:600;color:var(--bad,#e5484d)">⚠ ${esc(i.name)} is ${Math.round(pct(p,i))}% full</b><span class="tiny faint">alert since ${ago(a.at)} · everyone responsible is reminded every ${REMIND_H}h until it is resolved</span></div>
+ <div class="list" style="margin-top:8px"><div class="item"><a class="chk ${a.ack?'on':''}" ${mg&&!a.ack?`data-act="stAck" data-arg="${i.id}"`:''} style="${mg&&!a.ack?'cursor:pointer':''}" title="${mg?'Tick to acknowledge':'Only a manager can acknowledge'}">${a.ack?'✓':''}</a><div class="grow"><b style="font-weight:500">Manager acknowledges</b><div class="tiny faint">${a.ack?`Acknowledged by ${esc(first(U(a.ackBy)))} · ${ago(a.ackAt)}`:mg?'Tick the box to confirm you have seen this':'Waiting for a manager'}</div></div></div>
+ <div class="item"><a class="chk ${added?'on':''}">${added?'✓':''}</a><div class="grow"><b style="font-weight:500">New storage added to this project</b><div class="tiny faint">${added?'Added':'Waiting — add a new storage below'}</div></div>${!added&&stEdit(p)?`<a class="btn sm pri" data-act="stAdd">${ic('plus',13)}Add storage</a>`:''}</div></div></div>`}
+function dayTable(p){const ds=pDays(p);const rows=ds.map(d=>({d,g:dayGB(p,d.id),px:dayProxyGB(p,d.id),on:[...new Set(ST(p).files.filter(f=>f.day===d.id&&f.store!==STUDIO).map(f=>storeName(p,f.store)))]})).concat(dayGB(p,'')||dayProxyGB(p,'')?[{d:{id:'',n:0},g:dayGB(p,''),px:dayProxyGB(p,''),on:[...new Set(ST(p).files.filter(f=>!f.day&&f.store!==STUDIO).map(f=>storeName(p,f.store)))]}]:[]);
+ if(!rows.length)return'';const tot=rows.reduce((a,r)=>a+r.g,0);
+ return`<div class="sec-title"><h2>Data by shooting day</h2></div><div class="card tablewrap"><table><thead><tr><th>Day</th><th>Data</th><th>Proxies</th><th>Where it is</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.d.id?dayName(p,r.d.id):'No day')}</td><td class="num">${r.g?fg(r.g):'—'}</td><td class="num">${r.px?fg(r.px):'—'}</td><td class="tiny">${r.on.length?r.on.map(esc).join(' · '):'<span class="faint">—</span>'}</td></tr>`).join('')}<tr><td><b>Total</b></td><td class="num"><b>${fg(tot)}</b></td><td class="num"><b>${fg(rows.reduce((a,r)=>a+r.px,0))}</b></td><td></td></tr></tbody></table></div>`}
+function storageView(p){const s=ST(p),ed=stEdit(p),mg=stMgr();const real=s.items;const cap=real.reduce((a,i)=>a+(+i.capGB||0),0),u=real.reduce((a,i)=>a+used(p,i.id),0),px=used(p,STUDIO);
+ const studio={id:STUDIO,name:'Studio internal storage',kind:'internal'};
+ return`<div class="row wrap" style="gap:10px;margin-bottom:12px"><div class="grow"><h3 style="margin:0">Project storage</h3><div class="tiny faint">Drives, cards and cloud space used for this project only — separate from the studio’s own assets. Alerts at ${ALERT_AT}% full.</div></div>${ed?`<a class="btn pri" data-act="stAdd">${ic('plus',14)}Add storage</a>`:''}</div>`
+ +kpis([['Storages',real.length,real.length?'on this project':'none yet','hero'],['Capacity',fg(cap),`${fg(u)} used`],['Used',cap?Math.round(u/cap*100)+'%':'—',cap?fg(Math.max(0,cap-u))+' free':''],['Proxies',fg(px),'on studio internal storage']])
+ +active(p).map(x=>alertCard(p,x,mg)).join('')
+ +(real.length?`<div class="col" style="gap:10px;margin-top:12px">${real.map(i=>storeCard(p,i,ed,mg)).join('')}${storeCard(p,studio,ed,mg)}</div>`:`<div class="card empty" style="margin-top:12px">No storage on this project yet.${ed?'<div style="margin-top:10px"><a class="btn pri" data-act="stAdd">Add storage</a></div>':''}</div>`)
+ +dayTable(p)}
+
+/* ---- project tab bar: Storage sits after Creative Services ---- */
+const _vpS=VIEWS.project;
+VIEWS.project=function(){const p=P(V.p),u=me();if(!p||!u||!staffTabs(p,u))return _vpS();const isSt=V.tab==='storage';let h;
+ if(isSt){const keep=TABS.overview;TABS.overview=()=>storageView(p);V.tab='overview';try{h=_vpS()}finally{TABS.overview=keep;V.tab='storage'}}else h=_vpS();
+ const dot=active(p).length?'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--bad,#e5484d);margin-left:4px;flex:none"></span>':'';
+ const item=`<a class="${isSt?'on':''}" role="tab" aria-selected="${isSt}" aria-label="Storage" title="Storage" data-act="tab" data-arg="storage">${ic('drive',16)}<span>Storage</span>${dot}</a>`;
+ return h.replace(/(<div class="seg ptabs2"[\s\S]*?)(<\/div>)/,(m,x,y)=>(isSt?x.replace(/class="on(?=[" ])/,'class="'):x)+item+y)};
+/* ---- actions ---- */
+const sel=(name,opts)=>`<select name="${name}">${opts}</select>`;
+const dayOpts=(p,none)=>(none?'<option value="">No day</option>':'')+pDays(p).slice().sort((a,b)=>a.n-b.n).map(d=>`<option value="${d.id}">${esc(dayName(p,d.id))}</option>`).join('');
+const sizeField=(label,name)=>`<label>${label}<span class="row" style="gap:6px;flex-wrap:nowrap"><input name="${name}" type="number" min="0" step="any" required style="min-width:0"><select name="${name}Unit" style="width:84px;flex:none"><option>GB</option><option>TB</option></select></span></label>`;
+const P_=()=>P(V.p);
+Object.assign(ACT,{
+ stTog:id=>{const k='stg'+id;V.open[k]=V.open[k]===false;render()},
+ stAdd:()=>{const p=P_();if(!stEdit(p))return;modal('Add storage',`<form data-form="stAdd" data-arg="${p.id}" class="formgrid"><label class="full">Name<input name="name" required placeholder="e.g. Drive A · RAID 1 · Cloud bucket"></label><label>Type${sel('kind',KINDS.map(k=>`<option>${k}</option>`).join(''))}</label>${sizeField('Capacity','cap')}<label class="full">Note<input name="note" placeholder="Serial number, owner, location…"></label><div class="full row"><button class="btn pri right" type="submit">Add storage</button></div></form>`)},
+ stContent:id=>{const p=P_();if(!stEdit(p))return;modal('Add content',`<form data-form="stContent" data-arg="${p.id}|${id}" class="formgrid"><label class="full">Shooting day${sel('day',dayOpts(p,true))}</label><label class="full">What is it<input name="label" required placeholder="e.g. A-cam cards 01–04 · sound rolls"></label>${sizeField('Size','size')}<div class="full row"><button class="btn pri right" type="submit">Add</button></div></form>`)},
+ stCopy:id=>{const p=P_();if(!stEdit(p))return;const others=ST(p).items.filter(i=>i.id!==id);if(!others.length){toast('Add another storage first — then you can copy to it','bad');return}
+  const ds=[...new Set(ST(p).files.filter(f=>f.store===id&&f.kind!=='proxy').map(f=>f.day||''))];
+  modal(`Copy from ${esc(storeName(p,id))}`,`<form data-form="stCopy" data-arg="${p.id}|${id}" class="formgrid"><label class="full">Copy to${sel('to',others.map(i=>`<option value="${i.id}">${esc(i.name)} — ${fg(Math.max(0,i.capGB-used(p,i.id)))} free</option>`).join(''))}</label><div class="full"><div class="eyebrow" style="margin-bottom:6px">Which days</div><div class="col" style="gap:4px"><label class="cbx"><input type="checkbox" name="all" checked> Everything on this storage</label>${ds.map(d=>`<label class="cbx"><input type="checkbox" name="d" value="${d}"> ${esc(dayName(p,d))} · ${fg(ST(p).files.filter(f=>f.store===id&&(f.day||'')===d&&f.kind!=='proxy').reduce((a,f)=>a+f.gb,0))}</label>`).join('')}</div></div><div class="full row"><button class="btn pri right" type="submit">Copy</button></div></form>`)},
+ stProxy:id=>{const p=P_();if(!stEdit(p))return;const ds=[...new Set(ST(p).files.filter(f=>f.store===id&&f.kind==='original').map(f=>f.day||''))];if(!ds.length){toast('Nothing on this storage to make proxies from','bad');return}
+  modal('Make proxies',`<form data-form="stProxy" data-arg="${p.id}|${id}" class="formgrid"><div class="full tiny faint">Proxies are made on the studio’s internal storage, not on the project’s drives.</div><label>Proxy size (% of original)<input name="pct" type="number" min="1" max="100" step="any" value="${ST(p).proxyPct}"></label><div class="full"><div class="eyebrow" style="margin-bottom:6px">Which days</div><div class="col" style="gap:4px">${ds.map(d=>`<label class="cbx"><input type="checkbox" name="d" value="${d}" checked> ${esc(dayName(p,d))}</label>`).join('')}</div></div><div class="full row"><button class="btn pri right" type="submit">Make proxies</button></div></form>`)},
+ stAck:id=>{const p=P_();if(!p||!stMgr())return;const a=ST(p).alerts[id];if(!a||a.ack)return;a.ack=true;a.ackBy=meId;a.ackAt=Date.now();check(p,true);notify(resp(p),`${me().name} acknowledged the ${storeName(p,id)} storage alert on ${p.name}${a.done?'':' — new storage still needed'}`,link(p));save();render();toast(a.done?'Acknowledged — alert resolved':'Acknowledged — add new storage to close the alert','ok')},
+ stFileDel:id=>{const p=P_();if(!stEdit(p))return;const s=ST(p);const f=s.files.find(x=>x.id===id);if(!f||!confirm('Remove this entry?'))return;s.files=s.files.filter(x=>x.id!==id&&x.copyOf!==id&&x.of!==id);save();render()},
+ stDel:id=>{const p=P_();if(!stEdit(p))return;const s=ST(p);const i=s.items.find(x=>x.id===id);if(!i)return;const n=s.files.filter(f=>f.store===id).length;if(!confirm(`Remove ${i.name}${n?` and its ${n} entr${n>1?'ies':'y'}`:''}?`))return;s.files=s.files.filter(f=>f.store!==id);s.items=s.items.filter(x=>x.id!==id);delete s.alerts[id];save();render()}});
+Object.assign(FORM,{
+ stAdd:(fd,pid)=>{const p=P(pid);if(!stEdit(p))return;const name=String(fd.get('name')||'').trim(),cap=num(fd.get('cap'),fd.get('capUnit'));if(!name||!cap){toast('Add a name and a capacity','bad');return}
+  ST(p).items.push({id:uid('sg'),name,kind:String(fd.get('kind')||'SSD'),capGB:cap,note:String(fd.get('note')||'').trim(),created:Date.now(),by:meId});
+  notify(resp(p),`${me().name} added storage “${name}” (${fg(cap)}) to ${p.name}`,link(p));check(p);save();closeModal();render();toast('Storage added','ok')},
+ stContent:(fd,a)=>{const[pid,id]=a.split('|');const p=P(pid);if(!stEdit(p))return;const i=ST(p).items.find(x=>x.id===id);const gbv=num(fd.get('size'),fd.get('sizeUnit'));const label=String(fd.get('label')||'').trim();if(!i||!gbv||!label){toast('Add what it is and its size','bad');return}
+  if(used(p,id)+gbv>i.capGB){toast(`Not enough space on ${i.name} — ${fg(Math.max(0,i.capGB-used(p,id)))} free`,'bad');return}
+  ST(p).files.push({id:uid('sf'),store:id,day:String(fd.get('day')||''),label,gb:gbv,kind:'original',ts:Date.now(),by:meId});check(p);save();closeModal();render();toast('Added','ok')},
+ stCopy:(fd,a)=>{const[pid,from]=a.split('|');const p=P(pid);if(!stEdit(p))return;const to=String(fd.get('to')||'');const dest=ST(p).items.find(x=>x.id===to);if(!dest)return;const days=fd.get('all')?null:fd.getAll('d');if(days&&!days.length){toast('Pick the days to copy','bad');return}
+  const s=ST(p);const src=s.files.filter(f=>f.store===from&&f.kind!=='proxy'&&(!days||days.includes(f.day||''))&&!s.files.some(x=>x.store===to&&x.copyOf===(f.copyOf||f.id)));if(!src.length){toast('Everything selected is already on '+dest.name,'bad');return}
+  const need=src.reduce((a,f)=>a+f.gb,0);if(used(p,to)+need>dest.capGB){toast(`Not enough space on ${dest.name}: needs ${fg(need)}, ${fg(Math.max(0,dest.capGB-used(p,to)))} free`,'bad');return}
+  src.forEach(f=>s.files.push({id:uid('sf'),store:to,day:f.day||'',label:f.label,gb:f.gb,kind:'copy',from,copyOf:f.copyOf||f.id,ts:Date.now(),by:meId}));
+  notify(resp(p),`${me().name} copied ${fg(need)} from ${storeName(p,from)} to ${dest.name} — ${p.name}`,link(p));check(p);save();closeModal();render();toast(`Copied ${fg(need)} to ${dest.name}`,'ok')},
+ stProxy:(fd,a)=>{const[pid,from]=a.split('|');const p=P(pid);if(!stEdit(p))return;const pc=Math.max(1,Math.min(100,parseFloat(fd.get('pct'))||ST(p).proxyPct));const days=fd.getAll('d');if(!days.length){toast('Pick the days','bad');return}
+  const s=ST(p);s.proxyPct=pc;let n=0,tot=0;s.files.filter(f=>f.store===from&&f.kind==='original'&&days.includes(f.day||'')).forEach(f=>{if(s.files.some(x=>x.kind==='proxy'&&x.of===f.id))return;const g=+(f.gb*pc/100).toFixed(2);s.files.push({id:uid('sf'),store:STUDIO,day:f.day||'',label:f.label+' · proxy',gb:g,kind:'proxy',of:f.id,ts:Date.now(),by:meId});n++;tot+=g});
+  if(!n){toast('Those days already have proxies','bad');return}save();closeModal();render();toast(`${n} proxy entr${n>1?'ies':'y'} (${fg(tot)}) on studio internal storage`,'ok')}});
+
+/* ---- every day's summary shows its data size ---- */
+const _dcS=dayCalc;dayCalc=function(p,d){const c=_dcS(p,d);c.gb=hasStor(p)?dayGB(p,d.id):0;return c};
+const _rdD=render;render=function(){_rdD();try{if(V.v!=='project')return;const p=P(V.p);if(!p||!isStaff()||!hasStor(p))return;document.querySelectorAll('#app .dyrow[data-arg^="dy"]').forEach(r=>{if(r.querySelector('.daysz'))return;const id=(r.dataset.arg||'').split('|')[0].slice(2);const g=dayGB(p,id);if(!g)return;const ch=[...r.children].reverse().find(x=>x.classList.contains('faint')&&/[▾▸]/.test(x.textContent));const sp=document.createElement('span');sp.className='tiny num daysz';sp.title='Data on this day';sp.textContent=fg(g);r.insertBefore(sp,ch||null)})}catch(e){}};
+
+/* ---- storage alerts on the dashboard for everyone responsible ---- */
+const _vhS=VIEWS.home;VIEWS.home=function(){const h=_vhS();if(!isStaff())return h;const list=[];visibleProjects().forEach(p=>{if(hasStor(p)&&(isMgmt()||resp(p).includes(meId)))active(p).forEach(x=>list.push([p,x]))});if(!list.length||typeof h!=='string')return h;
+ return`<div class="card" style="border-color:var(--bad,#e5484d);margin-bottom:12px"><b style="font-weight:600;color:var(--bad,#e5484d)">⚠ Storage alerts</b><div class="list" style="margin-top:6px">${list.map(([p,x])=>`<div class="item click" data-act="stGo" data-arg="${p.id}"><div class="grow"><b style="font-weight:500">${esc(p.name)} · ${esc(x.i.name)} is ${Math.round(pct(p,x.i))}% full</b><div class="tiny faint">${x.a.ack?'Acknowledged — new storage still needed':'Waiting for a manager to acknowledge and for new storage'}</div></div><span class="chip bad">Open</span></div>`).join('')}</div></div>`+h};
+ACT.stGo=id=>go('project',id,'storage');
+const _cs=document.createElement('style');_cs.textContent='.daysz{white-space:nowrap}';document.head.appendChild(_cs);
+})();
+
 /* ---------- 7. pull down from the top to refresh ---------- */
 (function(){const bar=document.createElement('div');bar.style.cssText='position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 8px);transform:translate(-50%,-70px);z-index:300;padding:8px 14px;border-radius:999px;background:var(--panel);border:1px solid var(--line2,var(--line));font-size:13px;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.35)';bar.textContent='↓ Pull to refresh';document.body.appendChild(bar);
  let y0=null,dy=0,go_=false;const TH=90;
