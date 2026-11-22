@@ -4818,6 +4818,7 @@ document.addEventListener('pointerup',end);document.addEventListener('pointercan
 addEventListener('resize',()=>{if(document.getElementById('stklayer'))fl2()});
 const fl2=()=>{document.querySelectorAll('#stklayer .stk').forEach(el=>{el.style.left=Math.max(0,Math.min(parseFloat(el.style.left),W()-214))+'px';el.style.top=Math.max(0,Math.min(parseFloat(el.style.top),H()-120))+'px'})};
 fl()})();
+const _cmMg=canMoney;canMoney=function(p,u){u=u||me();return _cmMg(p,u)||(!!u&&!!p&&u.role==='manager'&&!isExt(u))};const _fsMg=finSees;finSees=function(p,u){u=u||me();return _fsMg(p,u)||(!!u&&!!p&&u.role==='manager'&&!isExt(u))};
 /* ---------- 7. pull down from the top to refresh ---------- */
 (function(){const bar=document.createElement('div');bar.style.cssText='position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 8px);transform:translate(-50%,-70px);z-index:300;padding:8px 14px;border-radius:999px;background:var(--panel);border:1px solid var(--line2,var(--line));font-size:13px;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.35)';bar.textContent='↓ Pull to refresh';document.body.appendChild(bar);
  let y0=null,dy=0,go_=false;const TH=90;
