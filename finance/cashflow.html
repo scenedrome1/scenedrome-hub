@@ -1624,7 +1624,7 @@ window.addEventListener("pageshow",e=>{if(e.persisted){DATA_KEY=null;S.main=null
 
 /* ================= inside the SCENEDROME Hub: the books are drawn live from the Hub's finance inputs ================= */
 function hubParent(){try{return window.parent!==window&&typeof window.parent.__hubCashflow==="function"?window.parent:null}catch(_){return null}}
-function hubLoad(){const P=hubParent();const d=P.__hubCashflow();const keepY=S.main&&S.main.settings?S.main.settings.year:null;applyData(d);if(keepY)S.main.settings.year=keepY;
+function hubLoad(){const P=hubParent();const d=P.__hubCashflow();if(!d){if(P&&P.cfClose)P.cfClose();return}const keepY=S.main&&S.main.settings?S.main.settings.year:null;applyData(d);if(keepY)S.main.settings.year=keepY;
   setSave("ok","Live from the Hub")}
 function hubBoot(){mode="hub";canWrite=false;DATA_KEY=null;hubLoad();let r0="overview";try{r0=sessionStorage.getItem("sd-cf-route")||"overview"}catch(_){}ui.route=r0;render();
   window.__hubRefresh=()=>{if(document.activeElement&&document.activeElement.tagName==="SELECT")return;hubLoad();scheduleRender()}}
@@ -1643,7 +1643,7 @@ const _go0=go;go=function(r){if(mode==="hub"){hubGo(r);return}return _go0(r)};
 const _rd1=render;render=function(){_rd1();if(mode!=="hub")return;let b=document.getElementById("hubEye");const m=hubMasked();
  if(!b){const t=document.getElementById("top");if(t){b=document.createElement("button");b.id="hubEye";b.className="btn sm";b.style.marginLeft="8px";b.onclick=()=>{const P=hubParent();if(P&&P.__hubReveal)P.__hubReveal()};t.appendChild(b)}}
  if(b)b.textContent=m?"👁 Show amounts":"🙈 Hide amounts"};
-const _gate0=gate;gate=function(){if(hubParent())return hubBoot();return _gate0()};
+gate=function(){if(hubParent())return hubBoot();document.body.classList.add("locked");let L=document.getElementById("lockScr");if(!L){L=document.createElement("div");L.id="lockScr";document.body.appendChild(L)}L.innerHTML=`<div class="lockbox"><img src="assets/logo.png" alt="SCENEDROME Studios" class="lklogo"><h2>Open Cash Flow from the Hub</h2><p>This direct page is disabled. Sign in to the SCENEDROME Hub and use the Cash Flow button so the password and WhatsApp verification are both enforced.</p><a class="btn pri" href="../">Go to the Hub</a><div class="lksig">${SIG_HTML}</div></div>`};
 
 gate();
 </script>
