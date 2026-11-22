@@ -4042,6 +4042,14 @@ function pjNotify(p,what,tab,mgmtOnly){const me0=me();if(!p||!me0)return;const t
 const _bk10=bkSave;bkSave=function(p,e){const r=_bk10.apply(this,arguments);try{const u=me();if(PREVIEW||!u||!p||!isStaff(u))return r;const now=Date.now();
  if(S.notifs.some(n=>n.link&&n.link.p===p.id&&String(n.text).startsWith(u.name)&&now-n.ts<4000))return r;
  pjNotify(p,`updated ${e?'EP'+pad2(e.n):'the breakdown'}`,'breakdown')}catch(x){console.warn('[hub] bk notify',x)}return r};
+/* notifications: one list, newest first — nothing buried under older "decisions" */
+bellListHTML=function(u){const my=S.notifs.filter(n=>n.to===u.id).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,80);if(!my.length)return'<div class="empty">No notifications</div>';
+ const isDec=n=>/review|approve|approval|assigned you|asked|request|mentioned|@/i.test(n.text||'');
+ const key=n=>{const l=n.link||{};return[l.v||'',l.p||'',l.tab||'',l.ch||''].join('|')+'|'+String(n.text||'').replace(/\d+/g,'#').slice(0,24)};
+ const groups=[];const idx=new Map();my.forEach(n=>{const k=isDec(n)?'d'+n.id:key(n);const g=idx.get(k);if(g&&(g.items[g.items.length-1].ts||0)-(n.ts||0)<6*3600e3)g.items.push(n);else{const x={items:[n],dec:isDec(n)};if(!g)idx.set(k,x);groups.push(x)}});
+ const un=my.filter(n=>!n.read).length;
+ return(un?`<div class="row" style="padding:8px 14px 2px"><span class="tiny faint grow">${un} unread</span><a class="tiny" data-act="readAll" style="cursor:pointer;text-decoration:underline">Mark all read</a></div>`:'')+groups.slice(0,40).map(g=>{const n=g.items[0];const unread=g.items.some(x=>!x.read);const more=g.items.length-1;
+  return`<div class="n ${unread?'unread':''}" data-act="notif" data-arg="${n.id}"><span class="chip ${g.dec?'info':''}" style="font-size:10.5px;padding:0 7px;align-self:flex-start;margin-top:2px">${g.dec?'Decision':'Activity'}</span><div class="grow"><div>${esc(n.text)}</div><div class="tiny faint">${ago(n.ts)}${more?` · and ${more} similar update${more>1?'s':''}`:''}</div></div></div>`}).join('')};
 /* ---------- 5. User View: what will this person actually see and be able to do? ---------- */
 const canUV=()=>{const v=me();return !!v&&!PREVIEW&&isStaff(v)&&(isMgmt(v)||can('admin.users')||can('people.add')||can('clients.manage'))};
 ACT.viewAs=id=>{const x=U(id);if(!x||!canUV()||x.suspended||(isOwner(x)&&!isOwner()))return;PREVIEW={real:meId,v:JSON.parse(JSON.stringify(V))};closeModal();meId=id;V={v:'home',p:null,tab:'overview',ch:null,open:{}};render();toast('User View: '+x.name+' — read-only')};
