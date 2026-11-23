@@ -4944,5 +4944,96 @@ const _fpS=FORM.projEdit;FORM.projEdit=(fd,pid)=>{const p=P(pid);const f=documen
 if(LIVE){meId='…';render();liveBoot().catch(e=>{console.error(e);if(booted){toast('Something didn’t load: '+e.message,'bad');return}bootMsg='Couldn’t reach the Hub database: '+e.message;booted=false;meId=null;render()});sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){booted=false;meId=null;render()}})}else render();
 })();
 </script>
+<script id="hub-uikit">
+/* ================= SCENEDROME Hub · UI Kit layer (pass 1) =================
+   One source of truth for: Buttons · Badges · Menus · Sub-page nav.
+   Each component reads a preset switch on <html>: data-ui-btn / data-ui-badge / data-ui-menu / data-ui-subnav.
+   Approved defaults = "1". Presets 2/3 + Settings → UI Design come in the next pass.
+   Button colour roles: yellow = create · green = approve/done · gold = money · coral = danger · neutral = rest.
+   Uses the Branding theme variables (--panel, --panel2, --line, --line2, --text, --muted) so Branding keeps control. */
+(()=>{
+const H=document.documentElement;
+const DEF={btn:'1',badge:'1',menu:'1',subnav:'1'};
+for(const k in DEF)if(!H.hasAttribute('data-ui-'+k))H.setAttribute('data-ui-'+k,DEF[k]);
+window.hubUI=(k,v)=>H.setAttribute('data-ui-'+k,String(v));
+
+const CSS=`
+html{--k-add:#F0B93A;--k-ok:#2ea36f;--k-bad:#e0704f;--k-prog:#1fb5a0;--k-wait:#F0B93A;--k-rev:#9a86d6;--k-info:#5f8fd0;--k-none:#7d848e}
+
+/* ---------- Buttons · 1 Soft Studio ---------- */
+html[data-ui-btn="1"] body .btn{border-radius:10px!important;padding:9px 15px!important;font-weight:600!important;font-size:13.5px!important;line-height:1.1!important;border:1px solid var(--line2)!important;background:var(--panel2)!important;color:var(--text)!important;box-shadow:none!important;transition:filter .15s,background .15s,border-color .15s!important}
+html[data-ui-btn="1"] body .btn.sm{padding:6px 11px!important;font-size:12.5px!important;border-radius:8px!important}
+html[data-ui-btn="1"] body .btn.big{padding:14px 26px!important;font-size:16px!important;border-radius:14px!important}
+html[data-ui-btn="1"] body .btn svg{color:currentColor!important}
+html[data-ui-btn="1"] body .btn[data-k="ghost"]{background:transparent!important}
+html[data-ui-btn="1"] body .btn[data-k="neu"]{background:color-mix(in srgb,var(--text) 12%,var(--panel2))!important;border-color:color-mix(in srgb,var(--text) 20%,var(--panel2))!important}
+html[data-ui-btn="1"] body .btn[data-k="add"]{background:var(--k-add)!important;border-color:var(--k-add)!important;color:#2a1d03!important}
+html[data-ui-btn="1"] body .btn[data-k="add-g"]{background:transparent!important;border-color:color-mix(in srgb,var(--k-add) 55%,transparent)!important;color:var(--k-add)!important}
+html[data-ui-btn="1"] body .btn[data-k="ok"]{background:var(--k-ok)!important;border-color:var(--k-ok)!important;color:#062015!important}
+html[data-ui-btn="1"] body .btn[data-k="gold"]{background:linear-gradient(#f3cf7e,#dfa93f)!important;border-color:#c99532!important;color:#1b1407!important;font-weight:700!important}
+html[data-ui-btn="1"] body .btn[data-k="bad"]{background:transparent!important;border-color:color-mix(in srgb,var(--k-bad) 45%,transparent)!important;color:var(--k-bad)!important}
+html[data-ui-btn="1"] body .btn[data-k="add"]:hover,html[data-ui-btn="1"] body .btn[data-k="ok"]:hover,html[data-ui-btn="1"] body .btn[data-k="gold"]:hover{filter:brightness(1.07)}
+html[data-ui-btn="1"] body .btn[data-k="sec"]:hover,html[data-ui-btn="1"] body .btn[data-k="ghost"]:hover,html[data-ui-btn="1"] body .btn[data-k="neu"]:hover{background:color-mix(in srgb,var(--text) 9%,var(--panel2))!important}
+html[data-ui-btn="1"] body .btn[data-k="add-g"]:hover{background:color-mix(in srgb,var(--k-add) 12%,transparent)!important}
+html[data-ui-btn="1"] body .btn[data-k="bad"]:hover{background:color-mix(in srgb,var(--k-bad) 12%,transparent)!important}
+
+/* ---------- Badges · 1 Soft tint pill ---------- */
+html[data-ui-badge="1"] body .chip:not(.bellpanel .chip){--c:var(--k-none);padding:4px 10px!important;border-radius:999px!important;font-size:12px!important;font-weight:600!important;background:color-mix(in srgb,var(--c) 16%,transparent)!important;color:var(--c)!important;border:0!important}
+html[data-ui-badge="1"] body .chip.ok:not(.bellpanel .chip){--c:var(--k-ok)}
+html[data-ui-badge="1"] body .chip.warn:not(.bellpanel .chip){--c:var(--k-wait)}
+html[data-ui-badge="1"] body .chip.gold:not(.bellpanel .chip){--c:var(--k-prog)}
+html[data-ui-badge="1"] body .chip.bad:not(.bellpanel .chip){--c:var(--k-bad)}
+html[data-ui-badge="1"] body .chip.info:not(.bellpanel .chip){--c:var(--k-info)}
+html[data-ui-badge="1"] body .chip.lilac:not(.bellpanel .chip){--c:var(--k-rev)}
+
+/* ---------- Menus · 1 Soft card ---------- */
+html[data-ui-menu="1"] body .addm .addl,html[data-ui-menu="1"] body #dotspanel,html[data-ui-menu="1"] body .ep-row>.epst .epstm{background:var(--panel)!important;border:1px solid var(--line2)!important;border-radius:12px!important;padding:6px!important;box-shadow:0 16px 36px rgba(0,0,0,.55)!important}
+html[data-ui-menu="1"] body .addm .addl a,html[data-ui-menu="1"] body #dotspanel .mi{display:flex!important;align-items:center;gap:10px;padding:9px 10px!important;border-radius:8px!important;font-size:14px!important;color:var(--text)!important}
+html[data-ui-menu="1"] body .addm .addl a:hover,html[data-ui-menu="1"] body #dotspanel .mi:not(.off):hover{background:color-mix(in srgb,var(--text) 8%,transparent)!important}
+html[data-ui-menu="1"] body .addm .addl a svg,html[data-ui-menu="1"] body #dotspanel .mi svg{color:var(--muted)!important}
+html[data-ui-menu="1"] body .addm .addh{font-size:10.5px!important;letter-spacing:.1em!important;text-transform:uppercase!important;opacity:.6;padding:7px 10px 5px!important}
+html[data-ui-menu="1"] body .addm .addl .addh~a{padding-left:10px!important}
+
+/* ---------- Sub-page nav · 1 Segmented (taller) ---------- */
+html[data-ui-subnav="1"] body .ptabs2{display:inline-flex!important;gap:3px!important;padding:4px!important;background:var(--panel2)!important;border:1px solid var(--line)!important;border-radius:12px!important;box-shadow:none!important}
+html[data-ui-subnav="1"] body .ptabs2 a{background:transparent!important;border:0!important;border-radius:9px!important;padding:11px 15px!important;color:var(--muted)!important;font-weight:600!important;font-size:14px!important;box-shadow:none!important}
+html[data-ui-subnav="1"] body .ptabs2 a svg{color:var(--sig,var(--muted))!important}
+html[data-ui-subnav="1"] body .ptabs2 a:hover{background:color-mix(in srgb,var(--text) 6%,transparent)!important;color:var(--text)!important}
+html[data-ui-subnav="1"] body .ptabs2 a.on{background:var(--panel)!important;color:var(--text)!important;box-shadow:0 0 0 1px var(--line2) inset,0 2px 8px rgba(0,0,0,.35)!important}
+@media(max-width:700px){html[data-ui-subnav="1"] body .ptabs2{max-width:100%!important;overflow-x:auto!important;scrollbar-width:none}html[data-ui-subnav="1"] body .ptabs2::-webkit-scrollbar{display:none}html[data-ui-subnav="1"] body .ptabs2 a{padding:11px 13px!important;flex:none!important}}
+`;
+let st=document.getElementById('hub-uikit-css');
+if(!st){st=document.createElement('style');st.id='hub-uikit-css';document.head.appendChild(st)}
+st.textContent=CSS;
+
+/* ---------- Button colour roles: read what the button does ---------- */
+const ADD=/^\s*[+＋]|\b(add|new|create|invite|upload|attach)\b/i;
+const OK=/\b(approve|approved|accept|deliver|mark done|mark as done|complete|confirm)\b/i;
+const MONEY=/\b(cashflow|record|payment|collect|invoice)\b/i;
+const BAD=/\b(delete|archive|decline|reject|remove)\b/i;
+const SKIP='.composer, .iconbtn';
+function kind(b){
+  const c=b.classList,t=(b.textContent||'').replace(/\s+/g,' ').trim(),gh=c.contains('ghost');
+  const filled=c.contains('pri')||c.contains('ok')||c.contains('goldy')||c.contains('big');
+  if(c.contains('danger')||BAD.test(t))return'bad';
+  if(c.contains('goldy'))return'gold';
+  if(ADD.test(t))return gh?'add-g':'add';
+  if(c.contains('ok')||(filled&&OK.test(t)))return'ok';
+  if(filled&&MONEY.test(t))return'gold';
+  if(gh)return'ghost';
+  return filled?'neu':'sec';
+}
+function tag(){
+  document.querySelectorAll('.btn').forEach(b=>{
+    if(b.closest(SKIP))return;
+    const sig=b.className+'|'+(b.textContent||'').trim();
+    if(b.__uk===sig)return;b.__uk=sig;b.dataset.k=kind(b);
+  });
+}
+let q=0;const run=()=>{q=0;tag()};
+new MutationObserver(()=>{if(!q)q=requestAnimationFrame(run)}).observe(document.body,{childList:true,subtree:true,characterData:true});
+tag();
+})();
+</script>
 </body>
 </html>
