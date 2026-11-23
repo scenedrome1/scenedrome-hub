@@ -5018,14 +5018,11 @@ html[data-ui-subnav="1"] body .ptabs>a:hover{background:color-mix(in srgb,var(--
 html[data-ui-subnav="1"] body .ptabs>a.on{background:color-mix(in srgb,var(--text) 14%,var(--panel2))!important;border-color:var(--line2)!important;color:var(--text)!important;box-shadow:0 2px 10px rgba(0,0,0,.35)!important}
 html[data-ui-subnav="1"] body .ptabs>a::after{display:none!important}
 html[data-ui-subnav="1"] body .row.wrap:has(>.ptabs){justify-content:flex-end!important;row-gap:14px!important}
-html[data-ui-subnav="1"] body .row.wrap>.ptabs{order:5!important;flex:0 0 100%!important;width:fit-content!important;max-width:100%!important;margin-right:auto}
+html[data-ui-subnav="1"] body .row.wrap>.ptabs{order:5!important;flex:0 0 auto!important;width:fit-content!important;max-width:100%!important;margin:0 auto!important;display:flex!important;padding:4px!important;gap:4px!important;border-radius:6px!important}
 html[data-ui-subnav="1"] body .row.wrap:has(>.ptabs)>:not(.ptabs){order:1}
-.ptabs>a{--tc:var(--muted)}.ptabs>a[data-arg="active"]{--tc:#4fd1a1}.ptabs>a[data-arg="pitching"]{--tc:#f2b84b}.ptabs>a[data-arg="done"]{--tc:#6aa8ff}.ptabs>a[data-arg="cancelled"]{--tc:#ef7a6c}
-html[data-ui-subnav="1"] body .ptabs>a{display:inline-flex!important;align-items:center;gap:8px}
-html[data-ui-subnav="1"] body .ptabs>a .ukti{width:17px;height:17px;stroke:var(--tc);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
-html[data-ui-subnav="1"] body .ptabs>a span:not(.ukti){background:color-mix(in srgb,var(--tc) 22%,transparent);color:var(--tc)!important;opacity:1!important;border-radius:999px;padding:1px 8px;font-weight:700;font-size:12px}
-html[data-ui-subnav="1"] body .ptabs>a:hover{background:color-mix(in srgb,var(--tc) 12%,var(--panel2))!important}
-html[data-ui-subnav="1"] body .ptabs>a.on{background:color-mix(in srgb,var(--tc) 20%,var(--panel2))!important;border-color:color-mix(in srgb,var(--tc) 60%,var(--line2))!important}
+html[data-ui-subnav="1"] body .row.wrap:has(>.ptabs)::after{content:"";order:2;flex:0 0 100%;height:0}
+html[data-ui-subnav="1"] body .ptabs>a{border-radius:4px!important;padding:12px 34px!important;min-width:130px;justify-content:center;display:inline-flex!important;align-items:center;gap:8px}
+.ptabs>a .ukti{display:none!important}
 
 
 /* ---------- Project card: ⋯ on the poster + action menu ---------- */
@@ -5181,10 +5178,8 @@ function clearYear(){const s=yearSel();if(s){s.selectedIndex=0;s.dispatchEvent(n
 function sync(){applyFilter();addFilterBtn();drawChips()}
 
 
-const TI={active:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',pitching:'<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>',done:'<circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/>',cancelled:'<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/>'};
-function tabIcons(){document.querySelectorAll('.ptabs>a[data-arg]').forEach(a=>{if(a.querySelector('.ukti'))return;const d=TI[a.dataset.arg];if(!d)return;a.insertAdjacentHTML('afterbegin','<svg class="ukti" viewBox="0 0 24 24">'+d+'</svg>')})}
 /* ---------- one loop keeps everything applied after every Hub re-render ---------- */
-let q=0;const run=()=>{q=0;tag();addDots();sync();tabIcons()};
+let q=0;const run=()=>{q=0;tag();addDots();sync()};
 if(window.__ukObs)window.__ukObs.disconnect();
 window.__ukObs=new MutationObserver(()=>{if(!q)q=requestAnimationFrame(run)});
 window.__ukObs.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','data-k']});
