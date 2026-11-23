@@ -618,6 +618,8 @@ html[data-theme=light] .chat-scroll,html[data-theme=mixed] .chat-scroll{backgrou
 .ovsum60 .bothk>.card:first-child .eyebrow{color:var(--sig-edit)}
 .ovsum60 .bothk>.card:nth-child(2){box-shadow:inset 0 3px 0 var(--sig-footage)}
 .ovsum60 .bothk>.card:nth-child(2) .eyebrow{color:var(--sig-footage)}
+.newproj .nps{display:flex;align-items:center;gap:11px;margin:8px 0 0;padding:11px 13px;border-radius:12px;background:linear-gradient(90deg,color-mix(in srgb,var(--sig-overview) 22%,var(--panel2)),var(--panel2));border-left:4px solid var(--sig-overview)}
+.newproj .nps:first-child{margin-top:0}.newproj .nps>span{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:color-mix(in srgb,var(--sig-overview) 24%,transparent);color:var(--sig-overview);flex:none}.newproj .nps b,.newproj .nps i{display:block}.newproj .nps b{font-size:13px;letter-spacing:.04em;text-transform:uppercase}.newproj .nps i{font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px}.newproj .privbox{border-radius:12px;background:var(--panel2);border:1px solid var(--line);padding:12px 14px}.newproj .privbox:has(input:checked){border-color:var(--sig-footage);background:color-mix(in srgb,var(--sig-footage) 10%,var(--panel2))}
 
 /* Branding: section and status swatches */
 .sigsw{display:inline-flex;align-items:center;gap:7px;padding:4px 10px 4px 6px;border-radius:99px;background:color-mix(in srgb,var(--sig) 16%,transparent);font-size:12.5px;font-weight:500}
@@ -1562,6 +1564,13 @@ entryReturn:id=>{const e=S.entries.find(x=>x.id===id);modal('Return to '+esc((U(
 brandReset:()=>{BRAND=Object.assign({},BRAND0);brandSave();render();toast('Back to the SCENEDROME defaults','ok')},
 brandImgReset:k=>{BRAND[k]=BRAND0[k];brandSave();render()},brandImgNone:k=>{BRAND[k]='';brandSave();render()},
 closeModal:()=>closeModal(),closeModalBg:(a,el,e)=>{if(e.target===el)closeModal()}};
+const _newProjectUnified=ACT.newProject;
+ACT.newProject=()=>{_newProjectUnified();const f=document.querySelector('#modal form[data-form="project"]');if(!f)return;f.classList.add('newproj');
+ const sec=(icon,title,sub)=>{const d=document.createElement('div');d.className='full nps';d.innerHTML=`<span>${ic(icon,18)}</span><div><b>${title}</b><i>${sub}</i></div>`;return d};
+ const first=f.firstElementChild,client=f.querySelector('[name="client"]')?.closest('label'),footage=f.querySelector('[name="footage"]')?.closest('label');
+ if(first)f.insertBefore(sec('film','Project identity','The same clear foundation used across every project type.'),first);
+ if(client)f.insertBefore(sec('users','Ownership &amp; schedule','Set the people responsible and the final target.'),client);
+ if(footage)f.insertBefore(sec('clip','Project infrastructure','Start with the shared structure while keeping type-specific content.'),footage)};
 const CHG={
 switchUser:(a,el)=>login(U(el.value)),
 status:(a,el)=>{me().status=el.value;save();render();toast('Status: '+STATUS[el.value][0])},
@@ -4620,15 +4629,15 @@ Object.assign(ACT,{
  amCrew:pid=>{amClose();V.p=pid;V.tab='overview';ACT.ccAdd(pid)},
  amReview:pid=>{amClose();ACT.projEdit(pid);const d=document.querySelector('#modal details.ddsec');if(d){d.open=true;ACT.attAdd(pid)}}});
 document.addEventListener('click',e=>{if(!e.target.closest||e.target.closest('details.addm'))return;amClose()});
-const _vpB2=VIEWS.project;VIEWS.project=()=>{const h=_vpB2();const p=P(V.p);if(!p||V.tab!=='overview'||!(p.episodes&&TYPES[p.type].episodic)||!isStaff())return h;const t=document.createElement('template');t.innerHTML=h;const ch=[...t.content.children];
+const _vpB2=VIEWS.project;VIEWS.project=()=>{const h=_vpB2();const p=P(V.p);if(!p||V.tab!=='overview'||!isStaff())return h;const t=document.createElement('template');t.innerHTML=h;const ch=[...t.content.children];
  const ovs=ch.find(x=>x.classList.contains('ovsum60')),tiles=ch.find(x=>x.classList.contains('tiles'));const main=ch.find(x=>x.classList.contains('grid')&&x.firstElementChild&&x.firstElementChild.classList.contains('span2'));
- if(!main||!ovs)return h;const stor=ch.find(x=>!x.className&&/Project storage/.test(x.textContent));const flow=main.firstElementChild,col=main.children[1];
+ if(!main)return h;const stor=ch.find(x=>!x.className&&/Project storage/.test(x.textContent));const flow=main.firstElementChild,col=main.children[1];
  const head=ch.filter(x=>x.classList.contains('phead')||x.classList.contains('ptabs2')||x.classList.contains('tabs')||x.classList.contains('subhead'));
  const rest=ch.filter(x=>![ovs,tiles,main,stor,...head].includes(x));
  const crewc=col?[...col.children].filter(x=>x.classList.contains('crewc')):[];const other=col?[...col.children].filter(x=>!x.classList.contains('crewc')):[];
- flow.classList.remove('span2');flowFix(p,flow);badgeFix(p,ovs);
- const out=[...head.map(x=>hdFix(p,x)).map(x=>x.outerHTML),flow.outerHTML,ovs.outerHTML,stor?stor.outerHTML:'',crewc.length?`<div class="grid g2 ovteam">${crewc.map(x=>crFix(x).outerHTML).join('')}</div>`:'',other.map(x=>x.outerHTML).join(''),...prevWrap(rest)].join('');
- return out.replace(/(>)Status report(<)/g,'$1Episodes Report$2')};
+ flow.classList.remove('span2');flowFix(p,flow);if(ovs&&p.episodes&&(TYPES[p.type]||{}).episodic)badgeFix(p,ovs);
+ const out=[...head.map(x=>hdFix(p,x)).map(x=>x.outerHTML),flow.outerHTML,ovs?ovs.outerHTML:'',tiles?tiles.outerHTML:'',stor?stor.outerHTML:'',crewc.length?`<div class="grid g2 ovteam">${crewc.map(x=>crFix(x).outerHTML).join('')}</div>`:'',other.map(x=>x.outerHTML).join(''),...prevWrap(rest)].join('');
+ return p.episodes&&(TYPES[p.type]||{}).episodic?out.replace(/(>)Status report(<)/g,'$1Episodes Report$2'):out};
 
 /* ---------- round 4: episodes ---------- */
 const epStOK=p=>canManage(p)||pRole(p)==='a1';
@@ -4752,6 +4761,7 @@ const SVC_ORDER=['edit','grading','vfx','sound','creative'];
 function flowFix(p,flow){const eps=p.episodes||[];const k=[...flow.children];
  const st=(PST55.find(x=>x[0]===(p.status||'active'))||PST55[0]);const mg=canManage(p);
  const head=`<div class="row flowhd" style="gap:10px;margin-bottom:14px"><h3 style="margin:0">Flow</h3><span class="grow"></span><a class="chip ${st[2]||''} pstbtn" ${mg?`data-act="pstOpen" data-arg="${p.id}" title="Change the project status"`:''}><span class="dot"></span>${esc(st[1])}${mg?'<span class="pcaret">▾</span>':''}</a></div>`;
+ if(!eps.length){const title=k.find(x=>x.matches&&x.matches('h3')&&/^\s*Flow\s*$/.test(x.textContent));if(title)title.remove();flow.insertAdjacentHTML('afterbegin',head);return}
  const grid=eps.length?`<div class="flowgrid">${eps.map(e=>{const pc=Math.round(epProg(p,e));const c=progCol(pc);const sts=(e.statuses||[]).filter(x=>x!=='blank').map(x=>(EPST[x]||[])[1]).filter(Boolean).join(' · ');return`<a class="fsq" data-act="flowGo" data-arg="${p.id}|${e.n}" style="--c:${c}" title="EP${String(e.n).padStart(2,'0')}${sts?' · '+esc(sts):''} · ${pc}%"><u style="height:${Math.max(pc,4)}%"></u><b>${String(e.n).padStart(2,'0')}</b><i>${pc}%</i></a>`}).join('')}</div>`:'';
  k[0].remove();if(k[1])k[1].remove();
  flow.insertAdjacentHTML('afterbegin',head+grid);
