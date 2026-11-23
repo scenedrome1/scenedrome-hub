@@ -1657,7 +1657,7 @@ function bkRef(p,path){const segs=path.split('.');const f=segs.pop();let o=null,
  return{o,f,e,s,kind}}
 function epFind(p,n){const e=p.episodes.find(x=>x.n===+n);return e}
 function bkSave(p,e){if(e){e.scenes.forEach(scCalc);syncStage(p,e)}save();setTimeout(render,0)}
-function bkPrep(){const p=P(V.p);if(p&&isStaff()&&canEditFlow(p))p.episodes.forEach(e=>normEp(p,e));return p}
+function bkPrep(){const p=P(V.p);if(p&&isStaff()&&canEditFlow(p))(p.episodes||[]).forEach(e=>normEp(p,e));return p}
 const EP_ACT={
 tog:a=>{const[k,d]=a.split('|');V.open[k]=d==='1'?V.open[k]===false:!V.open[k];render()},
 epAll:a=>{const p=P(V.p);p.episodes.forEach(e=>{V.open[p.id+'-'+e.n]=a==='1'});render()},
@@ -2646,7 +2646,7 @@ Object.assign(ACT,{
  dayAdd:()=>{const p=bkPrep();if(!p||!canEditFlow(p))return;const ds=pDays(p);const n=ds.reduce((a,d)=>Math.max(a,d.n),0)+1;const last=ds.slice().sort((a,b)=>b.n-a.n)[0];let date='';if(last&&last.date){const t=new Date(last.date);t.setDate(t.getDate()+1);date=t.toISOString().slice(0,10)}
   const d={id:uid('d'),n,date,loc:last?last.loc||'':'',call:last?last.call||'':'',status:'',note:''};ds.push(d);V.open['dy'+d.id]=true;V.bkMode=Object.assign({},V.bkMode,{[p.id]:(V.bkMode||{})[p.id]==='both'?'both':'days'});save();render();toast(dayN(d)+' added','ok')},
  dayDel:id=>{const p=bkPrep();if(!p||!canManage(p))return;const d=pDays(p).find(x=>x.id===id);if(!d)return;const n=dayScenes(p,d).length;modal('Delete '+dayN(d)+'?',`<p class="muted" style="margin-top:0">${n?`Its ${n} scene${n>1?'s go':' goes'} back to “not scheduled” — they stay in their episodes.`:'It has no scenes.'}</p><div class="row"><a class="btn right" data-act="closeModal">Keep</a><a class="btn pri" data-act="dayDelOk" data-arg="${id}">Delete day</a></div>`)},
- dayDelOk:id=>{const p=bkPrep();if(!p)return;p.episodes.forEach(e=>e.scenes.forEach(s=>{if(s.day===id)delete s.day}));p.days=pDays(p).filter(x=>x.id!==id);closeModal();save();render();toast('Day deleted')},
+ dayDelOk:id=>{const p=bkPrep();if(!p||!canManage(p))return;allEps(p).forEach(e=>(e.scenes||[]).forEach(s=>{if(s.day===id)delete s.day}));p.days=pDays(p).filter(x=>x.id!==id);closeModal();save();render();toast('Day deleted')},
  dayPick:id=>{const p=bkPrep();if(!p||!canEditFlow(p))return;const d=pDays(p).find(x=>x.id===id);
   modal('Add scenes to '+dayN(d),`<form data-form="dayPick" data-arg="${id}"><div class="row" style="margin-bottom:8px"><input id="dpFilter" placeholder="Filter…" style="flex:1"><label class="tiny" style="white-space:nowrap"><input type="checkbox" id="dpUn" checked style="width:auto"> Only not scheduled</label></div><div class="dplist" style="max-height:52vh;overflow:auto">${allEps(p).map(e=>`<div class="eyebrow" style="margin:10px 0 4px">${epL(e.n)}</div>${e.scenes.map(s=>{const other=s.day&&s.day!==id?dayLabel(p,s.day):'';return`<label class="jp dprow" data-un="${s.day?0:1}" data-txt="${esc((s.n+' '+s.chars+' '+s.note+' '+(s.loc||'')).toLowerCase())}" style="${s.day&&s.day!==id?'display:none':''}"><input type="checkbox" name="sc" value="${e.n}|${s.id}" ${s.day===id?'checked':''}><span><b>Sc ${esc(s.n)} · ${mmss(s.dur)}</b><i>${esc(s.chars||'')}${s.note?' — '+esc(s.note.slice(0,80)):''}${other?' · now on '+esc(other):''}</i></span></label>`}).join('')||'<div class="tiny faint">No scenes</div>'}`).join('')}</div>
   <div class="formgrid mini" style="margin-top:12px"><label>Or add a new scene to<select name="newEp"><option value="">—</option>${epOpts(p,'')}</select></label><label>Its number<input name="newN" placeholder="e.g. 14A"></label></div>
@@ -3433,15 +3433,20 @@ dayBlock=function(p,d,ce,mg){const c=dayCalc(p,d);const k='dy'+d.id;const open=V
  const l1=`<div class="dl1"><label>Day no.${ce?`<input type="number" min="1" value="${d.n}" data-change="dayF" data-arg="${d.id}|n">`:`<div>${d.n}</div>`}</label><label class="grow2">Location${locs}</label><label>Status${ce?`<select data-change="dayF" data-arg="${d.id}|status"><option value="">Automatic</option>${DAY_ST.map(([kk,l])=>`<option value="${kk}" ${d.status===kk?'selected':''}>${l}</option>`).join('')}</select>`:`<div>${dsChip(c.st)}</div>`}</label>${window.hubSzLabel?window.hubSzLabel(p,d):''}<label>Date${ce?`<input type="date" value="${esc(d.date||'')}" data-change="dayF" data-arg="${d.id}|date">`:`<div>${d.date?esc(dstr(new Date(d.date).getTime())):'—'}</div>`}</label></div>`;
  const l2=`<div class="dl2">${DAYCK.map(([kk,l,t],i)=>{const en=i===0||d[DAYCK[i-1][0]];return`<label class="dck ${en?'':'dim'}"><input type="checkbox" ${ce?`data-change="dayF" data-arg="${d.id}|${kk}"`:'disabled'} ${d[kk]?'checked':''} ${en||!ce?'':'disabled'}> ${i+1} · ${t||l}</label>`}).join('')}</div>`;
  const l3=`<label class="dl3">Notes${ce?`<textarea rows="2" data-change="dayF" data-arg="${d.id}|note" placeholder="Cast, unit, equipment, weather…">${esc(d.note||'')}</textarea>`:`<div>${esc(d.note||'')||'—'}</div>`}</label>`;
- const add=ce?`<div class="addsc"><select id="ns-ep-${d.id}">${epOpts(p,V.lastEp||1)}</select><input id="ns-n-${d.id}" placeholder="Scene no."><a class="btn sm pri" data-act="dayNewScene" data-arg="${d.id}">${ic('plus',13)}New scene</a><a class="btn sm" data-act="dayPick" data-arg="${d.id}">Pick existing</a></div>`:'';
+ const add=ce&&Array.isArray(p.episodes)?`<div class="addsc"><select id="ns-ep-${d.id}">${epOpts(p,V.lastEp||1)}</select><input id="ns-n-${d.id}" placeholder="Scene no."><a class="btn sm pri" data-act="dayNewScene" data-arg="${d.id}">${ic('plus',13)}New scene</a><a class="btn sm" data-act="dayPick" data-arg="${d.id}">Pick existing</a></div>`:'';
  const sc=c.sc.slice().sort((a,b)=>(b.s.dayOrd||0)-(a.s.dayOrd||0));
- const rows=sc.length?`<div class="tablewrap scn cs sccards"><table><tbody>${sc.map(x=>scRow(p,x.e,x.s,'day',d)).join('')}</tbody></table></div>`:'<div class="empty tiny" style="padding:14px">No scenes on this day yet</div>';
+ const rows=sc.length?`<div class="tablewrap scn cs sccards"><table><tbody>${sc.map(x=>scRow(p,x.e,x.s,'day',d)).join('')}</tbody></table></div>`:Array.isArray(p.episodes)?'<div class="empty tiny" style="padding:14px">No scenes on this day yet</div>':'';
  const foot=mg?`<div class="row" style="margin-top:10px"><span class="grow"></span><a class="btn sm ghost danger" data-act="dayDel" data-arg="${d.id}">${ic('trash',13)}Delete day</a></div>`:'';
  return`<div class="ep open dayblk">${head}<div class="ep-body">${l1}${l2}${l3}${add}${rows}${foot}</div></div>`};
 /* only scenes that are on a day are listed; the not-scheduled list is gone */
 daysHTML=function(p,ce,mg){const days=pDays(p).slice().sort((a,b)=>a.n-b.n);
  return`<div class="row wrap" style="margin:4px 0 12px;gap:8px">${ce?`<a class="btn pri" data-act="dayAdd">${ic('plus',14)}Add shooting day</a>`:''}${ce?`<span class="grow"></span>${[[TN,'EPS Totalat'],[XN,'EPS X']].map(([nn,l])=>p[SPECIAL[nn].key]?'':`<a class="btn sm" data-act="mkSp" data-arg="${nn}">${ic('plus',13)}${l}</a>`).join('')}`:''}</div>
  ${days.length?days.map(d=>dayBlock(p,d,ce,mg)).join(''):'<div class="card empty">No shooting days yet</div>'}`};
+/* Footage must not fall back to editorial stages or require episode records. */
+function footageDays(p){const q=NP(p),ce=canEditFlow(q),mg=canManage(q);const days=pDays(q).slice().sort((a,b)=>a.n-b.n);
+ const locs=`<datalist id="locs-${q.id}">${allLocs(q).map(l=>`<option value="${esc(l)}">`).join('')}</datalist>`;
+ if(Array.isArray(q.episodes))return locs+daysHTML(q,ce,mg);
+ return locs+`<div class="row wrap" style="margin:4px 0 12px;gap:8px">${ce?`<a class="btn pri" data-act="dayAdd">${ic('plus',14)}Add shooting day</a>`:''}<span class="tiny faint grow">Shooting days · footage processing · storage</span></div>${days.length?days.map(d=>dayBlock(q,d,ce,mg)).join(''):'<div class="card empty">No shooting days yet</div>'}`}
 /* scenes start folded after every page load */
 Object.keys(V.open||{}).forEach(k=>{if(k.startsWith('sn'))delete V.open[k]});
 
@@ -3565,6 +3570,7 @@ const _csv51=CHG.svc;CHG.svc=(a,el)=>{if(a.startsWith('c|')){const[,id,k,f]=a.sp
 const _tb51=TABS.breakdown;TABS.breakdown=p=>{if(!isStaff())return _tb51(p);const on=pSvc(p);let mode=(V.bkMode||{})[p.id];if(!on.includes(mode))mode=on[0]||'';
  const menu=`<div class="seg svcmenu" role="tablist" aria-label="Production">${SVCS.filter(([k])=>on.includes(k)).map(([k,l,i])=>`<a role="tab" aria-selected="${mode===k}" aria-label="${esc(l)}" title="${esc(l)}" class="${mode===k?'on':''}" data-act="bkMode" data-arg="${p.id}|${k}">${ic(i,16)}<span>${esc(l)}</span></a>`).join('')}</div>`;
  if(!on.length)return`<div class="card empty">No services on this project yet.${canManage(p)?' Add them under Services on the Overview.':''}</div>`;
+ if(mode==='footage'&&!hasDays(p))return `<div class="row wrap" style="gap:10px;margin-bottom:12px">${menu}</div>${footageDays(p)}`;
  if(mode==='footage'||mode==='edit'){const keep=V.bkMode;V.bkMode=Object.assign({},keep,{[p.id]:mode==='footage'?'days':'episodes'});let h;try{h=_tb51(p)}finally{V.bkMode=Object.assign({},keep,{[p.id]:mode})}
   h=h.replace(/<div class="seg">[\s\S]*?<\/div>/,menu);if(!/svcmenu/.test(h))h=`<div class="row wrap" style="gap:10px;margin-bottom:12px">${menu}</div>`+h;return h}
  return`<div class="row wrap" style="gap:10px;margin-bottom:12px">${menu}</div>${svcView(p,mode)}`};
@@ -3648,7 +3654,7 @@ const _tbr53=TABS.briefs;TABS.briefs=p=>{const u=me();const mine=(p.pbriefs||[])
 /* tabs: every service, deal ones in-house, the rest as partner briefs */
 const _vp53=VIEWS.project;VIEWS.project=()=>{const p=P(V.p);const u=me();if(!p||!staffTabs(p,u))return _vp53();const all=flowSvcs(p),on=pSvc(p);
  if(SVC_TABS.includes(V.tab)&&!on.includes(V.tab)&&all.includes(V.tab)){const k=V.tab;V.tab='overview';let h;try{h=_vp53()}finally{V.tab=k}
-  const i=h.indexOf('<div class="seg ptabs2"');return(i>0?h.slice(0,i):h)+tabBar(p,all,on)+`<div class="tabbody">${briefView(p,k)}</div>`}
+  const i=h.indexOf('<div class="seg ptabs2"');return(i>0?h.slice(0,i):h)+tabBar(p,all,on)+`<div class="tabbody">${k==='footage'?footageDays(p):briefView(p,k)}</div>`}
  let h=_vp53();return h.replace(/<div class="seg ptabs2"[\s\S]*?<\/div>/,tabBar(p,all,on))};
 function tabBar(p,all,on){const items=[['overview','Overview','home'],...SVCS.filter(([k])=>all.includes(k))];
  return`<div class="seg ptabs2" role="tablist" aria-label="Project sections">${items.map(([k,l,i])=>{const out=k!=='overview'&&!on.includes(k);return`<a class="${V.tab===k?'on':''} ${out?'out':k!=='overview'?'indeal':''}" role="tab" aria-selected="${V.tab===k}" aria-label="${esc(l)}${out?' (partner brief)':''}" title="${esc(l)}${out?' — partner brief, not in the deal':''}" data-act="tab" data-arg="${k}">${ic(i,16)}<span>${esc(l==='Creative Services'?'Creative':l)}</span>${out?'<i class="pdot"></i>':''}</a>`}).join('')}</div>`}
