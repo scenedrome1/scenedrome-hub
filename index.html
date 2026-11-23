@@ -4769,6 +4769,10 @@ const mix=(a,b,t)=>{const h=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16));const
 const progCol=pc=>pc<=50?mix('#F0B93A','#C9D24A',pc/50):mix('#C9D24A','#22A06B',(pc-50)/50);
 const SVC_ORDER=['edit','grading','vfx','sound','creative'];
 function flowFix(p,flow){const eps=p.episodes||[];const k=[...flow.children];
+ // Keep the ALQENAA overview compact; project metadata belongs inside settings.
+ const settings=k.find(x=>x.querySelector(`[data-arg="ps${p.id}|0"]`));const details=settings&&settings.querySelector('.sb');
+ const brief=k.find(x=>x.querySelector('.eyebrow')&&x.querySelector('.eyebrow').textContent.trim()==='Brief');const credits=flow.querySelector('.credits');
+ for(const x of [brief,credits])if(x){if(details){x.style.margin='12px 0';details.prepend(x)}else x.remove()}
  const st=(PST55.find(x=>x[0]===(p.status||'active'))||PST55[0]);const mg=canManage(p);
  const head=`<div class="row flowhd" style="gap:10px;margin-bottom:14px"><h3 style="margin:0">Flow</h3><span class="grow"></span><a class="chip ${st[2]||''} pstbtn" ${mg?`data-act="pstOpen" data-arg="${p.id}" title="Change the project status"`:''}><span class="dot"></span>${esc(st[1])}${mg?'<span class="pcaret">▾</span>':''}</a></div>`;
  if(!eps.length){const title=k.find(x=>x.matches&&x.matches('h3')&&/^\s*Flow\s*$/.test(x.textContent));if(title)title.remove();flow.insertAdjacentHTML('afterbegin',head);return}
@@ -4776,7 +4780,7 @@ function flowFix(p,flow){const eps=p.episodes||[];const k=[...flow.children];
  k[0].remove();if(k[1])k[1].remove();
  flow.insertAdjacentHTML('afterbegin',head+grid);
  const br=[...flow.children].find(x=>/^\s*Brief/.test(x.textContent));if(br){const txt=br.textContent.replace(/^\s*Brief/,'').trim();if(!txt)br.remove()}
- const cr=flow.querySelector('.credits');if(cr&&/Episodes/.test(cr.textContent)&&cr.querySelectorAll('label').length===1)cr.remove()}
+ }
 ACT.flowGo=a=>{const[pid,n]=a.split('|');const p=P(pid);if(!p)return;const on=pSvc(p);const t=SVC_ORDER.find(k=>on.includes(k))||'edit';V.v='project';V.p=pid;V.tab=t;V.open[pid+'-'+n]=true;render();setTimeout(()=>{const el=document.querySelector('.ep.open,.ep-row');if(el)el.scrollIntoView({block:'center',behavior:'smooth'})},120)};
 function hdFix(p,x){if(!x.classList.contains('phead'))return x;let h=x.innerHTML;const eps=p.episodes||[];const T=TYPES[p.type]||{};
  h=h.replace(/(<div class="eyebrow">[^<]*?)\s*·\s*\d+ episodes × \d+ min/,'$1');
