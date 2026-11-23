@@ -5083,7 +5083,7 @@ function tag(){
   document.querySelectorAll('.btn').forEach(b=>{
     if(b.closest(SKIP))return;
     const sig=b.className+'|'+(b.textContent||'').trim();
-    if(b.__uk===sig)return;b.__uk=sig;b.dataset.k=kind(b);
+    if(b.__uk===sig&&b.dataset.k)return;b.__uk=sig;const k=kind(b);if(b.dataset.k!==k)b.dataset.k=k;
   });
 }
 /* ---------- shared helpers ---------- */
@@ -5175,7 +5175,7 @@ function sync(){applyFilter();addFilterBtn();drawChips()}
 let q=0;const run=()=>{q=0;tag();addDots();sync()};
 if(window.__ukObs)window.__ukObs.disconnect();
 window.__ukObs=new MutationObserver(()=>{if(!q)q=requestAnimationFrame(run)});
-window.__ukObs.observe(document.body,{childList:true,subtree:true,characterData:true});
+window.__ukObs.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','data-k']});
 run();
 })();
 </script>
