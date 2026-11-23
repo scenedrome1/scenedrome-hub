@@ -48,6 +48,8 @@ const waLanguage = Deno.env.get('WHATSAPP_TEMPLATE_LANGUAGE') ?? 'en_US';
 const graphVersion = Deno.env.get('WHATSAPP_GRAPH_VERSION') ?? 'v27.0';
 const resendKey = Deno.env.get('RESEND_API_KEY') ?? '';
 const emailFrom = Deno.env.get('CASHFLOW_EMAIL_FROM') ?? 'SCENEDROME Hub <Contact@scenedrome.com>';
+// Temporary email-only mode while Meta approves WhatsApp. Anything other than 'email' means both channels.
+const deliveryMode = (Deno.env.get('CASHFLOW_DELIVERY') ?? 'both').trim().toLowerCase() === 'email' ? 'email' : 'both';
 
 async function audit(userId: string | null, event: string, success: boolean, detail = {}) {
   await admin.from('cashflow_auth_audit').insert({ user_id: userId, event, success, detail });
@@ -119,29 +121,30 @@ async function createChallenge(userId: string, purpose: 'login' | 'reset', email
   const codeHash = await hmac(authSecret, `${id}:${code}`);
   const expiresAt = plus(5 * 60000);
   const { error } = await admin.from('cashflow_auth_challenges').insert({
-    id, user_id: userId, purpose, delivery: 'both', code_hash: codeHash, expires_at: expiresAt,
+    id, user_id: userId, purpose, delivery: deliveryMode, code_hash: codeHash, expires_at: expiresAt,
   });
   if (error) throw error;
   try {
     if (!email) throw new Error('The signed-in owner does not have an email address');
     const [whatsApp, emailResult] = await Promise.allSettled([
-      sendWhatsAppCode(code), sendEmailCode(code, email),
+      deliveryMode === 'both' ? sendWhatsAppCode(code) : Promise.resolve(null),
+      sendEmailCode(code, email),
     ]);
     const failed = [];
     if (whatsApp.status === 'rejected') failed.push(`WhatsApp: ${String(whatsApp.reason?.message ?? whatsApp.reason)}`);
     if (emailResult.status === 'rejected') failed.push(`Email: ${String(emailResult.reason?.message ?? emailResult.reason)}`);
     if (failed.length) throw new Error(`Code delivery failed — ${failed.join(' · ')}`);
     await audit(userId, 'otp_sent', true, {
-      purpose, delivery: 'both', whatsapp_message_id: whatsApp.value, email_message_id: emailResult.value,
+      purpose, delivery: deliveryMode, whatsapp_message_id: whatsApp.value, email_message_id: emailResult.value,
     });
   } catch (error) {
     await admin.from('cashflow_auth_challenges').delete().eq('id', id);
-    await audit(userId, 'otp_send_failed', false, { purpose, delivery: 'both', error: String(error) });
+    await audit(userId, 'otp_send_failed', false, { purpose, delivery: deliveryMode, error: String(error) });
     throw error;
   }
   return {
-    challengeId: id, expiresAt, resendAfter: plus(60000), delivery: 'both',
-    maskedRecipient: `WhatsApp •••• 7191 and ${maskEmail(email!)}`,
+    challengeId: id, expiresAt, resendAfter: plus(60000), delivery: deliveryMode,
+    maskedRecipient: deliveryMode === 'both' ? `WhatsApp •••• 7191 and ${maskEmail(email!)}` : maskEmail(email!),
   };
 }
 async function getSession(userId: string, raw: string, purpose: string) {
