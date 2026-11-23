@@ -4949,7 +4949,7 @@ ACT.projDup=id=>{const p=P(id);if(!p)return;
  c.budget=0;c.spent=0;c.quote=0;c.paid=0;c.previews=[];['quotes','disc','cf','dlv','poster'].forEach(k=>{delete c[k]});
  if(Array.isArray(c.episodes))c.episodes.forEach(e=>{e.stage=0;e.statuses=['blank'];e.checks={};(e.scenes||[]).forEach(s=>{if(s&&typeof s==='object')s.locked=false})});
  S.projects.push(c);save();go('project',c.id,'overview');toast('Duplicated — “'+c.name+'” is ready to edit','ok')};
-window.hubKit=Object.freeze({dup:true});
+window.hubKit=Object.freeze({dup:true,projects:()=>{try{return visibleProjects().map(p=>({id:p.id,name:p.name||'Untitled',client:((U(p.client)||{}).company)||'',type:(TYPES[p.type]||{}).label||'',status:p.status||'active'}))}catch(e){return[]}}});
 if(LIVE){meId='…';render();liveBoot().catch(e=>{console.error(e);if(booted){toast('Something didn’t load: '+e.message,'bad');return}bootMsg='Couldn’t reach the Hub database: '+e.message;booted=false;meId=null;render()});sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){booted=false;meId=null;render()}})}else render();
 })();
 </script>
@@ -5074,6 +5074,23 @@ html[data-ui-filter="1"] body label.persel{display:none!important}
 .ukfbtn.act{border-color:var(--k-add);color:var(--k-add)}
 .ukfbtn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .ukfbtn .cnt{position:absolute;top:-7px;right:-7px;min-width:19px;height:19px;border-radius:999px;background:var(--k-add);color:#2a1d03;font:800 11px/19px inherit;text-align:center;padding:0 5px}
+.ukcmdbtn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 12px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);color:var(--muted);font:600 13px inherit;cursor:pointer;margin-right:8px;flex:none}
+.ukcmdbtn:hover{color:var(--text);background:color-mix(in srgb,var(--text) 9%,var(--panel2))}
+.ukcmdbtn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ukcmdbtn kbd{font:700 11px inherit;border:1px solid var(--line2);border-radius:6px;padding:2px 6px;color:var(--muted);background:var(--panel)}
+@media(max-width:700px){.ukcmdbtn span,.ukcmdbtn kbd{display:none}.ukcmdbtn{width:38px;padding:0;justify-content:center}}
+html[data-ui-card="1"] body .psearch{display:none!important}
+#ukcmd{position:fixed;inset:0;z-index:10001;display:none;align-items:flex-start;justify-content:center;padding-top:11vh;background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
+#ukcmd .bx{width:560px;max-width:calc(100vw - 20px);background:var(--panel);border:1px solid var(--line2);border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.6);overflow:hidden}
+#ukcmd input{width:100%;box-sizing:border-box;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--text);font:500 16px inherit;padding:17px 18px;outline:0}
+#ukcmd .rs{max-height:52vh;overflow:auto;padding:6px}
+#ukcmd .gh{font:700 11px inherit;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 12px 4px}
+#ukcmd .it{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer;color:var(--text);font-size:14px}
+#ukcmd .it small{color:var(--muted);margin-left:auto;font-size:12px}
+#ukcmd .it.on{background:color-mix(in srgb,var(--k-add,#f2b84b) 16%,var(--panel2))}
+#ukcmd .it svg{width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+#ukcmd .em{padding:22px;text-align:center;color:var(--muted);font-size:13px}
+#ukcmd .ft{display:flex;gap:14px;padding:9px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:11.5px}
 #ukfpop{position:fixed;z-index:9999;width:340px;max-width:calc(100vw - 16px);max-height:70vh;overflow:auto;background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:14px;box-shadow:0 18px 40px rgba(0,0,0,.6);display:none}
 #ukfpop .gt{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 7px}
 #ukfpop .grp{margin-bottom:12px}
@@ -5208,8 +5225,45 @@ function clearYear(){const s=yearSel();if(s){s.selectedIndex=0;s.dispatchEvent(n
 function sync(){applyFilter();addFilterBtn();drawChips()}
 
 
+
+/* ---------- command bar (⌘K / Ctrl K) ---------- */
+const MAC=/Mac|iPhone|iPad/.test(navigator.platform||'');
+const ICS={pg:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 9h16"/>',pr:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/>',ac:'<path d="M12 5v14M5 12h14"/>'};
+let cm,cmI=0,cmL=[];
+function cmItems(q){q=q.trim().toLowerCase();const out=[];
+ const pages=[...document.querySelectorAll('a[data-act="go"][data-arg]')].filter(a=>!a.closest('#ukcmd')&&a.textContent.trim());const seen={};
+ pages.forEach(a=>{const t=a.textContent.trim();if(seen[t])return;seen[t]=1;out.push({g:'Pages',ic:'pg',t,act:'go',arg:a.dataset.arg})});
+ out.push({g:'Actions',ic:'ac',t:'New project',act:'newProject',arg:''});
+ const ps=(window.hubKit&&window.hubKit.projects&&window.hubKit.projects())||[];
+ ps.forEach(p=>out.push({g:'Projects',ic:'pr',t:p.name,s:[p.client,p.type].filter(Boolean).join(' · '),act:'openProject',arg:p.id,hay:(p.name+' '+p.client+' '+p.type+' '+p.status).toLowerCase()}));
+ const f=q?out.filter(i=>(i.hay||i.t.toLowerCase()).includes(q)):out.filter(i=>i.g!=='Projects'||true);
+ return f.slice(0,40)}
+function cmDraw(){const q=cm.querySelector('input').value;cmL=cmItems(q);if(cmI>=cmL.length)cmI=0;const box=cm.querySelector('.rs');
+ if(!cmL.length){box.innerHTML='<div class="em">No matches</div>';return}
+ let h='',g='';cmL.forEach((i,n)=>{if(i.g!==g){g=i.g;h+='<div class="gh">'+g+'</div>'}h+='<div class="it'+(n===cmI?' on':'')+'" data-n="'+n+'"><svg viewBox="0 0 24 24">'+ICS[i.ic]+'</svg>'+esc(i.t)+(i.s?'<small>'+esc(i.s)+'</small>':'')+'</div>'});
+ box.innerHTML=h;const on=box.querySelector('.on');if(on)on.scrollIntoView({block:'nearest'})}
+function cmOpen(){if(!cm){cm=document.createElement('div');cm.id='ukcmd';cm.innerHTML='<div class="bx"><input placeholder="Search projects, pages, actions…" autocomplete="off"><div class="rs"></div><div class="ft"><span>↑↓ move</span><span>↵ open</span><span>esc close</span></div></div>';document.body.appendChild(cm);
+  cm.addEventListener('mousedown',e=>{if(e.target===cm)cmClose()});
+  cm.querySelector('input').addEventListener('input',()=>{cmI=0;cmDraw()});
+  cm.addEventListener('click',e=>{const it=e.target.closest('.it');if(it)cmGo(+it.dataset.n)});
+  cm.addEventListener('mousemove',e=>{const it=e.target.closest('.it');if(it&&+it.dataset.n!==cmI){cmI=+it.dataset.n;cm.querySelectorAll('.it').forEach(x=>x.classList.toggle('on',x===it))}})}
+ cm.style.display='flex';const i=cm.querySelector('input');i.value='';cmI=0;cmDraw();setTimeout(()=>i.focus(),20)}
+function cmClose(){if(cm)cm.style.display='none'}
+function cmGo(n){const i=cmL[n];if(!i)return;cmClose();fire(i.act,i.arg)}
+if(window.__ukKd)removeEventListener('keydown',window.__ukKd,true);
+window.__ukKd=e=>{
+ if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();e.stopPropagation();cm&&cm.style.display==='flex'?cmClose():cmOpen();return}
+ if(!cm||cm.style.display!=='flex')return;
+ if(e.key==='Escape'){e.preventDefault();cmClose()}
+ else if(e.key==='ArrowDown'){e.preventDefault();cmI=Math.min(cmI+1,cmL.length-1);cmDraw()}
+ else if(e.key==='ArrowUp'){e.preventDefault();cmI=Math.max(cmI-1,0);cmDraw()}
+ else if(e.key==='Enter'){e.preventDefault();cmGo(cmI)}};
+addEventListener('keydown',window.__ukKd,true);
+function cmBtn(){if(document.getElementById('ukcmdbtn'))return;const bw=$('.top .bellwrap');if(!bw)return;
+ bw.insertAdjacentHTML('beforebegin','<a class="ukcmdbtn" id="ukcmdbtn" role="button" title="Search (Ctrl K)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>'+(MAC?'⌘K':'Ctrl K')+'</kbd></a>');
+ document.getElementById('ukcmdbtn').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();cmOpen()})}
 /* ---------- one loop keeps everything applied after every Hub re-render ---------- */
-let q=0;const run=()=>{q=0;tag();addDots();sync();pageBits()};
+let q=0;const run=()=>{q=0;tag();addDots();sync();pageBits();cmBtn()};
 if(window.__ukObs)window.__ukObs.disconnect();
 window.__ukObs=new MutationObserver(()=>{if(!q)q=requestAnimationFrame(run)});
 window.__ukObs.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','data-k']});
