@@ -5030,6 +5030,22 @@ html[data-ui-subnav="1"] body .ptabs>a.on span{color:var(--tc)!important;opacity
 
 /* ---------- Project card: ⋯ on the poster + action menu ---------- */
 html[data-ui-card="1"] body .pcard2 .art{position:relative}
+/* ---------- project page: header ⋯, progress tile, team/crew headers ---------- */
+html[data-ui-card="1"] body .phead a[data-act="projEdit"]{display:none!important}
+html[data-ui-card="1"] body .phead{position:relative}
+.ukdots.phd{position:absolute;top:auto;left:52px;bottom:auto;width:26px;height:26px;font-size:16px;opacity:1;margin-top:-4px}
+.ukgone{display:none!important}
+html[data-ui-card="1"] body .tiles{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))!important}
+html[data-ui-card="1"] body .kpi.hero{position:relative;display:flex!important;flex-direction:column;gap:2px;padding:14px 16px 14px 20px!important;border-radius:10px!important;border:0!important;box-shadow:none!important;background:color-mix(in srgb,var(--k-ok,#4fd1a1) 12%,var(--panel))!important;overflow:hidden}
+html[data-ui-card="1"] body .kpi.hero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--k-ok,#4fd1a1);opacity:1;height:auto;right:auto}
+html[data-ui-card="1"] body .kpi.hero .l{font-size:11px!important;font-weight:600!important;letter-spacing:.08em;text-transform:uppercase;color:var(--k-ok,#4fd1a1)!important}
+html[data-ui-card="1"] body .kpi.hero .v{font:500 19px/1.3 var(--display)!important;color:var(--text)!important}
+html[data-ui-card="1"] body .crewc.tm-team,html[data-ui-card="1"] body .crewc.tm-crew{padding:0!important;overflow:hidden}
+html[data-ui-card="1"] body .crewc.tm-team>.crewh,html[data-ui-card="1"] body .crewc.tm-crew>.crewh{padding:10px 16px!important;margin:0!important;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:12px;color:#fff!important;gap:8px}
+html[data-ui-card="1"] body .crewc.tm-team>.crewh{background:linear-gradient(90deg,#5b4bb0,#8a6fe0)}
+html[data-ui-card="1"] body .crewc.tm-crew>.crewh{background:linear-gradient(90deg,#b4641f,#e39a3c)}
+html[data-ui-card="1"] body .crewc.tm-team>.crewh *,html[data-ui-card="1"] body .crewc.tm-crew>.crewh *{color:#fff!important}
+html[data-ui-card="1"] body .crewc.tm-team.open>*:not(.crewh),html[data-ui-card="1"] body .crewc.tm-crew.open>*:not(.crewh){margin:12px 16px}
 .ukdots{position:absolute;top:8px;right:8px;z-index:3;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;color:#fff;background:rgba(10,12,14,.55);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(4px);cursor:pointer;opacity:0;transition:opacity .15s}
 .pcard2:hover .ukdots,.ukdots:focus-visible{opacity:1}
 @media(hover:none){.ukdots{opacity:1}}
@@ -5109,10 +5125,10 @@ const SV={open:'<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/>',edit:'<path d="M4
 const svg=k=>'<svg viewBox="0 0 24 24">'+SV[k]+'</svg>';
 let menu,scrim;
 function ensureMenu(){if(menu)return;menu=document.createElement('div');menu.id='ukmenu';scrim=document.createElement('div');scrim.id='ukscrim';document.body.append(scrim,menu);scrim.addEventListener('click',closeMenu)}
-function openMenu(card,x,y){ensureMenu();const id=card.getAttribute('data-arg');const inf=cardInfo(card);menu.dataset.id=id;
+function openMenu(card,x,y){ensureMenu();const det=card.classList.contains('phead');const id=det?card.dataset.pid:card.getAttribute('data-arg');const inf=det?{name:(card.querySelector('h1')||{}).textContent||'Project',type:(card.querySelector('.eyebrow')||{}).textContent||''}:cardInfo(card);menu.dataset.id=id;
   const ep=/series|episod|show/i.test(inf.type);
   menu.innerHTML='<div class="mh">'+esc(inf.name||'Project')+'</div>'
-   +'<a data-k="open">'+svg('open')+'Open project</a>'
+   +(det?'':'<a data-k="open">'+svg('open')+'Open project</a>')
    +'<a data-k="edit">'+svg('edit')+'Edit details</a>'
    +'<a data-k="settings">'+svg('gear')+'Project settings</a>'
    +'<a data-k="report">'+svg('rep')+(ep?'Episodes report':'Status report')+'</a>'
@@ -5132,7 +5148,7 @@ let lp=null,swEl=null,swUntil=0;
 addEventListener('click',e=>{
   if(swEl&&Date.now()<swUntil&&e.target.closest&&e.target.closest('.pcard2')===swEl){swEl=null;e.preventDefault();e.stopPropagation();return}
   const d=e.target.closest&&e.target.closest('.ukdots');
-  if(d){e.preventDefault();e.stopPropagation();const c=d.closest('[data-act="openProject"]');const r=d.getBoundingClientRect();openMenu(c,r.right-220,r.bottom+6);return}
+  if(d){e.preventDefault();e.stopPropagation();const c=d.closest('[data-act="openProject"]')||d.closest('.phead');const r=d.getBoundingClientRect();openMenu(c,r.right-220,r.bottom+6);return}
   const mi=e.target.closest&&e.target.closest('#ukmenu a');
   if(mi){e.preventDefault();e.stopPropagation();const id=menu.dataset.id;closeMenu();runItem(mi.dataset.k,id);return}
   if(menu&&menu.style.display==='block'&&!(e.target.closest&&e.target.closest('#ukmenu')))closeMenu();
@@ -5142,6 +5158,9 @@ addEventListener('touchstart',e=>{const c=e.target.closest&&e.target.closest('.p
 ['touchend','touchmove','touchcancel'].forEach(t=>addEventListener(t,()=>clearTimeout(lp),{passive:true}));
 addEventListener('keydown',e=>{if(e.key==='Escape'){closeMenu();closeFilter()}});
 addEventListener('resize',()=>{closeMenu();closeFilter()});
+function pageBits(){if(document.documentElement.getAttribute('data-ui-card')!=='1')return;
+ $$('.phead').forEach(h=>{const b=$('a[data-act="projEdit"]',h);if(b)h.dataset.pid=b.getAttribute('data-arg');if(!h.dataset.pid||$('.ukdots',h))return;h.insertAdjacentHTML('beforeend','<span class="ukdots phd" role="button" tabindex="0" aria-label="Project actions" title="Actions">⋯</span>')});
+ $$('.tile').forEach(t=>{const l=$('.tl',t);if(l&&/^Next delivery/i.test(l.textContent))t.classList.add('ukgone')})}
 function addDots(){if(document.documentElement.getAttribute('data-ui-card')!=='1')return;$$('.pcard2 .art').forEach(a=>{if(!$('.ukdots',a))a.insertAdjacentHTML('beforeend','<span class="ukdots" role="button" tabindex="0" aria-label="Project actions" title="Actions">⋯</span>')})}
 
 /* ---------- Filter: icon + popover ---------- */
@@ -5162,7 +5181,7 @@ function drawFilter(){if(!fpop)return;const s=yearSel(),m=cardsMeta();let h='';
   h+='<div class="pf"><span class="clr" data-clr="1">Clear all</span><span class="btn sm" data-done="1">Done</span></div>';fpop.innerHTML=h}
 function openFilter(b){if(!fpop){fpop=document.createElement('div');fpop.id='ukfpop';document.body.appendChild(fpop);
   fpop.addEventListener('click',e=>{e.stopPropagation();const y=e.target.closest('[data-y]'),p=e.target.closest('[data-g]');
-   if(y){const s=yearSel();if(s){s.selectedIndex=+y.dataset.y;s.dispatchEvent(new Event('change',{bubbles:true}))}setTimeout(()=>{drawFilter();sync()},80);return}
+   if(y){const s=yearSel();if(s){s.selectedIndex=+y.dataset.y;s.dispatchEvent(new Event('change',{bubbles:true}))}setTimeout(()=>{drawFilter();sync();pageBits()},80);return}
    if(p){const S=FT[p.dataset.g],v=p.dataset.v;S.has(v)?S.delete(v):S.add(v);drawFilter();sync();return}
    if(e.target.closest('[data-clr]')){clearAll();drawFilter();return}
    if(e.target.closest('[data-done]'))closeFilter()},true)}
