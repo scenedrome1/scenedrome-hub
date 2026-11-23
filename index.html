@@ -4941,6 +4941,15 @@ const _fpS=FORM.projEdit;FORM.projEdit=(fd,pid)=>{const p=P(pid);const f=documen
  const c=document.createElement('style');c.textContent='';document.head.appendChild(c)})();
 })();
 
+/* ================= UI kit · internal hooks (Duplicate project) ================= */
+ACT.projDup=id=>{const p=P(id);if(!p)return;
+ if(!(isOwner()||can('proj.create'))){toast('You don’t have access to duplicate projects','bad');return}
+ const c=JSON.parse(JSON.stringify(p));
+ c.id=uid('p');c.name=(p.name||'Project')+' (copy)';c.status='active';c.stage=0;c.start=Date.now();
+ c.budget=0;c.spent=0;c.quote=0;c.paid=0;c.previews=[];['quotes','disc','cf','dlv','poster'].forEach(k=>{delete c[k]});
+ if(Array.isArray(c.episodes))c.episodes.forEach(e=>{e.stage=0;e.statuses=['blank'];e.checks={};(e.scenes||[]).forEach(s=>{if(s&&typeof s==='object')s.locked=false})});
+ S.projects.push(c);save();go('project',c.id,'overview');toast('Duplicated — “'+c.name+'” is ready to edit','ok')};
+window.hubKit=Object.freeze({dup:true});
 if(LIVE){meId='…';render();liveBoot().catch(e=>{console.error(e);if(booted){toast('Something didn’t load: '+e.message,'bad');return}bootMsg='Couldn’t reach the Hub database: '+e.message;booted=false;meId=null;render()});sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){booted=false;meId=null;render()}})}else render();
 })();
 </script>
@@ -4953,7 +4962,7 @@ if(LIVE){meId='…';render();liveBoot().catch(e=>{console.error(e);if(booted){to
    Uses the Branding theme variables (--panel, --panel2, --line, --line2, --text, --muted) so Branding keeps control. */
 (()=>{
 const H=document.documentElement;
-const DEF={btn:'1',badge:'1',menu:'1',subnav:'1'};
+const DEF={btn:'1',badge:'1',menu:'1',subnav:'1',card:'1',filter:'1'};
 for(const k in DEF)if(!H.hasAttribute('data-ui-'+k))H.setAttribute('data-ui-'+k,DEF[k]);
 window.hubUI=(k,v)=>H.setAttribute('data-ui-'+k,String(v));
 
@@ -5002,6 +5011,52 @@ html[data-ui-subnav="1"] body .ptabs2 a:hover{background:color-mix(in srgb,var(-
 html[data-ui-subnav="1"] body .ptabs2 a.on{background:color-mix(in srgb,var(--sig,var(--text)) 16%,var(--panel2))!important;border-color:color-mix(in srgb,var(--sig,var(--text)) 55%,var(--line2))!important;color:var(--text)!important;box-shadow:0 2px 10px rgba(0,0,0,.35)!important}
 @media(min-width:701px){html[data-ui-subnav="1"] body .ptabs2 a[data-arg="overview"]>span{display:none!important}html[data-ui-subnav="1"] body .ptabs2 a[data-arg="overview"]{padding:14px 16px!important}html[data-ui-subnav="1"] body .ptabs2 a[data-arg="overview"] svg{width:20px!important;height:20px!important}}
 @media(max-width:700px){html[data-ui-subnav="1"] body .ptabs2{max-width:100%!important;overflow-x:auto!important;scrollbar-width:none}html[data-ui-subnav="1"] body .ptabs2::-webkit-scrollbar{display:none}html[data-ui-subnav="1"] body .ptabs2 a{padding:13px 14px!important;flex:none!important}}
+/* ---------- Page status tabs (Projects: Active · Pitching · Delivered · Cancelled) ---------- */
+html[data-ui-subnav="1"] body .ptabs{display:inline-flex!important;flex:0 1 auto!important;gap:5px!important;padding:5px!important;background:color-mix(in srgb,var(--text) 4%,var(--panel))!important;border:1px solid var(--line2)!important;border-radius:14px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)!important;max-width:100%;overflow-x:auto;scrollbar-width:none}
+html[data-ui-subnav="1"] body .ptabs::-webkit-scrollbar{display:none}
+html[data-ui-subnav="1"] body .ptabs>a{background:color-mix(in srgb,var(--text) 6%,var(--panel2))!important;border:1px solid var(--line)!important;border-radius:10px!important;padding:11px 15px!important;color:var(--muted)!important;font-weight:600!important;font-size:14px!important;box-shadow:none!important;white-space:nowrap;flex:none}
+html[data-ui-subnav="1"] body .ptabs>a:hover{background:color-mix(in srgb,var(--text) 11%,var(--panel2))!important;color:var(--text)!important}
+html[data-ui-subnav="1"] body .ptabs>a.on{background:color-mix(in srgb,var(--text) 14%,var(--panel2))!important;border-color:var(--line2)!important;color:var(--text)!important;box-shadow:0 2px 10px rgba(0,0,0,.35)!important}
+html[data-ui-subnav="1"] body .ptabs>a::after{display:none!important}
+
+/* ---------- Project card: ⋯ on the poster + action menu ---------- */
+html[data-ui-card="1"] body .pcard2 .art{position:relative}
+.ukdots{position:absolute;top:8px;right:8px;z-index:3;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;color:#fff;background:rgba(10,12,14,.55);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(4px);cursor:pointer;opacity:0;transition:opacity .15s}
+.pcard2:hover .ukdots,.ukdots:focus-visible{opacity:1}
+@media(hover:none){.ukdots{opacity:1}}
+#ukmenu{position:fixed;z-index:9999;min-width:220px;background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:6px;box-shadow:0 16px 36px rgba(0,0,0,.55);display:none}
+#ukmenu .mh{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:7px 10px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+#ukmenu a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:14px;color:var(--text);cursor:pointer;text-decoration:none}
+#ukmenu a:hover{background:color-mix(in srgb,var(--text) 8%,transparent)}
+#ukmenu svg{width:16px;height:16px;flex:none;stroke:var(--muted);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#ukmenu .sep{height:1px;background:var(--line);margin:5px 4px}
+#ukscrim{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.45);display:none}
+@media(max-width:700px){#ukmenu{left:8px!important;right:8px!important;top:auto!important;bottom:10px!important;min-width:0;border-radius:16px;padding:8px}#ukmenu a{padding:13px 12px;font-size:15px}#ukmenu .mh{max-width:none}}
+#uktoast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:10000;background:var(--panel);border:1px solid var(--line2);color:var(--text);padding:10px 16px;border-radius:10px;font-size:13.5px;box-shadow:0 10px 30px rgba(0,0,0,.5);opacity:0;transition:opacity .2s;pointer-events:none}
+#uktoast.on{opacity:1}
+
+/* ---------- Filter: icon + popover (replaces the years dropdown) ---------- */
+html[data-ui-filter="1"] body label.persel{display:none!important}
+.ukfbtn{position:relative;width:40px;height:38px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);display:inline-flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;flex:none}
+.ukfbtn:hover{background:color-mix(in srgb,var(--text) 9%,var(--panel2))}
+.ukfbtn.act{border-color:var(--k-add);color:var(--k-add)}
+.ukfbtn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ukfbtn .cnt{position:absolute;top:-7px;right:-7px;min-width:19px;height:19px;border-radius:999px;background:var(--k-add);color:#2a1d03;font:800 11px/19px inherit;text-align:center;padding:0 5px}
+#ukfpop{position:fixed;z-index:9999;width:340px;max-width:calc(100vw - 16px);max-height:70vh;overflow:auto;background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:14px;box-shadow:0 18px 40px rgba(0,0,0,.6);display:none}
+#ukfpop .gt{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 7px}
+#ukfpop .grp{margin-bottom:12px}
+#ukfpop .ps{display:flex;flex-wrap:wrap;gap:6px}
+#ukfpop .pill,.ukchips .pill{font:600 12.5px/1 inherit;padding:7px 11px;border-radius:999px;border:1px solid var(--line2);color:var(--muted);background:var(--panel2);cursor:pointer;user-select:none}
+#ukfpop .pill.on{border-color:var(--k-add);color:var(--k-add);background:color-mix(in srgb,var(--k-add) 12%,transparent)}
+#ukfpop .pf{display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--line)}
+#ukfpop .clr,.ukchips .clr{font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline}
+@media(max-width:700px){#ukfpop{left:8px!important;right:8px!important;top:auto!important;bottom:10px!important;width:auto;border-radius:16px}}
+.ukchips{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:0 0 12px}
+.ukchips:empty{display:none}
+.ukchips .chp{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 inherit;padding:6px 6px 6px 10px;border-radius:999px;background:color-mix(in srgb,var(--k-add) 14%,transparent);color:var(--k-add)}
+.ukchips .chp b{font-weight:600;color:var(--muted)}
+.ukchips .chp i{width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);font-style:normal;cursor:pointer;font-size:11px}
+.pcard2.ukhide{display:none!important}
 `;
 let st=document.getElementById('hub-uikit-css');
 if(!st){st=document.createElement('style');st.id='hub-uikit-css';document.head.appendChild(st)}
@@ -5031,9 +5086,97 @@ function tag(){
     if(b.__uk===sig)return;b.__uk=sig;b.dataset.k=kind(b);
   });
 }
-let q=0;const run=()=>{q=0;tag()};
-new MutationObserver(()=>{if(!q)q=requestAnimationFrame(run)}).observe(document.body,{childList:true,subtree:true,characterData:true});
-tag();
+/* ---------- shared helpers ---------- */
+const $=(q,r)=>(r||document).querySelector(q),$$=(q,r)=>[...(r||document).querySelectorAll(q)];
+const fire=(act,arg)=>{const a=document.createElement('a');a.setAttribute('data-act',act);if(arg!=null)a.setAttribute('data-arg',arg);a.style.display='none';document.body.appendChild(a);a.click();a.remove()};
+const toast=(m)=>{let t=$('#uktoast');if(!t){t=document.createElement('div');t.id='uktoast';document.body.appendChild(t)}t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2600)};
+const esc=v=>String(v==null?'':v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cardInfo=c=>{const pb=$('.pb',c);if(!pb)return{name:'',client:'',type:''};const chip=$('.chip',pb);const ct=chip?chip.innerText.trim():'';
+  const ls=pb.innerText.split('\n').map(x=>x.trim()).filter(x=>x&&x!==ct);const meta=(ls[1]||'').split('·').map(x=>x.trim());
+  return{name:ls[0]||'',client:meta.length>1?meta[0]:'',type:meta.length>1?meta[1]:(meta[0]||'')}};
+
+/* ---------- Project card: ⋯ menu (right-click · ⋯ · long-press) ---------- */
+const SV={open:'<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>',rep:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7M9 8h3"/>',dup:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V6a2 2 0 0 1 2-2h10"/>'};
+const svg=k=>'<svg viewBox="0 0 24 24">'+SV[k]+'</svg>';
+let menu,scrim;
+function ensureMenu(){if(menu)return;menu=document.createElement('div');menu.id='ukmenu';scrim=document.createElement('div');scrim.id='ukscrim';document.body.append(scrim,menu);scrim.addEventListener('click',closeMenu)}
+function openMenu(card,x,y){ensureMenu();const id=card.getAttribute('data-arg');const inf=cardInfo(card);menu.dataset.id=id;
+  const ep=/series|episod|show/i.test(inf.type);
+  menu.innerHTML='<div class="mh">'+esc(inf.name||'Project')+'</div>'
+   +'<a data-k="open">'+svg('open')+'Open project</a>'
+   +'<a data-k="edit">'+svg('edit')+'Edit details</a>'
+   +'<a data-k="settings">'+svg('gear')+'Project settings</a>'
+   +'<a data-k="report">'+svg('rep')+(ep?'Episodes report':'Status report')+'</a>'
+   +'<div class="sep"></div>'
+   +'<a data-k="dup">'+svg('dup')+'Duplicate project</a>';
+  menu.style.display='block';const mob=innerWidth<=700;scrim.style.display=mob?'block':'none';
+  if(!mob){const w=menu.offsetWidth,h=menu.offsetHeight;menu.style.left=Math.max(8,Math.min(x,innerWidth-w-8))+'px';menu.style.top=Math.max(8,Math.min(y,innerHeight-h-8))+'px'}}
+function closeMenu(){if(menu){menu.style.display='none';scrim.style.display='none'}}
+function runItem(k,id){
+  if(k==='open')fire('openProject',id);
+  else if(k==='edit')fire('projEdit',id);
+  else if(k==='report')fire('openProject',id+'|report');
+  else if(k==='settings'){fire('openProject',id+'|overview');let n=0;const t=setInterval(()=>{const h=$('[data-act="tog"][data-arg="ps'+id+'|0"]');
+    if(h||++n>25){clearInterval(t);if(h){if(!/▾/.test(h.textContent))h.click();setTimeout(()=>{const x=$('[data-act="tog"][data-arg="ps'+id+'|0"]');if(x)x.scrollIntoView({behavior:'smooth',block:'center'})},60)}}},60)}
+  else if(k==='dup'){if(window.hubKit&&window.hubKit.dup)fire('projDup',id);else toast('Duplicate turns on when this update is published')}}
+let lp=null,swEl=null,swUntil=0;
+addEventListener('click',e=>{
+  if(swEl&&Date.now()<swUntil&&e.target.closest&&e.target.closest('.pcard2')===swEl){swEl=null;e.preventDefault();e.stopPropagation();return}
+  const d=e.target.closest&&e.target.closest('.ukdots');
+  if(d){e.preventDefault();e.stopPropagation();const c=d.closest('[data-act="openProject"]');const r=d.getBoundingClientRect();openMenu(c,r.right-220,r.bottom+6);return}
+  const mi=e.target.closest&&e.target.closest('#ukmenu a');
+  if(mi){e.preventDefault();e.stopPropagation();const id=menu.dataset.id;closeMenu();runItem(mi.dataset.k,id);return}
+  if(menu&&menu.style.display==='block'&&!(e.target.closest&&e.target.closest('#ukmenu')))closeMenu();
+},true);
+addEventListener('contextmenu',e=>{if(document.documentElement.getAttribute('data-ui-card')!=='1')return;const c=e.target.closest&&e.target.closest('.pcard2[data-act="openProject"]');if(!c)return;e.preventDefault();openMenu(c,e.clientX,e.clientY)},true);
+addEventListener('touchstart',e=>{const c=e.target.closest&&e.target.closest('.pcard2[data-act="openProject"]');if(!c||e.target.closest('.ukdots'))return;clearTimeout(lp);lp=setTimeout(()=>{swEl=c;swUntil=Date.now()+900;openMenu(c,0,0)},520)},{passive:true});
+['touchend','touchmove','touchcancel'].forEach(t=>addEventListener(t,()=>clearTimeout(lp),{passive:true}));
+addEventListener('keydown',e=>{if(e.key==='Escape'){closeMenu();closeFilter()}});
+addEventListener('resize',()=>{closeMenu();closeFilter()});
+function addDots(){if(document.documentElement.getAttribute('data-ui-card')!=='1')return;$$('.pcard2 .art').forEach(a=>{if(!$('.ukdots',a))a.insertAdjacentHTML('beforeend','<span class="ukdots" role="button" tabindex="0" aria-label="Project actions" title="Actions">⋯</span>')})}
+
+/* ---------- Filter: icon + popover ---------- */
+const FT={type:new Set(),client:new Set()};let fpop;
+const FICON='<svg viewBox="0 0 24 24"><path d="M4 5h16l-6 8v5l-4 2v-7z"/></svg>';
+function yearSel(){return $('select[data-change="period"]')}
+function yearOn(){const s=yearSel();return s&&s.selectedIndex>0?s.options[s.selectedIndex]:null}
+function fCount(){return(yearOn()?1:0)+FT.type.size+FT.client.size}
+function addFilterBtn(){if(document.documentElement.getAttribute('data-ui-filter')!=='1')return;const lab=$('label.persel');if(!lab)return;
+  let b=lab.nextElementSibling&&lab.nextElementSibling.classList.contains('ukfbtn')?lab.nextElementSibling:null;
+  if(!b){b=document.createElement('span');b.className='ukfbtn';b.setAttribute('role','button');b.setAttribute('aria-label','Filter projects');b.title='Filter';lab.insertAdjacentElement('afterend',b);b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();fpop&&fpop.style.display==='block'?closeFilter():openFilter(b)},true)}
+  const n=fCount(),html=FICON+(n?'<span class="cnt">'+n+'</span>':'');if(b.innerHTML!==html)b.innerHTML=html;b.classList.toggle('act',n>0)}
+function cardsMeta(){const ty=new Set(),cl=new Set();$$('.pcard2').forEach(c=>{const i=cardInfo(c);if(i.type)ty.add(i.type);if(i.client)cl.add(i.client)});return{ty:[...ty].sort(),cl:[...cl].sort()}}
+function drawFilter(){if(!fpop)return;const s=yearSel(),m=cardsMeta();let h='';
+  if(s)h+='<div class="grp"><div class="gt">Year</div><div class="ps">'+[...s.options].map((o,i)=>'<span class="pill'+(s.selectedIndex===i?' on':'')+'" data-y="'+i+'">'+esc(o.text)+'</span>').join('')+'</div></div>';
+  if(m.ty.length)h+='<div class="grp"><div class="gt">Type</div><div class="ps">'+m.ty.map(v=>'<span class="pill'+(FT.type.has(v)?' on':'')+'" data-g="type" data-v="'+esc(v)+'">'+esc(v)+'</span>').join('')+'</div></div>';
+  if(m.cl.length)h+='<div class="grp"><div class="gt">Client</div><div class="ps">'+m.cl.map(v=>'<span class="pill'+(FT.client.has(v)?' on':'')+'" data-g="client" data-v="'+esc(v)+'">'+esc(v)+'</span>').join('')+'</div></div>';
+  h+='<div class="pf"><span class="clr" data-clr="1">Clear all</span><span class="btn sm" data-done="1">Done</span></div>';fpop.innerHTML=h}
+function openFilter(b){if(!fpop){fpop=document.createElement('div');fpop.id='ukfpop';document.body.appendChild(fpop);
+  fpop.addEventListener('click',e=>{e.stopPropagation();const y=e.target.closest('[data-y]'),p=e.target.closest('[data-g]');
+   if(y){const s=yearSel();if(s){s.selectedIndex=+y.dataset.y;s.dispatchEvent(new Event('change',{bubbles:true}))}setTimeout(()=>{drawFilter();sync()},80);return}
+   if(p){const S=FT[p.dataset.g],v=p.dataset.v;S.has(v)?S.delete(v):S.add(v);drawFilter();sync();return}
+   if(e.target.closest('[data-clr]')){clearAll();drawFilter();return}
+   if(e.target.closest('[data-done]'))closeFilter()},true)}
+  drawFilter();fpop.style.display='block';if(innerWidth>700){const r=b.getBoundingClientRect();fpop.style.left=Math.max(8,Math.min(r.right-340,innerWidth-348))+'px';fpop.style.top=(r.bottom+8)+'px'}}
+function closeFilter(){if(fpop)fpop.style.display='none'}
+document.addEventListener('click',e=>{if(fpop&&fpop.style.display==='block'&&!(e.target.closest&&(e.target.closest('#ukfpop')||e.target.closest('.ukfbtn'))))closeFilter()},true);
+function clearAll(){FT.type.clear();FT.client.clear();const s=yearSel();if(s&&s.selectedIndex>0){s.selectedIndex=0;s.dispatchEvent(new Event('change',{bubbles:true}))}setTimeout(sync,80)}
+function applyFilter(){$$('.pcard2').forEach(c=>{const i=cardInfo(c);const hide=(FT.type.size&&!FT.type.has(i.type))||(FT.client.size&&!FT.client.has(i.client));if(c.classList.contains('ukhide')!==!!hide)c.classList.toggle('ukhide',!!hide)})}
+function drawChips(){if(document.documentElement.getAttribute('data-ui-filter')!=='1')return;const first=$('.pcard2');if(!first)return;const grid=first.parentElement;
+  let row=grid.previousElementSibling&&grid.previousElementSibling.classList.contains('ukchips')?grid.previousElementSibling:null;
+  if(!row){row=document.createElement('div');row.className='ukchips';grid.insertAdjacentElement('beforebegin',row);row.addEventListener('click',e=>{const x=e.target.closest('[data-x]');if(x){e.stopPropagation();const[g,v]=x.dataset.x.split('\u0001');if(g==='year')clearYear();else{FT[g].delete(v);sync()}}if(e.target.closest('[data-clr]')){e.stopPropagation();clearAll()}},true)}
+  const ch=[];const y=yearOn();if(y)ch.push(['year','Year',y.text]);FT.type.forEach(v=>ch.push(['type','Type',v]));FT.client.forEach(v=>ch.push(['client','Client',v]));
+  const html=ch.map(([g,l,v])=>'<span class="chp"><b>'+l+'</b> '+esc(v)+'<i data-x="'+g+'\u0001'+esc(v)+'">✕</i></span>').join('')+(ch.length?'<span class="clr" data-clr="1">Clear all</span>':'');
+  if(row.innerHTML!==html)row.innerHTML=html}
+function clearYear(){const s=yearSel();if(s){s.selectedIndex=0;s.dispatchEvent(new Event('change',{bubbles:true}))}setTimeout(sync,80)}
+function sync(){applyFilter();addFilterBtn();drawChips()}
+
+/* ---------- one loop keeps everything applied after every Hub re-render ---------- */
+let q=0;const run=()=>{q=0;tag();addDots();sync()};
+if(window.__ukObs)window.__ukObs.disconnect();
+window.__ukObs=new MutationObserver(()=>{if(!q)q=requestAnimationFrame(run)});
+window.__ukObs.observe(document.body,{childList:true,subtree:true,characterData:true});
+run();
 })();
 </script>
 </body>
