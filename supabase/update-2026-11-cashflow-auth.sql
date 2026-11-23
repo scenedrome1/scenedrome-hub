@@ -70,3 +70,8 @@ revoke all on public.cashflow_auth_challenges from anon, authenticated;
 revoke all on public.cashflow_auth_sessions from anon, authenticated;
 revoke all on public.cashflow_auth_audit from anon, authenticated;
 revoke all on sequence public.cashflow_auth_audit_id_seq from anon, authenticated;
+
+-- The Edge Function's service role needs explicit access (projects without default grants).
+grant select, insert, update, delete on public.cashflow_auth_config, public.cashflow_auth_challenges,
+  public.cashflow_auth_sessions, public.cashflow_auth_audit to service_role;
+grant usage, select on sequence public.cashflow_auth_audit_id_seq to service_role;
