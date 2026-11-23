@@ -5179,7 +5179,7 @@ function closeMenu(){if(menu){menu.style.display='none';scrim.style.display='non
 function runItem(k,id){
   if(k==='open')fire('openProject',id);
   else if(k==='edit')fire('projEdit',id);
-  else if(k==='report')fire('openProject',id+'|report');
+  else if(k==='report')openTab(id,'report');
   else if(k==='settings'){fire('openProject',id+'|overview');let n=0;const t=setInterval(()=>{const h=$('[data-act="tog"][data-arg="ps'+id+'|0"]');
     if(h||++n>25){clearInterval(t);if(h){if(!/▾/.test(h.textContent))h.click();setTimeout(()=>{const x=$('[data-act="tog"][data-arg="ps'+id+'|0"]');if(x)x.scrollIntoView({behavior:'smooth',block:'center'})},60)}}},60)}
   else if(k==='dup'){if(window.hubKit&&window.hubKit.dup)fire('projDup',id);else toast('Duplicate turns on when this update is published')}}
@@ -5272,7 +5272,8 @@ function cmHL(text){if(!text)return;const key=text.toLowerCase().slice(0,40);let
   const w=document.createTreeWalker(document.querySelector('main')||document.body,NodeFilter.SHOW_TEXT);let x;while(x=w.nextNode()){if(x.parentElement&&!x.parentElement.closest('#ukcmd,script,style')&&x.nodeValue.toLowerCase().includes(key)){el=x.parentElement;break}}
   if(!el){for(const f of document.querySelectorAll('input,textarea')){if((f.value||'').toLowerCase().includes(key)){el=f;break}}}
   if(el||++n>12){clearInterval(t);if(el){const d=el.closest('details');if(d&&!d.open)d.open=true;el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('ukflash');setTimeout(()=>el.classList.remove('ukflash'),2600)}}},250)}
-function cmGo(n){const i=cmL[n];if(!i)return;cmClose();fire(i.act,i.arg);if(i.hit)cmHL(i.hit)}
+function openTab(id,tab){fire('openProject',id);setTimeout(()=>fire('tab',tab),120)}
+function cmGo(n){const i=cmL[n];if(!i)return;cmClose();if(i.act==='openProject'&&String(i.arg).includes('|')){const a=i.arg.split('|');openTab(a[0],a[1])}else fire(i.act,i.arg);if(i.hit)setTimeout(()=>cmHL(i.hit),300)}
 if(window.__ukKd)removeEventListener('keydown',window.__ukKd,true);
 window.__ukKd=e=>{
  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();e.stopPropagation();cm&&cm.style.display==='flex'?cmClose():cmOpen();return}
