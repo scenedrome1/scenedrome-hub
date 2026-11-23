@@ -5181,7 +5181,7 @@ function drawFilter(){if(!fpop)return;const s=yearSel(),m=cardsMeta();let h='';
   h+='<div class="pf"><span class="clr" data-clr="1">Clear all</span><span class="btn sm" data-done="1">Done</span></div>';fpop.innerHTML=h}
 function openFilter(b){if(!fpop){fpop=document.createElement('div');fpop.id='ukfpop';document.body.appendChild(fpop);
   fpop.addEventListener('click',e=>{e.stopPropagation();const y=e.target.closest('[data-y]'),p=e.target.closest('[data-g]');
-   if(y){const s=yearSel();if(s){s.selectedIndex=+y.dataset.y;s.dispatchEvent(new Event('change',{bubbles:true}))}setTimeout(()=>{drawFilter();sync();pageBits()},80);return}
+   if(y){const s=yearSel();if(s){s.selectedIndex=+y.dataset.y;s.dispatchEvent(new Event('change',{bubbles:true}))}setTimeout(()=>{drawFilter();sync()},80);return}
    if(p){const S=FT[p.dataset.g],v=p.dataset.v;S.has(v)?S.delete(v):S.add(v);drawFilter();sync();return}
    if(e.target.closest('[data-clr]')){clearAll();drawFilter();return}
    if(e.target.closest('[data-done]'))closeFilter()},true)}
@@ -5201,7 +5201,7 @@ function sync(){applyFilter();addFilterBtn();drawChips()}
 
 
 /* ---------- one loop keeps everything applied after every Hub re-render ---------- */
-let q=0;const run=()=>{q=0;tag();addDots();sync()};
+let q=0;const run=()=>{q=0;tag();addDots();sync();pageBits()};
 if(window.__ukObs)window.__ukObs.disconnect();
 window.__ukObs=new MutationObserver(()=>{if(!q)q=requestAnimationFrame(run)});
 window.__ukObs.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','data-k']});
