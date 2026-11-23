@@ -1021,7 +1021,7 @@ else if(u.role==='partner'){N.push(['home','Collab hub','home'],['projects','Our
 else{N.push(['home','Dashboard','home'],['projects','Projects','film'],['messages','Messages','chat']);
 const mg=[];if(isFinMember()||can('fin.cashflow')||can('fin.projectEntry')||can('fin.overview')||can('fin.receivables')||can('fin.budgetsOwn')||can('fin.budgetsAll')||can('fin.salaries')||can('fin.expenses'))mg.push(['finance','Finance','wallet']);if(teamOK())mg.push(['team','Team','users']);if(isOwner()||seesClients())mg.push(['clients','Clients','brief']);if(can('partners.view'))mg.push(['partners','Partner studios','hand']);
 const ops=[];if(can('storage.view'))ops.push(['storage','Storage & devices','drive']);if(can('mkt.view'))ops.push(['marketing','Marketing','mega']);ops.push(['handbook','Studio handbook','book']);
-if(mg.length){g('Management');N.push(...mg)}g('Studio');N.push(...ops);if(can('admin.users')||can('people.add')||isOwner()){g('Admin');if(can('admin.users')||can('people.add'))N.push(['admin','Users & access','shield']);if(isOwner())N.push(['branding','Branding','star'])}}
+if(mg.length){g('Management');N.push(...mg)}g('Studio');N.push(...ops);if(can('admin.users')||can('people.add')||isOwner()){g('Admin');if(can('admin.users')||can('people.add'))N.push(['admin','Users & access','shield']);if(isOwner()||can('settings.manage'))N.push(['settings','Settings','gear'])}}
 g('You');N.push(['profile','My profile','user']);return N}
 function shellHTML(){const u=me();const titles={group:'SCENEDROME Chat',client:'Client',history:'History',branding:'Branding',home:u.role==='partner'?'Collab hub':u.role==='client'?'Home':'Dashboard',projects:u.role==='partner'?'Our collabs':u.role==='client'?'My projects':'Projects',messages:'Messages',dm:(U(V.p)||{}).name||'Message',team:'Team',finance:'Finance',clients:'Clients',partners:'Partner studios',admin:'Users & access',profile:V.p&&V.p!==u.id?'Profile':'My profile',project:(P(V.p)||{}).name||'Project',rewards:'Offers & rewards',storage:'Storage & devices',assets:'Studio assets',marketing:'Marketing',handbook:'Studio handbook',access:'Access'};
 let body;try{body=(VIEWS[V.v]||VIEWS.home)()}catch(err){console.error('[hub] view',V.v,err);body=`<div class="card empty">This page hit a snag and couldn’t load (${esc(err.message)}). The rest of the Hub still works — try another page, or reload.</div>`}const un=unread();const my=S.notifs.filter(n=>n.to===u.id).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,30);
@@ -4961,7 +4961,19 @@ const _kSearch=q=>{q=String(q||'').trim().toLowerCase();if(q.length<2)return[];c
  try{const ids=new Set(ps.map(p=>p.id));(S.tasks||[]).filter(t=>ids.has(t.project)).forEach(t=>{const hits=[];_kWalk({title:t.title,desc:t.desc,description:t.description,note:t.note,notes:t.notes,brief:t.brief,tags:t.tags},[],toks,hits,1,0);if(hits.length){const p=P(t.project);res.push({k:'Tasks',text:t.title||hits[0].text,s:(p?p.name:'')+(hits[0].text!==t.title?' › '+hits[0].text.slice(0,60):''),act:'openProject',arg:t.project+'|overview',hit:hits[0].text})}})}catch(e){}
  try{(S.users||[]).filter(u=>!u.suspended).forEach(u=>{const hay=[u.name,u.title,u.company,u.role,u.dept,u.email].filter(Boolean).join(' ').toLowerCase();if(toks.every(t=>hay.includes(t)))res.push({k:'People',text:u.name||u.company||'Person',s:[u.title||u.role,u.company].filter(Boolean).join(' · '),act:'go',arg:u.role==='client'?'clients':u.role==='partner'?'partners':'team',need:u.role==='client'?'clients':u.role==='partner'?'partners':'team'})})}catch(e){}
  return res.slice(0,60)};
-window.hubKit=Object.freeze({dup:true,search:_kSearch,projects:()=>{try{return visibleProjects().map(p=>({id:p.id,name:p.name||'Untitled',client:((U(p.client)||{}).company)||'',type:(TYPES[p.type]||{}).label||'',status:p.status||'active'}))}catch(e){return[]}}});
+ACT.uiSet=a=>{const[k,v]=String(a).split('|');if(!(isOwner()||can('settings.manage')))return;BRAND.ui=Object.assign({},BRAND.ui||{},{[k]:v});brandSave();if(window.hubUIApply)window.hubUIApply();render()};
+ACT.stTypes=()=>{go('handbook');V.tab='types';render()};
+VIEWS.settings=()=>{if(!(isOwner()||can('settings.manage')))return deny();const u=BRAND.ui||{};
+ const comp=[['btn','Buttons',['Soft Studio','Outline','Solid pill']],['badge','Badges',['Soft tint','Outline','Solid']],['menu','Menus',['Soft card','Compact','Glass']],['subnav','Sub-page navigation',['Segmented','Underline','Pills']],['card','Project cards',['Poster','Square outline','Elevated']],['filter','Filter button',['Icon','Square outline','Accent circle']]];
+ const ui=comp.map(([k,l,o])=>`<div class="row" style="gap:10px;flex-wrap:wrap;align-items:center;padding:8px 0;border-top:1px solid var(--line)"><b style="width:170px;font-weight:600">${l}</b>${o.map((n,i)=>`<a class="btn sm ${String(u[k]||'1')===String(i+1)?'pri':''}" data-act="uiSet" data-arg="${k}|${i+1}">${i+1} · ${n}</a>`).join('')}</div>`).join('');
+ const prev=`<div class="row" style="gap:10px;flex-wrap:wrap;margin:14px 0 4px"><a class="btn pri sm">＋ Create</a><a class="btn sm">Neutral</a><a class="btn sm" style="color:var(--bad)">Delete</a><span class="chip ok">Approved</span><span class="chip warn">Waiting</span><span class="chip bad">Late</span><span class="chip info">Info</span></div><div class="tiny faint">Changes apply to everyone in the studio instantly.</div>`;
+ const link=(t,sub,btn)=>`<div class="row" style="gap:12px;align-items:center;padding:6px 0"><div class="grow muted">${sub}</div>${btn}</div>`;
+ return`<div class="hello"><div class="grow"><h1>Settings</h1><div class="muted">Studio-wide look and configuration</div></div></div>
+ ${sec('stBrand','Branding','Colours, fonts, logo',V.open.stBrand?VIEWS.branding():'')}
+ ${sec('stTypes','Types Management','Work types, stages and how they map to status',V.open.stTypes?link('','Edit the studio’s work types and their stages.','<a class="btn" data-act="stTypes">Open Types Management</a>'):'')}
+ ${sec('stHand','Studio Handbook','Jobs, scenarios and how the studio works',V.open.stHand?link('','Open the handbook.','<a class="btn" data-act="go" data-arg="handbook">Open Studio Handbook</a>'):'')}
+ ${sec('stUI','UI Design','Pick a style for each part of the interface — applies live',V.open.stUI?ui+prev:'')}`};
+window.hubKit=Object.freeze({dup:true,ui:()=>BRAND.ui||{},search:_kSearch,projects:()=>{try{return visibleProjects().map(p=>({id:p.id,name:p.name||'Untitled',client:((U(p.client)||{}).company)||'',type:(TYPES[p.type]||{}).label||'',status:p.status||'active'}))}catch(e){return[]}}});
 if(LIVE){meId='…';render();liveBoot().catch(e=>{console.error(e);if(booted){toast('Something didn’t load: '+e.message,'bad');return}bootMsg='Couldn’t reach the Hub database: '+e.message;booted=false;meId=null;render()});sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){booted=false;meId=null;render()}})}else render();
 })();
 </script>
@@ -4976,6 +4988,8 @@ const H=document.documentElement;
 const DEF={btn:'1',badge:'1',menu:'1',subnav:'1',card:'1',filter:'1'};
 for(const k in DEF)if(!H.hasAttribute('data-ui-'+k))H.setAttribute('data-ui-'+k,DEF[k]);
 window.hubUI=(k,v)=>H.setAttribute('data-ui-'+k,String(v));
+window.hubUIApply=()=>{try{const u=(window.hubKit&&window.hubKit.ui&&window.hubKit.ui())||{};for(const k in DEF){const v=String(u[k]||DEF[k]);if(H.getAttribute('data-ui-'+k)!==v)H.setAttribute('data-ui-'+k,v)}}catch(e){}};
+window.hubUIApply();
 
 const CSS=`
 html{--k-add:#F0B93A;--k-ok:#2ea36f;--k-bad:#e0704f;--k-prog:#1fb5a0;--k-wait:#F0B93A;--k-rev:#9a86d6;--k-info:#5f8fd0;--k-none:#7d848e}
@@ -5013,6 +5027,44 @@ html[data-ui-menu="1"] body .addm .addl a:hover,html[data-ui-menu="1"] body #dot
 html[data-ui-menu="1"] body .addm .addl a svg,html[data-ui-menu="1"] body #dotspanel .mi svg{color:var(--muted)!important}
 html[data-ui-menu="1"] body .addm .addh{font-size:10.5px!important;letter-spacing:.1em!important;text-transform:uppercase!important;opacity:.6;padding:7px 10px 5px!important}
 html[data-ui-menu="1"] body .addm .addl .addh~a{padding-left:10px!important}
+
+
+/* ---------- Alternative presets (2 / 3) ---------- */
+html[data-ui-btn="2"] body .btn{border-radius:8px!important;padding:9px 15px!important;font-weight:600!important;font-size:13.5px!important;background:transparent!important;border:1.5px solid var(--line2)!important;color:var(--text)!important;box-shadow:none!important}
+html[data-ui-btn="2"] body .btn.sm{padding:6px 11px!important;font-size:12.5px!important}
+html[data-ui-btn="2"] body .btn[data-k="add"],html[data-ui-btn="2"] body .btn[data-k="add-g"]{border-color:var(--k-add)!important;color:var(--k-add)!important}
+html[data-ui-btn="2"] body .btn[data-k="ok"]{border-color:var(--k-ok)!important;color:var(--k-ok)!important}
+html[data-ui-btn="2"] body .btn[data-k="gold"]{border-color:#dfa93f!important;color:#f3cf7e!important}
+html[data-ui-btn="2"] body .btn[data-k="bad"]{border-color:var(--k-bad)!important;color:var(--k-bad)!important}
+html[data-ui-btn="2"] body .btn:hover{background:color-mix(in srgb,var(--text) 9%,transparent)!important}
+html[data-ui-btn="3"] body .btn{border-radius:999px!important;padding:10px 18px!important;font-weight:700!important;font-size:13.5px!important;border:0!important;background:color-mix(in srgb,var(--text) 14%,var(--panel2))!important;color:var(--text)!important;box-shadow:0 2px 6px rgba(0,0,0,.3)!important}
+html[data-ui-btn="3"] body .btn.sm{padding:7px 13px!important;font-size:12.5px!important}
+html[data-ui-btn="3"] body .btn[data-k="add"],html[data-ui-btn="3"] body .btn[data-k="add-g"]{background:var(--k-add)!important;color:#2a1d03!important}
+html[data-ui-btn="3"] body .btn[data-k="ok"]{background:var(--k-ok)!important;color:#062015!important}
+html[data-ui-btn="3"] body .btn[data-k="gold"]{background:linear-gradient(#f3cf7e,#dfa93f)!important;color:#1b1407!important}
+html[data-ui-btn="3"] body .btn[data-k="bad"]{background:var(--k-bad)!important;color:#2a0d05!important}
+html[data-ui-btn="3"] body .btn:hover{filter:brightness(1.1)}
+html[data-ui-badge="2"] body .chip:not(.bellpanel .chip){--c:var(--k-none);padding:3px 9px!important;border-radius:6px!important;font-size:12px!important;font-weight:600!important;background:transparent!important;color:var(--c)!important;border:1.5px solid color-mix(in srgb,var(--c) 70%,transparent)!important}
+html[data-ui-badge="3"] body .chip:not(.bellpanel .chip){--c:var(--k-none);padding:4px 11px!important;border-radius:999px!important;font-size:12px!important;font-weight:700!important;background:var(--c)!important;color:#0e1210!important;border:0!important}
+html[data-ui-badge="2"] body .chip.ok,html[data-ui-badge="3"] body .chip.ok{--c:var(--k-ok)}html[data-ui-badge="2"] body .chip.warn,html[data-ui-badge="3"] body .chip.warn{--c:var(--k-wait)}html[data-ui-badge="2"] body .chip.gold,html[data-ui-badge="3"] body .chip.gold{--c:var(--k-prog)}html[data-ui-badge="2"] body .chip.bad,html[data-ui-badge="3"] body .chip.bad{--c:var(--k-bad)}html[data-ui-badge="2"] body .chip.info,html[data-ui-badge="3"] body .chip.info{--c:var(--k-info)}html[data-ui-badge="2"] body .chip.lilac,html[data-ui-badge="3"] body .chip.lilac{--c:var(--k-rev)}
+html[data-ui-menu="2"] body .addm .addl,html[data-ui-menu="2"] body #dotspanel,html[data-ui-menu="2"] body #ukmenu{background:var(--panel)!important;border:1px solid var(--line2)!important;border-radius:6px!important;padding:3px!important;box-shadow:0 8px 20px rgba(0,0,0,.5)!important}
+html[data-ui-menu="2"] body .addm .addl a,html[data-ui-menu="2"] body #dotspanel .mi,html[data-ui-menu="2"] body #ukmenu a{padding:6px 9px!important;border-radius:4px!important;font-size:13px!important}
+html[data-ui-menu="3"] body .addm .addl,html[data-ui-menu="3"] body #dotspanel,html[data-ui-menu="3"] body #ukmenu{background:color-mix(in srgb,var(--panel) 78%,transparent)!important;backdrop-filter:blur(14px) saturate(140%);border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;border-radius:18px!important;padding:8px!important;box-shadow:0 22px 50px rgba(0,0,0,.6)!important}
+html[data-ui-menu="3"] body .addm .addl a,html[data-ui-menu="3"] body #dotspanel .mi,html[data-ui-menu="3"] body #ukmenu a{padding:10px 12px!important;border-radius:12px!important;font-size:14px!important}
+html[data-ui-subnav="2"] body .ptabs2,html[data-ui-subnav="2"] body .ptabs{display:flex!important;gap:4px!important;background:transparent!important;border:0!important;border-bottom:1px solid var(--line2)!important;border-radius:0!important;padding:0!important;max-width:100%;overflow-x:auto;scrollbar-width:none;margin-left:auto!important;margin-right:auto!important;width:fit-content}
+html[data-ui-subnav="2"] body .ptabs2 a,html[data-ui-subnav="2"] body .ptabs>a{background:transparent!important;border:0!important;border-bottom:3px solid transparent!important;border-radius:0!important;padding:13px 18px!important;color:var(--muted)!important;font-weight:600!important;box-shadow:none!important}
+html[data-ui-subnav="2"] body .ptabs2 a.on,html[data-ui-subnav="2"] body .ptabs>a.on{color:var(--text)!important;border-bottom-color:var(--sig,var(--k-add))!important}
+html[data-ui-subnav="3"] body .ptabs2,html[data-ui-subnav="3"] body .ptabs{display:flex!important;gap:8px!important;background:transparent!important;border:0!important;padding:0!important;margin-left:auto!important;margin-right:auto!important;width:fit-content;max-width:100%;overflow-x:auto;scrollbar-width:none}
+html[data-ui-subnav="3"] body .ptabs2 a,html[data-ui-subnav="3"] body .ptabs>a{border-radius:999px!important;padding:10px 18px!important;background:var(--panel2)!important;border:1px solid var(--line2)!important;color:var(--muted)!important;font-weight:600!important}
+html[data-ui-subnav="3"] body .ptabs2 a.on,html[data-ui-subnav="3"] body .ptabs>a.on{background:var(--text)!important;color:var(--bg,#0b1411)!important;border-color:var(--text)!important}
+html[data-ui-subnav="3"] body .ptabs2 a.on svg{color:var(--bg,#0b1411)!important}
+html[data-ui-card="2"] body .pcard2{border-radius:4px!important;border:1.5px solid var(--line2)!important;box-shadow:none!important}
+html[data-ui-card="2"] body .pcard2 .art{border-radius:2px!important}
+html[data-ui-card="3"] body .pcard2{border-radius:20px!important;box-shadow:0 12px 28px rgba(0,0,0,.4)!important;transition:transform .15s}
+html[data-ui-card="3"] body .pcard2:hover{transform:translateY(-3px)}
+html[data-ui-card="3"] body .pcard2 .art{border-radius:16px!important;margin:6px!important}
+html[data-ui-filter="2"] body .ukfbtn{border-radius:6px!important;border-width:1.5px!important}
+html[data-ui-filter="3"] body .ukfbtn{border-radius:999px!important;background:var(--k-add)!important;border-color:var(--k-add)!important;color:#2a1d03!important}
 
 /* ---------- Sub-page nav · 1 Segmented (tall, separated tiles) ---------- */
 html[data-ui-subnav="1"] body .ptabs2{display:flex!important;width:fit-content!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;gap:5px!important;padding:5px!important;background:color-mix(in srgb,var(--text) 4%,var(--panel))!important;border:1px solid var(--line2)!important;border-radius:14px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)!important}
@@ -5289,7 +5341,7 @@ function cmBtn(){if(document.getElementById('ukcmdbtn'))return;const bw=$('.top 
  bw.insertAdjacentHTML('beforebegin','<a class="ukcmdbtn" id="ukcmdbtn" role="button" title="Search (Ctrl K)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>'+(MAC?'⌘K':'Ctrl K')+'</kbd></a>');
  document.getElementById('ukcmdbtn').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();cmOpen()})}
 /* ---------- one loop keeps everything applied after every Hub re-render ---------- */
-let q=0;const run=()=>{q=0;tag();addDots();sync();pageBits();cmBtn()};
+let q=0;const run=()=>{q=0;tag();addDots();sync();pageBits();cmBtn();window.hubUIApply()};
 if(window.__ukObs)window.__ukObs.disconnect();
 window.__ukObs=new MutationObserver(()=>{if(!q)q=requestAnimationFrame(run)});
 window.__ukObs.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','data-k']});
