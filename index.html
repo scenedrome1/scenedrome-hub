@@ -4961,6 +4961,9 @@ const _kSearch=q=>{q=String(q||'').trim().toLowerCase();if(q.length<2)return[];c
  try{const ids=new Set(ps.map(p=>p.id));(S.tasks||[]).filter(t=>ids.has(t.project)).forEach(t=>{const hits=[];_kWalk({title:t.title,desc:t.desc,description:t.description,note:t.note,notes:t.notes,brief:t.brief,tags:t.tags},[],toks,hits,1,0);if(hits.length){const p=P(t.project);res.push({k:'Tasks',text:t.title||hits[0].text,s:(p?p.name:'')+(hits[0].text!==t.title?' › '+hits[0].text.slice(0,60):''),act:'openProject',arg:t.project+'|overview',hit:hits[0].text})}})}catch(e){}
  try{(S.users||[]).filter(u=>!u.suspended).forEach(u=>{const hay=[u.name,u.title,u.company,u.role,u.dept,u.email].filter(Boolean).join(' ').toLowerCase();if(toks.every(t=>hay.includes(t)))res.push({k:'People',text:u.name||u.company||'Person',s:[u.title||u.role,u.company].filter(Boolean).join(' · '),act:'go',arg:u.role==='client'?'clients':u.role==='partner'?'partners':'team',need:u.role==='client'?'clients':u.role==='partner'?'partners':'team'})})}catch(e){}
  return res.slice(0,60)};
+const TYPE_KEYS=[['breakdown','Episodes & scenes / flow'],['report','Episodes report'],['briefs','VFX & sound briefs'],['tasks','Tasks'],['thread','Thread'],['files','Files & links'],['drives','Drives'],['money','Deal & money']];
+function typeGrid(){const off=(BRAND.typeOff||{});return`<div class="tiny faint" style="margin-bottom:10px">Tick the project details each type includes. Unticked details are hidden for every project of that type. Overview is always included.</div><div class="grid g2">${Object.entries(TYPES).map(([t,T])=>{const o=new Set(off[t]||[]);return`<div class="card"><h3 style="margin:0 0 8px">${esc(T.label)}</h3><div class="col" style="gap:6px">${TYPE_KEYS.filter(([k])=>T.episodic||!['report','breakdown'].includes(k)||k==='breakdown').map(([k,l])=>`<label class="row" style="gap:8px;align-items:center"><input type="checkbox" data-change="typeInc" data-arg="${t}|${k}" ${o.has(k)?'':'checked'}> ${esc(k==='breakdown'&&!T.episodic?'Flow':l)}</label>`).join('')}</div></div>`}).join('')}</div>`}
+CHG.typeInc=(a,el)=>{const[t,k]=String(a).split('|');BRAND.typeOff=BRAND.typeOff||{};const o=new Set(BRAND.typeOff[t]||[]);if(el.checked)o.delete(k);else o.add(k);BRAND.typeOff[t]=[...o];brandSave();if(window.hubKit&&window.hubKit.refreshTypes)window.hubKit.refreshTypes();render()};
 ACT.uiSet=a=>{const[k,v]=String(a).split('|');if(!(isOwner()||can('settings.manage')))return;BRAND.ui=Object.assign({},BRAND.ui||{},{[k]:v});brandSave();if(window.hubUIApply)window.hubUIApply();render()};
 ACT.stTypes=()=>{go('handbook');V.tab='types';render()};
 VIEWS.settings=()=>{if(!(isOwner()||can('settings.manage')))return deny();const u=BRAND.ui||{};
@@ -4970,10 +4973,10 @@ VIEWS.settings=()=>{if(!(isOwner()||can('settings.manage')))return deny();const 
  const link=(t,sub,btn)=>`<div class="row" style="gap:12px;align-items:center;padding:6px 0"><div class="grow muted">${sub}</div>${btn}</div>`;
  return`<div class="hello"><div class="grow"><h1>Settings</h1><div class="muted">Studio-wide look and configuration</div></div></div>
  ${sec('stBrand','Branding','Colours, fonts, logo',V.open.stBrand?VIEWS.branding():'')}
- ${sec('stTypes','Types Management','Work types, stages and how they map to status',V.open.stTypes?link('','Edit the studio’s work types and their stages.','<a class="btn" data-act="stTypes">Open Types Management</a>'):'')}
+ ${sec('stTypes','Project types','Choose which project details each type includes',V.open.stTypes?typeGrid():'')}
  ${sec('stHand','Studio Handbook','Jobs, scenarios and how the studio works',V.open.stHand?link('','Open the handbook.','<a class="btn" data-act="go" data-arg="handbook">Open Studio Handbook</a>'):'')}
  ${sec('stUI','UI Design','Pick a style for each part of the interface — applies live',V.open.stUI?ui+prev:'')}`};
-window.hubKit=Object.freeze({dup:true,ui:()=>BRAND.ui||{},search:_kSearch,projects:()=>{try{return visibleProjects().map(p=>({id:p.id,name:p.name||'Untitled',client:((U(p.client)||{}).company)||'',type:(TYPES[p.type]||{}).label||'',status:p.status||'active'}))}catch(e){return[]}}});
+window.hubKit=Object.freeze({dup:true,typeOff:()=>BRAND.typeOff||{},typeOf:pid=>{const p=P(pid);return p?p.type:null},ui:()=>BRAND.ui||{},search:_kSearch,projects:()=>{try{return visibleProjects().map(p=>({id:p.id,name:p.name||'Untitled',client:((U(p.client)||{}).company)||'',type:(TYPES[p.type]||{}).label||'',status:p.status||'active'}))}catch(e){return[]}}});
 if(LIVE){meId='…';render();liveBoot().catch(e=>{console.error(e);if(booted){toast('Something didn’t load: '+e.message,'bad');return}bootMsg='Couldn’t reach the Hub database: '+e.message;booted=false;meId=null;render()});sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){booted=false;meId=null;render()}})}else render();
 })();
 </script>
@@ -5255,6 +5258,8 @@ addEventListener('resize',()=>{closeMenu();closeFilter()});
 function pageBits(){if(document.documentElement.getAttribute('data-ui-card')!=='1')return;
  $$('.phead').forEach(h=>{const b=$('a[data-act="projEdit"]',h);if(b)h.dataset.pid=b.getAttribute('data-arg');if(!h.dataset.pid||$('.ukdots',h))return;h.insertAdjacentHTML('beforeend','<span class="ukdots phd" role="button" tabindex="0" aria-label="Project actions" title="Actions">⋯</span>')});
  $$('.grid.g4').forEach(g=>{if(!/Show progress/i.test(g.textContent))return;[...g.children].forEach((k,i)=>{if(k.classList.contains('kpi')){k.classList.add('ukprog','ukk'+i)}})});
+ const hp=$('.phead');const pid=hp&&hp.dataset.pid;const ty=pid&&window.hubKit&&window.hubKit.typeOf?window.hubKit.typeOf(pid):null;const off=ty&&window.hubKit.typeOff?(window.hubKit.typeOff()[ty]||[]):[];
+ $$('.tabs a[data-arg],.ptabs2 a[data-arg]').forEach(a=>{const k=a.dataset.arg;const hide=off.includes(k);a.style.display=hide?'none':'';});
  $$('.tile').forEach(t=>{const l=$('.tl',t);if(l&&/^Next delivery/i.test(l.textContent))t.classList.add('ukgone')})}
 function addDots(){if(document.documentElement.getAttribute('data-ui-card')!=='1')return;$$('.pcard2 .pf').forEach(a=>{if(!$('.ukdots',a))a.insertAdjacentHTML('beforeend','<span class="ukdots cf" role="button" tabindex="0" aria-label="Project actions" title="Actions">⋯</span>')})}
 
