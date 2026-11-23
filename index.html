@@ -5125,7 +5125,7 @@ const SV={open:'<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/>',edit:'<path d="M4
 const svg=k=>'<svg viewBox="0 0 24 24">'+SV[k]+'</svg>';
 let menu,scrim;
 function ensureMenu(){if(menu)return;menu=document.createElement('div');menu.id='ukmenu';scrim=document.createElement('div');scrim.id='ukscrim';document.body.append(scrim,menu);scrim.addEventListener('click',closeMenu)}
-function openMenu(card,x,y){ensureMenu();const det=card.classList.contains('phead');const id=det?card.dataset.pid:card.getAttribute('data-arg');const inf=det?{name:(card.querySelector('h1')||{}).textContent||'Project',type:(card.querySelector('.eyebrow')||{}).textContent||''}:cardInfo(card);menu.dataset.id=id;
+function openMenu(card,x,y){ensureMenu();const det=card.classList.contains('phead');const id=det?card.dataset.pid:card.getAttribute('data-arg');const inf=det?{name:((card.querySelector('h1')||{}).firstChild||{}).textContent||'Project',type:(card.querySelector('.eyebrow')||{}).textContent||''}:cardInfo(card);menu.dataset.id=id;
   const ep=/series|episod|show/i.test(inf.type);
   menu.innerHTML='<div class="mh">'+esc(inf.name||'Project')+'</div>'
    +(det?'':'<a data-k="open">'+svg('open')+'Open project</a>')
@@ -5148,7 +5148,7 @@ let lp=null,swEl=null,swUntil=0;
 addEventListener('click',e=>{
   if(swEl&&Date.now()<swUntil&&e.target.closest&&e.target.closest('.pcard2')===swEl){swEl=null;e.preventDefault();e.stopPropagation();return}
   const d=e.target.closest&&e.target.closest('.ukdots');
-  if(d){e.preventDefault();e.stopPropagation();const c=d.closest('[data-act="openProject"]')||d.closest('.phead');const r=d.getBoundingClientRect();openMenu(c,r.right-220,r.bottom+6);return}
+  if(d){e.preventDefault();e.stopPropagation();const c=d.closest('[data-act="openProject"]')||d.closest('.phead');const r=d.getBoundingClientRect();openMenu(c,d.classList.contains('phd')?r.left:r.right-220,r.bottom+6);return}
   const mi=e.target.closest&&e.target.closest('#ukmenu a');
   if(mi){e.preventDefault();e.stopPropagation();const id=menu.dataset.id;closeMenu();runItem(mi.dataset.k,id);return}
   if(menu&&menu.style.display==='block'&&!(e.target.closest&&e.target.closest('#ukmenu')))closeMenu();
