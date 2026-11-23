@@ -911,7 +911,7 @@ Object.entries(cur).forEach(([tb,m])=>{const prev=SYNCED[tb]||(SYNCED[tb]=new Ma
 ops.forEach(o=>{const[op,tb,row,id,js]=o;if(op==='delete')SYNCED[tb].delete(id);else SYNCED[tb].set(id,js)});
 if(!ops.length)return;syncChain=syncChain.then(async()=>{for(const[op,tb,row,id]of ops){const key=tb==='cashflow_docs'?'path':'id';let q;
  if(op==='insert'){q=sb.from(tb).insert(row)}else if(op==='update'){const r=Object.assign({},row);delete r.id;q=sb.from(tb).update(r).eq(key,id)}else q=sb.from(tb).delete().eq(key,id);
- const{error}=await q;if(error){console.warn('[hub] save',tb,op,error);SYNCED[tb]&&SYNCED[tb].delete(id);toast(error.code==='42501'?'That change isn’t allowed for your account':'Couldn’t save: '+error.message,'bad')}}}).catch(e=>console.warn(e))}
+ const{error}=await q;if(error){console.warn('[hub] save',tb,op,error);if(error.code==='42501'){(window.__hubDenied=window.__hubDenied||[]).push([tb,op,id,Date.now()]);const now=Date.now(),k=tb+'|'+op+'|'+id;window.__hubDT=window.__hubDT||{};if(!window.__hubDT[k]&&now-(window.__hubDL||0)>20000){window.__hubDL=now;toast('Some of that wasn’t saved — your account can’t change it','bad')}window.__hubDT[k]=1}else{SYNCED[tb]&&SYNCED[tb].delete(id);toast('Couldn’t save: '+error.message,'bad')}}}}).catch(e=>console.warn(e))}
 async function fetchAll(tb){let all=[],from=0;for(;;){const{data,error}=await sb.from(tb).select('*').range(from,from+999);if(error)throw error;all=all.concat(data||[]);if(!data||data.length<1000)break;from+=1000}return all}
 function fromRow(tb,r){const d=TB.find(x=>x[1]===tb);return d&&d[3]?d[3](r):r.data}
 async function liveBoot(){const{data:{session}}=await sb.auth.getSession();
