@@ -5290,7 +5290,7 @@ function pageBits(){if(document.documentElement.getAttribute('data-ui-card')!=='
  $$('.sec,details,.card').forEach(e=>{const hd=$(':scope>.sh,:scope>summary',e);if(hd&&/Project (settings|specs)/i.test(hd.textContent)&&!e.classList.contains('ukdlv'))hid(e,true)});
  $$('a[data-act="stAdd"]').forEach(a=>hid(a,true));
  $$('.tile').forEach(t=>{const l=$('.tl',t);hid(t,!!l&&/^(Unassigned|Reviews)/i.test(l.textContent.trim()))});
- $$('h3').forEach(h=>{if(/^Project storage$/i.test(h.textContent.trim())){const blk=h.parentElement&&h.parentElement.parentElement;if(blk)hid(blk,true)}});
+ $$('div,h3,h2,span,b').forEach(h=>{if(h.children.length<3&&/^Project storage$/i.test(h.textContent.trim())){const blk=h.parentElement&&h.parentElement.parentElement;if(blk&&!blk.classList.contains('phead')&&!blk.classList.contains('main'))hid(blk,true)}});
  $$('.tabs a[data-arg],.ptabs2 a[data-arg]').forEach(a=>{const k=a.dataset.arg;const hide=off.includes(k);a.style.display=hide?'none':'';});
  $$('.tile').forEach(t=>{const l=$('.tl',t);if(l&&/^Next delivery/i.test(l.textContent))t.classList.add('ukgone')})}
 function addDots(){if(document.documentElement.getAttribute('data-ui-card')!=='1')return;$$('.pcard2 .pf').forEach(a=>{if(!$('.ukdots',a))a.insertAdjacentHTML('beforeend','<span class="ukdots cf" role="button" tabindex="0" aria-label="Project actions" title="Actions">⋯</span>')})}
