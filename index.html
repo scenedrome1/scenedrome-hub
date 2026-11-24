@@ -512,7 +512,7 @@ html[data-theme] .modal{width:min(560px,96vw)}html[data-theme] .modal.wide{width
 html[data-theme] tr.csrow>td{background:var(--panel)}
 html[data-theme] tr.csrow:nth-child(even of .csrow)>td{background:color-mix(in srgb,var(--text) 4%,var(--panel))}
 html[data-theme=dark] tr.csrow:nth-child(even of .csrow)>td{background:color-mix(in srgb,#fff 4.5%,var(--panel))}
-html[data-theme] tr.csrow:hover>td{background:linear-gradient(90deg,color-mix(in srgb,var(--gold2,#d6a03d) 30%,transparent) 0%,transparent 100%);border-radius:0}
+html[data-theme] tr.csrow:hover>td{background:linear-gradient(90deg,color-mix(in srgb,var(--gold2,#d6a03d) 10%,transparent) 0%,transparent 100%);border-radius:0}
 @media (max-width:760px){
  .ep-row:not(.br):not(.dyrow){display:flex!important;flex-wrap:wrap;align-items:center;gap:6px 10px}.ep-row:not(.br):not(.dyrow)>.bar{flex:1 1 70px;min-width:60px}.ep-row:not(.br):not(.dyrow)>span{white-space:nowrap}
  .content .item:has(>select[data-change=checkWho]){flex-wrap:nowrap}.content .item:has(>select[data-change=checkWho])>.grow{min-width:0;flex:1 1 auto}.content .item>select[data-change=checkWho]{width:46%!important;min-width:0;font-size:14px;padding:6px 8px}
@@ -677,6 +677,9 @@ html[data-ui-scene="1"] .csrow.open .scbody>.scsub, html[data-ui-scene="1"] .csr
 html[data-ui-scene="1"] .csrow.open .scbody>.scl1{grid-template-columns:1fr 1fr;gap:12px}
 html[data-ui-scene="1"] .csrow.open .scl3{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}
 html[data-ui-scene="1"] .csrow.open .scflag{margin-top:0}
+html[data-ui-scene="1"] .csrow.open .scbody>.scl1{grid-column:1;grid-row:1}
+html[data-ui-scene="1"] .csrow.open .scbody>.scfull{grid-column:1;grid-row:2;margin:0}
+html[data-ui-scene="1"] .csrow.open .scbody>.scl3{grid-column:2;grid-row:1 / span 2;align-self:stretch}
 html[data-ui-scene="1"] .vmore{position:relative;display:inline-flex}
 html[data-ui-scene="1"] .vdots{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid #1d4a3b;border-radius:8px;background:#0f2a20;color:#e5f2ec;cursor:pointer;font-size:16px;line-height:1}
 html[data-ui-scene="1"] .vmenu{position:absolute;right:0;top:36px;width:200px;padding:8px;border-radius:12px;background:#0f2a20;border:1px solid #1d4a3b;box-shadow:0 18px 50px -12px rgba(10,35,29,.35);z-index:30;display:flex;flex-direction:column}
