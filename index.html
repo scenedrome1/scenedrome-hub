@@ -4325,7 +4325,7 @@ function asDevices(){const list=asSeen().filter(d=>d.owner==='studio'&&!isSto(d)
  return kpis([['Studio devices',list.length,'laptops, workstations, cameras, monitors','hero'],['Out of the studio',out.length,od.length+' overdue']])+`<div class="row wrap" style="margin:16px 0 12px">${can('storage.manage')?`<a class="btn pri right" data-act="devNew">${ic('plus',16)}Log a device</a>`:''}</div>${devTable(list)}`}
 function asStorage(){const keep=S.devices;S.devices=keep.filter(isSto);try{return _vsOrig()}finally{S.devices=keep}}
 const _vsOrig=VIEWS.storage;
-function asSeedOnce(){if(S.assetsSeeded)return;S.assetsSeeded=true;
+function asSeedOnce(){if(S.assetsCleaned)return;S.assetsCleaned=true;
  const names=['Edit suite 1','Edit suite 2','Grading room'];
  S.rooms=(S.rooms||[]).filter(r=>!names.includes(r.name));
  S.devices=(S.devices||[]).filter(d=>!/^Placeholder/.test(d.note||''));
