@@ -5287,10 +5287,10 @@ function pageBits(){if(document.documentElement.getAttribute('data-ui-card')!=='
  const hp=$('.phead');const pid=hp&&hp.dataset.pid;const ty=pid&&window.hubKit&&window.hubKit.typeOf?window.hubKit.typeOf(pid):null;const off=ty&&window.hubKit.typeOff?(window.hubKit.typeOff()[ty]||[]):[];
  const hid=(el,on)=>{if(el)el.style.display=on?'none':''};
  $$('.tabs a[data-arg="report"],.ptabs2 a[data-arg="report"]').forEach(a=>hid(a,true));
- $$('.sec,details,.card').forEach(e=>{const hd=$('.sh,summary',e);if(hd&&/Project (settings|specs)/i.test(hd.textContent)&&!e.classList.contains('ukdlv'))hid(e,true)});
+ $$('.sec,details,.card').forEach(e=>{const hd=$(':scope>.sh,:scope>summary',e);if(hd&&/Project (settings|specs)/i.test(hd.textContent)&&!e.classList.contains('ukdlv'))hid(e,true)});
  $$('a[data-act="stAdd"]').forEach(a=>hid(a,true));
  $$('.tile').forEach(t=>{const l=$('.tl',t);hid(t,!!l&&/^(Unassigned|Reviews)/i.test(l.textContent.trim()))});
- $$('h3').forEach(h=>{if(/^Project storage$/i.test(h.textContent.trim())){const wrap=h.closest('div')&&h.closest('div').parentElement;let blk=wrap;if(blk&&blk.parentElement&&blk.parentElement.classList.contains('grid')===false)blk=wrap;if(blk)hid(blk,true)}});
+ $$('h3').forEach(h=>{if(/^Project storage$/i.test(h.textContent.trim())){const blk=h.parentElement&&h.parentElement.parentElement;if(blk)hid(blk,true)}});
  $$('.tabs a[data-arg],.ptabs2 a[data-arg]').forEach(a=>{const k=a.dataset.arg;const hide=off.includes(k);a.style.display=hide?'none':'';});
  $$('.tile').forEach(t=>{const l=$('.tl',t);if(l&&/^Next delivery/i.test(l.textContent))t.classList.add('ukgone')})}
 function addDots(){if(document.documentElement.getAttribute('data-ui-card')!=='1')return;$$('.pcard2 .pf').forEach(a=>{if(!$('.ukdots',a))a.insertAdjacentHTML('beforeend','<span class="ukdots cf" role="button" tabindex="0" aria-label="Project actions" title="Actions">⋯</span>')})}
