@@ -4988,8 +4988,19 @@ function psRefresh(pid){const m=document.getElementById('modal');if(!m||!/^\s*Pr
 function psWrap(obj,k){const f=obj&&obj[k];if(typeof f!=='function')return;obj[k]=function(a,el,e){const r=f.call(this,a,el,e);psRefresh(String(a).split('|')[0]);return r}}
 ['projAir','projFmt','dlvSet'].forEach(k=>{psWrap(CHG,k)});['projFmt','psTypical','psNone','custAdd','custDel'].forEach(k=>{psWrap(ACT,k)});
 const _fpNewP=FORM.project;FORM.project=(fd)=>{const before=new Set((S.projects||[]).map(x=>x.id));const r=_fpNewP(fd);const np=(S.projects||[]).find(x=>!before.has(x.id));if(np){np.outFormats=[...(FMT_TYP[np.type]||[])];save();render()}return r};
+const SPEC_F=[['codec','Codec'],['res','Resolution'],['fps','Frame rate'],['audio','Audio'],['wm','Watermark (spec)'],['delivery','Delivery to'],['link','Link']];
+function expRoles(p){const T=TYPES[p.type]||{};return((p.expect&&p.expect.roles)||(T.team||'').split(' · ').filter(Boolean))}
+function expectHTML(p){const mg=canManage(p);const dis=mg?'':'disabled';const T=TYPES[p.type]||{};const sp=p.spec||{};const ex=p.expect||{};const on=new Set(expRoles(p));const allRoles=(T.team||'').split(' · ').filter(Boolean);
+ return`<div class="full"><div class="eyebrow" style="margin:6px 0">Team expected on this project</div><div class="row wrap" style="gap:8px">${allRoles.map(r=>`<label class="jp" style="${mg?'cursor:pointer':''}"><input type="checkbox" ${on.has(r)?'checked':''} ${dis} ${mg?`data-change="expRole" data-arg="${p.id}|${esc(r)}"`:''}><span><b>${esc(r)}</b></span></label>`).join('')}</div></div>
+ ${SPEC_F.map(([k,l])=>`<label>${l}<input value="${esc(sp[k]||'')}" ${dis} ${mg?`data-change="specSet" data-arg="${p.id}|${k}"`:''}></label>`).join('')}
+ <label class="full">Deliverables expected<textarea rows="2" ${dis} ${mg?`data-change="expSet" data-arg="${p.id}|deliver"`:''}>${esc(ex.deliver!=null?ex.deliver:(T.deliver||''))}</textarea></label>`}
+CHG.specSet=(a,el)=>{const[id,k]=String(a).split('|');const p=P(id);if(!p||!canManage(p))return;p.spec=p.spec||{};p.spec[k]=el.value;save()};
+CHG.expRole=(a,el)=>{const[id,...rest]=String(a).split('|');const role=rest.join('|');const p=P(id);if(!p||!canManage(p))return;const s=new Set(expRoles(p));if(el.checked)s.add(role);else s.delete(role);p.expect=Object.assign({},p.expect||{},{roles:[...s]});save()};
+CHG.expSet=(a,el)=>{const[id,k]=String(a).split('|');const p=P(id);if(!p||!canManage(p))return;p.expect=Object.assign({},p.expect||{},{[k]:el.value});save()};
+['specSet','expRole','expSet'].forEach(k=>psWrap(CHG,k));
+const _fpNewE=FORM.project;FORM.project=(fd)=>{const before=new Set((S.projects||[]).map(x=>x.id));const r=_fpNewE(fd);const np=(S.projects||[]).find(x=>!before.has(x.id));if(np){const T=TYPES[np.type]||{};np.expect={roles:(T.team||'').split(' · ').filter(Boolean),deliver:T.deliver||''};save();render()}return r};
 ACT.projSettings=id=>{const p=P(String(id).split('|')[0]);if(!p||!isStaff())return;const k='ps'+p.id;const was=V.open[k];V.open[k]=true;let body='';try{body=projSpecsHTML(p)}finally{V.open[k]=was}
- modal('Project settings · '+esc(p.name),`${body}<div class="sec" style="margin-top:14px"><div class="sh"><b style="font-weight:600">Delivery settings</b></div><div class="sb"><div class="formgrid mini">${dlvFormHTML(p)}</div></div></div>`,true)};
+ modal('Project settings · '+esc(p.name),`${body}<div class="sec" style="margin-top:14px"><div class="sh"><b style="font-weight:600">Delivery settings</b></div><div class="sb"><div class="formgrid mini">${dlvFormHTML(p)}</div></div></div><div class="sec" style="margin-top:14px"><div class="sh"><b style="font-weight:600">Expected details</b></div><div class="sb"><div class="formgrid mini">${expectHTML(p)}</div></div></div>`,true)};
 ACT.uiSet=a=>{const[k,v]=String(a).split('|');if(!(isOwner()||can('settings.manage')))return;BRAND.ui=Object.assign({},BRAND.ui||{},{[k]:v});brandSave();if(window.hubUIApply)window.hubUIApply();render()};
 ACT.stTypes=()=>{go('handbook');V.tab='types';render()};
 VIEWS.settings=()=>{if(!(isOwner()||can('settings.manage')))return deny();const u=BRAND.ui||{};
