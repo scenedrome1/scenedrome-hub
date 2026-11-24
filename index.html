@@ -5251,7 +5251,7 @@ FORM.task=(fd)=>{const title=String(fd.get('title')||'').trim();if(!title){toast
 /* ===== Services: one source for project services, extras, catalogue prices and quotation lines ===== */
 function catList(){if(!Array.isArray(S.catalog))S.catalog=[];return S.catalog}
 function catFind(name){const n=String(name||'').trim().toLowerCase();return n?catList().find(c=>String(c.name).toLowerCase()===n):undefined}
-function catSync(){if(LIVE){try{sb.from('settings').upsert({id:'catalog',data:{items:catList()}}).then(()=>{},()=>{})}catch(e){}}else save()}
+function catSync(){if(LIVE){try{sb.from('settings').upsert({id:'catalog',data:{items:catList()}}).then(({error})=>{if(error){console.error(error);toast('Prices could not be saved — check the database update is applied','bad')}})}catch(e){toast('Prices could not be saved','bad')}}else save()}
 function catPut(name,price,cur){const n=String(name||'').trim();if(!n)return;const c=catFind(n),pr=+price||0;if(c){if(pr>0){c.price=pr;c.cur=cur||c.cur||'EGP';catSync()}return}catList().push({id:uid('c'),name:n,price:pr,cur:cur||'EGP'});catSync()}
 function svcKeyByLabel(name){const n=String(name||'').trim().toLowerCase();const f=SVCS.find(x=>String(x[1]).toLowerCase()===n||x[0]===n);return f?f[0]:null}
 /* project services → quotation lines, priced from the catalogue */
