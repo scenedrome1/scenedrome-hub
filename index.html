@@ -2266,8 +2266,8 @@ ACT.projEdit=pid=>{const p=P(pid);if(!canEditProj(p))return;const T=TYPES[p.type
  ${peSec('Poster / logo','',`<div class="row" style="gap:12px"><div class="pe-poster">${p.poster?`<img id="pe-pimg" src="${p.poster}" alt="">`:`<img id="pe-pimg" alt="" style="display:none">`}<span id="pe-pnone" class="tiny faint" style="${p.poster?'display:none':''}">No poster</span></div><label class="btn sm">${ic('img',14)}Upload<input type="file" hidden accept="image/*" data-change="pePoster"></label><a class="btn sm" data-act="pePosterDel">${ic('trash',13)}Remove</a><input type="hidden" name="poster" value="keep"></div>`)}
  ${peSec('Director','Each person gets their own Hub access',`<div id="pe-director">${(p.director||[]).map(x=>crRow('director',x)).join('')}</div><a class="btn sm" data-act="peAddRow" data-arg="director">${ic('plus',13)}Add director</a>`)}
  ${peSec('Show producers','Client-side or channel producers — add as many as needed',`<div id="pe-show">${(p.showProducers||[]).map(x=>crRow('show',x)).join('')}</div><a class="btn sm" data-act="peAddRow" data-arg="show">${ic('plus',13)}Add show producer</a><div class="tiny faint" style="margin-top:8px">${Object.values(CR_ACC).map(([l,d])=>`<b>${l}</b> — ${d}`).join(' · ')}</div>`)}
- ${peSec('In-house crew','Tick who works on it and their role on this project',`<div class="crgrid">${crew.map(u=>`<div class="crline"><label><input type="checkbox" name="crew" value="${u.id}" ${team.has(u.id)?'checked':''}><span><b>${esc(u.name)}</b><i>${esc(u.title||'')}</i></span></label><select name="role_${u.id}" data-change="roleAdd" data-arg="${p.id}"><option value="">Crew</option>${Object.entries(PROJ_ROLES).filter(([k])=>k!=='crew').map(([k,l])=>`<option value="${k}" ${pRole(p,u.id)===k?'selected':''}>${esc(l)}</option>`).join('')}<option value="__add">＋ Add new…</option></select></div>`).join('')||'<div class="tiny faint">No in-house people yet.</div>'}</div>`)}
- ${peSec('Partner studios','',partnerUsers.length?`<div class="jobpick">${partnerUsers.map(u=>`<label class="jp"><input type="checkbox" name="partner" value="${u.id}" ${parts.has(u.id)?'checked':''}><span><b>${esc(u.company||u.name)}</b><i>${esc(u.name)}</i></span></label>`).join('')}</div>`:'<div class="tiny faint">No partner studios on the Hub yet — add them from Partner studios.</div>')}
+ ${peSec('Team','Tick who works on it and their role on this project',teamBodyHTML(p,crew,team))}
+
  ${peSec('Deliverables','Every edit or version expected from this project',`<div class="row" style="margin-bottom:8px"><a class="btn sm" data-act="peTypical">${ic('check',13)}Tick the usual for <span id="pe-tl">${esc(T.label)}</span></a><a class="btn sm" data-act="peNone">Clear</a></div>${FMTS.map(([g,list])=>`<div class="eyebrow" style="margin:10px 0 6px">${g}</div><div class="jobpick" style="max-height:none">${list.map(([k,l])=>`<label class="jp"><input type="checkbox" name="fmt" value="${k}" ${fm.has(k)?'checked':''}><span><b>${esc(l)}</b>${(FMT_TYP[p.type]||[]).includes(k)?'<i>Usual for this type</i>':''}</span></label>`).join('')}</div>`).join('')}<label style="margin-top:10px;display:block">Other deliverables<input name="fmtx" value="${esc(p.outCustom||'')}" placeholder="Comma separated, e.g. Ramadan promo, 2-min recap"></label>`)}
  ${peSec('Brief','',`<textarea name="brief" rows="3" style="width:100%">${esc(p.brief||'')}</textarea>`)}
  <div class="full row"><button class="btn pri right" type="submit">Save</button></div></form>`,true)};
@@ -4709,7 +4709,7 @@ const _fpeA=FORM.projEdit;FORM.projEdit=(fd,pid)=>{const p=P(pid);if(!p||!canEdi
  const before=crewIds(p);p.attn=att;
  dir.forEach(o=>{fd.append('director_id',o.id||'');fd.append('director_name',o.name||'');fd.append('director_acc',o.access)});
  show.forEach(o=>{fd.append('show_id',o.id||'');fd.append('show_name',o.name||'');fd.append('show_acc',o.access)});
- (p.outFormats||[]).forEach(x=>fd.append('fmt',x));fd.set('fmtx',p.outCustom||'');(p.partners||[]).forEach(x=>fd.append('partner',x));
+ (p.outFormats||[]).forEach(x=>fd.append('fmt',x));fd.set('fmtx',p.outCustom||'');
  _fpeA(fd,pid);
  const fresh=att.filter(x=>x.id&&x.access!=='credit'&&!before.includes(x.id)).map(x=>x.id);if(fresh.length)notify(fresh,`You now have access to ${p.name}`,{v:'project',p:p.id})};
 const _clA=crewList;crewList=function(p){return[..._clA(p),...((p&&p.attn)||[]).map(x=>Object.assign({k:'attn'},x))]};
@@ -4754,7 +4754,7 @@ const _peB=ACT.projEdit;ACT.projEdit=pid=>{_peB(pid);const f=document.querySelec
  // poster moves to the project header
  const ps=find('Poster / logo');if(ps){const hid=ps.querySelector('input[name=poster]');const h=document.createElement('input');h.type='hidden';h.name='poster';h.value='keep';ps.replaceWith(h)}
  ddSec(find('Attention'),'Review List','Director, show producer or any title — type a name to pick from the Hub',false);
- ddSec(find('In-house crew'),'Inhouse Crew','Tick who works on it, set their role on this project',false);
+ ddSec(find('Team'),'Team','Tick who works on it, set their role on this project',false);
  ddSec(find('Roles & allowances'),'Access Management','What each role can do on this project',false)};
 
 /* ---------- round 4: dashboard Add menu + overview order ---------- */
@@ -5274,6 +5274,12 @@ ACT.pdSvcX=function(){const i=document.getElementById('pd-svcx-in'),b=document.g
 /* quotation line removed → its service leaves the project services too */
 (function(){const _qd=ACT.qiDel;ACT.qiDel=id=>{const e=S.entries.find(x=>x.id===id);const p=e&&P(e.project);_qd(id);if(!e||!p||S.entries.includes(e)||e.kind!=='quote'||!e.svc)return;
  if(String(e.svc).startsWith('x:')){const nm=String(e.svc).slice(2);p.svcX=(p.svcX||[]).filter(x=>x!==nm)}else{p.services=pSvc(p).filter(k=>k!==e.svc)}save();render()}})();
+
+/* ===== Team: In-house and Outsourced groups (freelancers and partner studios) ===== */
+function teamLineHTML(p,u,team){return `<div class="crline"><label><input type="checkbox" name="crew" value="${u.id}" ${team.has(u.id)?'checked':''}><span><b>${esc(u.name)}</b><i>${esc(u.title||'')}</i></span></label><select name="role_${u.id}" data-change="roleAdd" data-arg="${p.id}"><option value="">Crew</option>${Object.entries(PROJ_ROLES).filter(([k])=>k!=='crew').map(([k,l])=>`<option value="${k}" ${pRole(p,u.id)===k?'selected':''}>${esc(l)}</option>`).join('')}<option value="__add">＋ Add new…</option></select></div>`}
+function teamBodyHTML(p,crew,team){const inH=crew.filter(u=>inhouse(u)),out=crew.filter(u=>!inhouse(u));const studios=S.users.filter(u=>u.role==='partner'&&!u.removed&&!u.suspended);const ps=new Set(p.partners||[]);
+ return `<input type="hidden" name="team_marker" value="1"><div class="tgrp"><div class="tgh">In-house</div><div class="crgrid">${inH.map(u=>teamLineHTML(p,u,team)).join('')||'<div class="tiny faint">No in-house people yet.</div>'}</div></div>
+ <div class="tgrp"><div class="tgh">Outsourced</div><div class="tiny faint" style="margin-bottom:6px">Freelancers are paid per cost agreed. Partner studios are counted as one row.</div><div class="crgrid">${out.map(u=>teamLineHTML(p,u,team)).join('')}${studios.map(c=>`<div class="crline"><label><input type="checkbox" name="partner" value="${c.id}" ${ps.has(c.id)?'checked':''}><span><b>${esc(c.company||c.name)}</b><i>Partner studio</i></span></label></div>`).join('')}</div></div>`}
 window.hubKit=Object.freeze({dup:true,typeOff:()=>BRAND.typeOff||{},typeOf:pid=>{const p=P(pid);return p?p.type:null},ui:()=>BRAND.ui||{},search:_kSearch,projects:()=>{try{return visibleProjects().map(p=>({id:p.id,name:p.name||'Untitled',client:((U(p.client)||{}).company)||'',type:(TYPES[p.type]||{}).label||'',status:p.status||'active'}))}catch(e){return[]}}});
 if(LIVE){meId='…';render();liveBoot().catch(e=>{console.error(e);if(booted){toast('Something didn’t load: '+e.message,'bad');return}bootMsg='Couldn’t reach the Hub database: '+e.message;booted=false;meId=null;render()});sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){booted=false;meId=null;render()}})}else render();
 })();
