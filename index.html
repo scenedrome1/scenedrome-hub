@@ -3967,6 +3967,18 @@ const _vcl61=VIEWS.clients;VIEWS.clients=()=>{const h=_vcl61();if(!h||/This page
   const tags=ps.map(p=>{const c=ccOf(p,x.id);const tl=p.client===x.id?'Main contact':(c&&c.title)||x.title||'';return`<a class="chip ptag61" data-act="openProject" data-arg="${p.id}">${esc(p.name)}${tl?`<i> · ${esc(tl)}</i>`:''}</a>`}).join('');
   sub.innerHTML=`<div class="row wrap" style="gap:6px;margin-top:4px">${tags||'<span class="faint">No project yet</span>'}</div><div style="margin-top:4px">${ccContact(x)}</div>`});
  t.content.querySelectorAll('b').forEach(b=>{if(b.textContent==='No company yet')b.textContent='Independent'});return t.innerHTML};
+/* client companies: one tidy card per company — labelled stats, a projects list, clear header */
+const _vclOrg=VIEWS.clients;VIEWS.clients=()=>{const h=_vclOrg();if(!h||/This page isn|You don/.test(h.slice(0,300)))return h;const t=document.createElement('template');t.innerHTML=h;const root=t.content;
+ root.querySelectorAll('.sec-title p,.muted').forEach(x=>{if(/Open a client for their relationship page/.test(x.textContent))x.textContent='One card per client company. Click a company name to open its relationship page.'});
+ root.querySelectorAll('.card').forEach(c=>{const g=c.querySelector(':scope > .grid.g3');if(!g||!/Active/.test(g.textContent)||!/Since/.test(g.textContent))return;
+  g.querySelectorAll('.tiny.faint').forEach(x=>{if(x.textContent.trim()==='Active')x.textContent='Active projects';else if(x.textContent.trim()==='Since')x.textContent='Client since';else if(x.textContent.trim()==='Delivered')x.textContent='Delivered'});
+  g.classList.add('clorg-stats');
+  const l=c.querySelector(':scope > .list');if(l&&!c.querySelector('.clorg-lbl')){l.insertAdjacentHTML('beforebegin','<div class="eyebrow clorg-lbl" style="margin-top:14px">Projects</div>')}
+  const head=c.querySelector(':scope > .row');if(head)head.classList.add('clorg-head');
+ });
+ return t.innerHTML};
+
+/* ... */
 
 /* deal & money: only client people ticked for it see quotation and payments — an artist on the project doesn't */
 const dealOn=(p,u)=>!!p&&!!u&&(u.deal===true||(u.deal==null&&p.client===u.id));
@@ -5265,6 +5277,7 @@ html body .kcard .chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;whi
 html body .modal h1:focus,html body .modal h2:focus,html body .modal h3:focus,html body .modal [tabindex="-1"]:focus{outline:none!important;box-shadow:none!important}
 html body .kv{grid-template-columns:minmax(78px,104px) minmax(0,1fr)}html body .kv dd{overflow-wrap:break-word}
 html body .card[data-act="profile"]>.row{flex-wrap:wrap!important;row-gap:10px}html body .card[data-act="profile"]>.row>.grow{flex:1 1 140px!important;min-width:130px!important}
+html body .clorg-stats{padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}html body .clorg-head{padding-bottom:12px;border-bottom:0!important}html body .clorg-lbl{margin-bottom:4px}
 @media(max-width:760px){html[data-ui-subnav] body .ptabs2,html body .ptabs2{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:100%!important;max-width:100%!important;overflow:visible!important;padding:6px!important}html[data-ui-subnav] body .ptabs2 a span,html body .ptabs2 a span{display:block!important;font-size:10.5px;line-height:1.15;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}html[data-ui-subnav] body .ptabs2 a,html body .ptabs2 a{flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:4px!important;padding:9px 2px!important;min-width:0!important;width:auto!important;border-radius:10px!important}.top>.row:first-child{flex-wrap:nowrap!important}.top>.row:first-child>div:not(.iconbtn){min-width:0!important;flex:1 1 0!important;overflow:hidden}.top h2,.top .crumb{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 @media(max-width:760px){html body .ptabs{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;width:100%!important;max-width:100%!important;gap:6px!important;scrollbar-width:none}html body .ptabs::-webkit-scrollbar{display:none}html body .ptabs>a{flex:none!important;padding:9px 12px!important;font-size:13px!important}}
 .ukdlvh{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 16px;font-size:14px;flex-wrap:wrap}
