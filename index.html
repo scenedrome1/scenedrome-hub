@@ -116,6 +116,7 @@ td input,td select{padding:5px 8px;font-size:12.5px}
 .seg a{padding:5px 12px;border-radius:7px;cursor:pointer;font-size:12.5px;color:var(--muted)}.seg a.on{background:var(--panel2);color:var(--text);box-shadow:inset 0 0 0 1px #3b2f17}
 .phead{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .stages{display:flex;gap:3px;margin-top:6px}.stages .st{flex:1;text-align:center;min-width:0}
+.stages .st.skip i{background:repeating-linear-gradient(90deg,var(--line) 0 4px,transparent 4px 7px)}.stages .st.skip span{text-decoration:line-through;opacity:.6}
 .stages .st i{display:block;height:6px;border-radius:99px;background:var(--line);margin-bottom:6px}.stages .st.done i{background:var(--ok)}.stages .st.cur i{background:var(--grad);box-shadow:0 0 12px rgba(240,196,106,.55)}
 .stages .st span{font-size:10px;color:var(--faint);line-height:1.2;display:block;overflow:hidden;text-overflow:ellipsis}.stages .st.cur span{color:var(--gold2);font-weight:500}.stages .st.done span{color:var(--muted)}
 /* chat */
@@ -986,13 +987,17 @@ function finRowsFor(u){u=u||me();return S.fin.rows.filter(r=>{if(u.role==='owner
 function av(u,s){s=s||36;if(!u)return'';const init=String(u.name||'?').split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();const st=u.photo?`background-image:url('${u.photo}');`:`background:${u.color};`;return`<span class="av" style="width:${s}px;height:${s}px;font-size:${Math.round(s*.34)}px;${st}" title="${esc(u.name)}">${u.photo?'':esc(init)}</span>`}
 function statusChip(u){const s=STATUS[u.status]||STATUS.available;return`<span class="chip ${s[1]}"><span class="dot"></span>${s[0]}</span>`}
 const STG=p=>TYPES[p.type].stages;const lastStage=p=>STG(p).length-1;
+/* optional stages: grading, VFX, sound and creative can be skipped per project */
+const SKIP_RE=/grad|colo|vfx|sound|mix|creative|graphic|motion|anim|styleframe|concept/i;
+const skipOK=p=>STG(p).filter(x=>SKIP_RE.test(x));
+const isSkipped=(p,i)=>(p.skipStages||[]).includes(STG(p)[i]);
 function epProg(p,e){const T=TYPES[p.type],n=T.stages.length;if((e.statuses||[]).includes('delivered')||(!e.statuses&&e.stage>=n-1))return 100;
 if(!e.checks){const sp=e.scenes.length?e.scenes.reduce((a,s)=>a+s.st,0)/(e.scenes.length*3):0;return Math.round((e.stage+(e.stage===T.edit?sp:0))/n*100)}
-const sc=e.scenes||[];const done=T.stages.filter((_,i)=>e.checks[i]&&e.checks[i].done).length;const part=e.checks[T.edit]&&e.checks[T.edit].done?0:(sc.length?sc.filter(s=>s.st===3).length/sc.length:0);return Math.min(99,Math.round((done+part)/n*100))}
+const sc=e.scenes||[];const done=T.stages.filter((_,i)=>isSkipped(p,i)||(e.checks[i]&&e.checks[i].done)).length;const part=e.checks[T.edit]&&e.checks[T.edit].done?0:(sc.length?sc.filter(s=>s.st===3).length/sc.length:0);return Math.min(99,Math.round((done+part)/n*100))}
 function projProg(p){if(p.status==='done')return 100;if(TYPES[p.type].episodic&&p.episodes)return Math.round(p.episodes.reduce((a,e)=>a+epProg(p,e),0)/p.episodes.length);return Math.round(p.stage/STG(p).length*100)}
 function projStage(p){if(p.status==='done')return'Delivered';if(TYPES[p.type].episodic&&p.episodes){const st=STG(p);const del=p.episodes.filter(e=>e.stage>=st.length-1).length;const live=p.episodes.filter(e=>e.stage<st.length-1);const lead=live.length?Math.max(...live.map(e=>e.stage)):st.length-1;return`${del}/${p.episodes.length} delivered`}return STG(p)[p.stage]}
 function ring(pct,s){s=s||56;const r=(s-8)/2,c=2*Math.PI*r;return`<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" style="flex:none"><circle cx="${s/2}" cy="${s/2}" r="${r}" style="stroke:var(--line)" stroke-width="6" fill="none"/><circle cx="${s/2}" cy="${s/2}" r="${r}" stroke="url(#rg)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c*(1-pct/100)}" transform="rotate(-90 ${s/2} ${s/2})"/><defs><linearGradient id="rg"><stop offset="0" stop-color="#f0c46a"/><stop offset="1" stop-color="#a8741f"/></linearGradient></defs><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" style="fill:var(--text)" font-family="Montserrat,sans-serif" font-weight="700" font-size="${Math.round(s*.23)}">${pct}%</text></svg>`}
-function stagesBar(p,cur,done){return`<div class="stages">${STG(p).map((s,i)=>`<div class="st ${done||i<cur?'done':i===cur?'cur':''}" title="${esc(s)}"><i></i><span>${esc(s)}</span></div>`).join('')}</div>`}
+function stagesBar(p,cur,done){return`<div class="stages">${STG(p).map((s,i)=>`<div class="st ${isSkipped(p,i)?'skip':done||i<cur?'done':i===cur?'cur':''}" title="${esc(s)}${isSkipped(p,i)?' · skipped':''}"><i></i><span>${esc(s)}${isSkipped(p,i)?' (skipped)':''}</span></div>`).join('')}</div>`}
 const bar=(pct,cls)=>`<div class="bar ${cls||''}"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div>`;
 function greet(){const h=new Date().getHours();return h<12?'Good morning':h<17?'Good afternoon':'Good evening'}
 const first=u=>u&&u.name?String(u.name).split(' ')[0]:'Former member';
@@ -5004,8 +5009,11 @@ CHG.expRole=(a,el)=>{const[id,...rest]=String(a).split('|');const role=rest.join
 CHG.expSet=(a,el)=>{const[id,k]=String(a).split('|');const p=P(id);if(!p||!canManage(p))return;p.expect=Object.assign({},p.expect||{},{[k]:el.value});save()};
 ['specSet','expRole','expSet'].forEach(k=>psWrap(CHG,k));
 const _fpNewE=FORM.project;FORM.project=(fd)=>{const before=new Set((S.projects||[]).map(x=>x.id));const r=_fpNewE(fd);const np=(S.projects||[]).find(x=>!before.has(x.id));if(np){const T=TYPES[np.type]||{};np.expect={roles:(T.team||'').split(' · ').filter(Boolean),deliver:T.deliver||''};save();render()}return r};
+CHG.skipSet=(a,el)=>{const[id,i]=String(a).split('|');const p=P(id);if(!p||!canManage(p))return;const nm=STG(p)[+i];const st=new Set(p.skipStages||[]);if(el.checked)st.add(nm);else st.delete(nm);p.skipStages=[...st];save();if(!document.querySelector('#modal form'))render()};
+function skipHTML(p){const mg=canManage(p);const dis=mg?'':'disabled';const opts=skipOK(p);if(!opts.length)return'';
+ return`<div class="full"><div class="eyebrow" style="margin:6px 0">Optional stages · tick to skip for this project</div><div class="row wrap" style="gap:8px">${STG(p).map((x,i)=>SKIP_RE.test(x)?`<label class="jp" style="${mg?'cursor:pointer':''}"><input type="checkbox" ${isSkipped(p,i)?'checked':''} ${dis} ${mg?`data-change="skipSet" data-arg="${p.id}|${i}"`:''}><span><b>Skip ${esc(x)}</b></span></label>`:'').join('')}</div></div>`}
 ACT.projSettings=id=>{const p=P(String(id).split('|')[0]);if(!p||!isStaff())return;const k='ps'+p.id;const was=V.open[k];V.open[k]=true;let body='';try{body=projSpecsHTML(p)}finally{V.open[k]=was}
- modal('Project settings · '+esc(p.name),`${body}<div class="sec" style="margin-top:14px"><div class="sh"><b style="font-weight:600">Delivery settings</b></div><div class="sb"><div class="formgrid mini">${dlvFormHTML(p)}</div></div></div><div class="sec" style="margin-top:14px"><div class="sh"><b style="font-weight:600">Expected details</b></div><div class="sb"><div class="formgrid mini">${expectHTML(p)}</div></div></div>`,true)};
+ modal('Project settings · '+esc(p.name),`${body}<div class="sec" style="margin-top:14px"><div class="sh"><b style="font-weight:600">Optional stages</b></div><div class="sb"><div class="formgrid mini">${skipHTML(p)||'<div class="tiny faint">This type has no optional stages.</div>'}</div></div></div><div class="sec" style="margin-top:14px"><div class="sh"><b style="font-weight:600">Delivery settings</b></div><div class="sb"><div class="formgrid mini">${dlvFormHTML(p)}</div></div></div><div class="sec" style="margin-top:14px"><div class="sh"><b style="font-weight:600">Expected details</b></div><div class="sb"><div class="formgrid mini">${expectHTML(p)}</div></div></div>`,true)};
 ACT.uiSet=a=>{const[k,v]=String(a).split('|');if(!(isOwner()||can('settings.manage')))return;BRAND.ui=Object.assign({},BRAND.ui||{},{[k]:v});brandSave();if(window.hubUIApply)window.hubUIApply();render()};
 ACT.stTypes=()=>{go('handbook');V.tab='types';render()};
 VIEWS.settings=()=>{if(!(isOwner()||can('settings.manage')))return deny();const u=BRAND.ui||{};
