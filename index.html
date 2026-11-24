@@ -3441,6 +3441,36 @@ ACT.pwdOpen=()=>modal('Change password',`<form data-form="pwd" class="col"><labe
 const _pw45=FORM.pwd;FORM.pwd=fd=>{const n=document.querySelectorAll('#toasts .toast').length;_pw45(fd);const t0=Date.now();const chk=()=>{const ts=[...document.querySelectorAll('#toasts .toast')].slice(n);if(ts.some(x=>!x.classList.contains('bad'))){closeModal();return}if(ts.some(x=>x.classList.contains('bad')))return;if(Date.now()-t0<8000)setTimeout(chk,300)};setTimeout(chk,200)};
 /* on phones, personal settings sit at the bottom of your profile */
 const _vp45=VIEWS.profile;VIEWS.profile=()=>{const h=_vp45();const v=me();const x=U(V.p);if(x&&x.id!==v.id)return h;return`<div class="profwrap">${h}</div>`};
+/* ================= profile rework: picture + details, About (bio), Skills tags, Projects, Change password ================= */
+ACT.skillsEdit=()=>{const u=me();modal('Edit profile details',`<form data-form="skillsEdit" class="formgrid"><label class="full">Headline<input name="headline" value="${esc(u.headline||'')}" placeholder="e.g. Story-first editor"></label><label class="full">Skills (comma separated)<input name="skills" value="${esc((u.skills||[]).join(', '))}"></label><label class="full">Favourite tools (comma separated)<input name="tools" value="${esc((u.tools||[]).join(', '))}"></label><label>Language<select name="lang">${['English','العربية'].map(l=>`<option ${u.lang===l?'selected':''}>${l}</option>`).join('')}</select></label><div class="full"><button class="btn pri" type="submit">Save</button></div></form>`)};
+FORM.skillsEdit=fd=>{const u=me();u.headline=String(fd.get('headline')||'').trim();u.skills=String(fd.get('skills')||'').split(',').map(x=>x.trim()).filter(Boolean);u.tools=String(fd.get('tools')||'').split(',').map(x=>x.trim()).filter(Boolean);u.lang=String(fd.get('lang')||'English');closeModal();save();render();toast('Profile saved ✨','ok')};
+const _vpFinal=VIEWS.profile;
+VIEWS.profile=()=>{const v=me();const u=U(V.p)||v;let h=_vpFinal();
+ if(!u||!v)return h;
+ const t=document.createElement('div');t.innerHTML=h;
+ /* the Kudos button leaves every profile header */
+ t.querySelectorAll('[data-act="kudos"]').forEach(a=>a.remove());
+ if(u.id!==v.id)return t.innerHTML;
+ const pc=t.querySelector('.pcard');if(!pc)return t.innerHTML;
+ const cards=[...t.querySelectorAll('.card')];
+ const byH3=re=>cards.find(c=>{const x=c.querySelector('h3');return x&&re.test(x.textContent.trim())});
+ const pd=byH3(/^Profile data/)||byH3(/From the studio/);
+ const pdDl=pd?.querySelector('dl')?.outerHTML||'';
+ const links=byH3(/^Links|Contact/);
+ const pt=t.querySelector('.card.pt');
+ const pre=[];for(const el of [...(t.querySelector('.profwrap')||t).children]){if(el.contains(pc))break;if(!el.classList.contains('prefrow'))pre.push(el.outerHTML)}const preH=pre.join('');
+ const cover=pc.querySelector('.cover')?.outerHTML||'';
+ const coverRow=t.querySelector('[data-change="coverUp"]')?.closest('.row')?.outerHTML||'';
+ const avatarWrap=([...pc.querySelectorAll('.pinfo div')].find(d=>d.style.position==='relative'&&d.querySelector('.av'))||{outerHTML:av(u,104)}).outerHTML;
+ const skills=u.skills||[],tools=u.tools||[];
+ const head=`<div class="card pcard">${cover}<div class="pinfo"><div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start;margin-top:0">${avatarWrap}<div><h1 style="margin:0">${esc(u.name)}</h1><div class="muted">${esc(u.title||'')}${u.company?' · '+esc(u.company):''}</div></div><div class="row wrap" style="gap:8px">${statusChip(u)}${isOwner(u)?`<a class="btn sm" data-act="editUser" data-arg="${u.id}">${ic('edit',14)}Edit my details</a>`:''}</div></div></div></div>`;
+ const about=`<div class="card"><div class="row" style="margin-bottom:10px"><h3 style="margin:0">About</h3><a class="btn sm right" data-act="bioEdit">${ic('edit',14)}Edit bio</a></div><div style="line-height:1.6">${u.bio?esc(u.bio):'<span class="faint">No bio yet</span>'}</div></div>`;
+ const pdCard=`<div class="card"><div class="row" style="margin-bottom:10px"><h3 style="margin:0">Profile data</h3><span class="right row" style="gap:6px"><a class="btn sm" data-act="skillsEdit">${ic('edit',14)}Edit</a>${canProfData()&&!(isOwner(u)&&!isOwner())?`<a class="btn sm" data-act="profData" data-arg="${u.id}">Management</a>`:''}</span></div>${pdDl}</div>`;
+ const skillCard=`<div class="card"><div class="row" style="margin-bottom:12px"><h3 style="margin:0">Skills <span class="cnt">${skills.length}</span></h3><a class="btn sm right" data-act="skillsEdit">${ic('edit',14)}Edit</a></div><div class="row wrap" style="gap:8px">${skills.map(x=>`<span class="tag">${esc(x)}</span>`).join('')||'<span class="faint">No skills yet</span>'}</div>${tools.length?`<div class="eyebrow" style="margin:16px 0 8px">Tools</div><div class="row wrap" style="gap:8px">${tools.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div>`:''}</div>`;
+ const pwd=`<div class="card"><div class="pwdrow"><a class="btn" data-act="pwdOpen">${ic('lock',14)}Change password</a></div></div>`;
+ return `<div class="profwrap">${preH}${head}<div class="grid g2" style="margin-top:14px"><div class="col">${about}${pdCard}${links?links.outerHTML:''}</div><div class="col">${skillCard}</div></div>${pt?`<div style="margin-top:14px">${pt.outerHTML}</div>`:''}<div style="margin-top:14px">${pwd}</div></div>`;
+};
+
 
 /* menus close after a choice or a tap anywhere else (touch included) */
 function closeMenus(except){if(except!=='dots'&&DOTS_OPEN){DOTS_OPEN=false;const p=document.getElementById('dotspanel');if(p)p.classList.remove('open')}
