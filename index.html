@@ -5133,11 +5133,11 @@ const _kWalk=(o,path,toks,out,cap,dep)=>{if(out.length>=cap||dep>6||o==null)retu
  if(Array.isArray(o)){o.forEach((x,i)=>{let lab=null;if(x&&typeof x==='object'){if(x.n!=null&&Array.isArray(x.scenes))lab='EP'+String(x.n).padStart(2,'0');else if(x.n!=null&&('note' in x||'chars' in x||'loc' in x))lab='Scene '+x.n;else if(x.title&&typeof x.title==='string')lab=x.title.slice(0,30)}path.push(lab);_kWalk(x,path.filter(Boolean).length?path:path,toks,out,cap,dep+1);path.pop()});return}
  if(typeof o==='object'){for(const k of Object.keys(o)){if(_skK.test(k))continue;const v=o[k];if(v==null||typeof v==='number'||typeof v==='boolean')continue;const lab=(typeof v==='string'&&!['name','title'].includes(k))?k:null;path.push(lab);_kWalk(v,path,toks,out,cap,dep+1);path.pop();if(out.length>=cap)return}}};
 const _kSearch=q=>{q=String(q||'').trim().toLowerCase();if(q.length<2)return[];const toks=q.split(/\s+/).filter(Boolean);const res=[];
- let ps=[];try{ps=visibleProjects()}catch(e){}
- ps.forEach(p=>{const hits=[];_kWalk({name:p.name,episodes:p.episodes,days:p.days,brief:p.brief,notes:p.notes,desc:p.desc,description:p.description,locations:p.locations,chars:p.chars,characters:p.characters,genre:p.genre,format:p.format,prodHouse:p.prodHouse,tags:p.tags},[],toks,hits,6,0);
+ let ps=[];try{ps=visibleProjects()}catch(e){}const _me=me(),_ext=!_me||isExt(_me);
+ ps.forEach(p=>{const hits=[];_kWalk(_ext?{name:p.name,format:p.format,prodHouse:p.prodHouse}:{name:p.name,episodes:p.episodes,days:p.days,brief:p.brief,notes:p.notes,desc:p.desc,description:p.description,locations:p.locations,chars:p.chars,characters:p.characters,genre:p.genre,format:p.format,prodHouse:p.prodHouse,tags:p.tags},[],toks,hits,6,0);
   hits.forEach(x=>{const path=x.path.filter(Boolean).filter(z=>z!=='name');res.push({k:'Inside projects',text:x.text,s:[p.name].concat(path).join(' › '),act:'openProject',arg:p.id+'|footage',hit:x.text})})});
- try{const ids=new Set(ps.map(p=>p.id));(S.tasks||[]).filter(t=>ids.has(t.project)).forEach(t=>{const hits=[];_kWalk({title:t.title,desc:t.desc,description:t.description,note:t.note,notes:t.notes,brief:t.brief,tags:t.tags},[],toks,hits,1,0);if(hits.length){const p=P(t.project);res.push({k:'Tasks',text:t.title||hits[0].text,s:(p?p.name:'')+(hits[0].text!==t.title?' › '+hits[0].text.slice(0,60):''),act:'openProject',arg:t.project+'|overview',hit:hits[0].text})}})}catch(e){}
- try{(S.users||[]).filter(u=>!u.suspended).forEach(u=>{const hay=[u.name,u.title,u.company,u.role,u.dept,u.email].filter(Boolean).join(' ').toLowerCase();if(toks.every(t=>hay.includes(t)))res.push({k:'People',text:u.name||u.company||'Person',s:[u.title||u.role,u.company].filter(Boolean).join(' · '),act:'go',arg:u.role==='client'?'clients':u.role==='partner'?'partners':'team',need:u.role==='client'?'clients':u.role==='partner'?'partners':'team'})})}catch(e){}
+ try{const ids=new Set(ps.map(p=>p.id));(S.tasks||[]).filter(t=>ids.has(t.project)&&!!_me&&(_me.role==='client'?false:_me.role==='partner'?tAs(t,_me.id):(isMgmt(_me)||isOwner(_me)||onProject(P(t.project),_me)||tAs(t,_me.id)))).forEach(t=>{const hits=[];_kWalk({title:t.title,desc:t.desc,description:t.description,note:t.note,notes:t.notes,brief:t.brief,tags:t.tags},[],toks,hits,1,0);if(hits.length){const p=P(t.project);res.push({k:'Tasks',text:t.title||hits[0].text,s:(p?p.name:'')+(hits[0].text!==t.title?' › '+hits[0].text.slice(0,60):''),act:'openProject',arg:t.project+'|overview',hit:hits[0].text})}})}catch(e){}
+ try{(S.users||[]).filter(u=>!u.suspended&&!_ext&&u.id!==_me.id&&canSeeContact(u,_me)).forEach(u=>{const hay=[u.name,u.title,u.company,u.role,u.dept,u.email].filter(Boolean).join(' ').toLowerCase();if(toks.every(t=>hay.includes(t)))res.push({k:'People',text:u.name||u.company||'Person',s:[u.title||u.role,u.company].filter(Boolean).join(' · '),act:'go',arg:u.role==='client'?'clients':u.role==='partner'?'partners':'team',need:u.role==='client'?'clients':u.role==='partner'?'partners':'team'})})}catch(e){}
  return res.slice(0,60)};
 const TYPE_KEYS=[['breakdown','Episodes & scenes / flow'],['report','Episodes report'],['briefs','VFX & sound briefs'],['tasks','Tasks'],['thread','Thread'],['files','Files & links'],['drives','Drives'],['money','Deal & money']];
 function typeGrid(){const off=(BRAND.typeOff||{});return`<div class="tiny faint" style="margin-bottom:10px">Tick the project details each type includes. Unticked details are hidden for every project of that type. Overview is always included.</div><div class="grid g2">${Object.entries(TYPES).map(([t,T])=>{const o=new Set(off[t]||[]);return`<div class="card"><h3 style="margin:0 0 8px">${esc(T.label)}</h3><div class="col" style="gap:6px">${TYPE_KEYS.filter(([k])=>T.episodic||!['report','breakdown'].includes(k)||k==='breakdown').map(([k,l])=>`<label style="display:flex;gap:10px;align-items:center;margin:0;width:auto;font-weight:400"><input type="checkbox" style="width:auto;height:auto;margin:0;flex:none" data-change="typeInc" data-arg="${t}|${k}" ${o.has(k)?'':'checked'}><span>${esc(k==='breakdown'&&!T.episodic?'Flow':l)}</span></label>`).join('')}</div></div>`}).join('')}</div>`}
@@ -5342,7 +5342,7 @@ async function fxRate(cur,date){cur=String(cur||'').toUpperCase();if(!cur||cur==
 (function(){const _fe=FORM.entry;FORM.entry=(fd,a)=>{const cur=String(fd.get('cur')||'EGP');if(cur==='EGP'||+fd.get('rate'))return _fe(fd,a);const date=String(fd.get('date')||fd.get('due')||'')||new Date().toISOString().slice(0,10);
   fxRate(cur,date).then(r=>{if(!r){toast('No exchange rate found for '+date+' — type one in the note, or try again','bad');return}fd.set('rate',String(r));_fe(fd,a)});};
  })();
-window.hubKit=Object.freeze({dup:true,typeOff:()=>BRAND.typeOff||{},typeOf:pid=>{const p=P(pid);return p?p.type:null},ui:()=>BRAND.ui||{},search:_kSearch,projects:()=>{try{return visibleProjects().map(p=>({id:p.id,name:p.name||'Untitled',client:((U(p.client)||{}).company)||'',type:(TYPES[p.type]||{}).label||'',status:p.status||'active'}))}catch(e){return[]}}});
+window.hubKit=Object.freeze({dup:true,canCreate:()=>{try{return !!can('proj.create')}catch(e){return false}},pages:()=>{try{return navItems().filter(x=>x[0]!=='__').map(x=>({k:x[0],l:x[1]}))}catch(e){return[]}},typeOff:()=>BRAND.typeOff||{},typeOf:pid=>{const p=P(pid);return p?p.type:null},ui:()=>BRAND.ui||{},search:_kSearch,projects:()=>{try{return visibleProjects().map(p=>({id:p.id,name:p.name||'Untitled',client:((U(p.client)||{}).company)||'',type:(TYPES[p.type]||{}).label||'',status:p.status||'active'}))}catch(e){return[]}}});
 if(LIVE){meId='…';render();liveBoot().catch(e=>{console.error(e);if(booted){toast('Something didn’t load: '+e.message,'bad');return}bootMsg='Couldn’t reach the Hub database: '+e.message;booted=false;meId=null;render()});sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){booted=false;meId=null;render()}})}else render();
 })();
 
@@ -5557,6 +5557,8 @@ html body .top{z-index:200!important}
 .ukcmdbtn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .ukcmdbtn kbd{font:700 11px inherit;border:1px solid var(--line2);border-radius:6px;padding:2px 6px;color:var(--muted);background:var(--panel)}
 @media(max-width:700px){.ukcmdbtn span,.ukcmdbtn kbd{display:none}.ukcmdbtn{width:38px;padding:0;justify-content:center}}
+.ukcmdbtn{width:38px;padding:0!important;justify-content:center}.ukcmdbtn span,.ukcmdbtn kbd{display:none!important}
+#ukcmd .fl{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px}#ukcmd .fl:empty{display:none}#ukcmd .fc{cursor:pointer;font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line2);color:var(--muted)}#ukcmd .fc.on{background:var(--panel2);color:var(--text);border-color:var(--text)}
 html[data-ui-card="1"] body .row.wrap:has(>.ptabs) .psearch{display:none!important}
 #ukcmd{position:fixed;inset:0;z-index:10001;display:none;align-items:flex-start;justify-content:center;padding-top:11vh;background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
 #ukcmd .bx{width:560px;max-width:calc(100vw - 20px);background:var(--panel);border:1px solid var(--line2);border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.6);overflow:hidden}
@@ -5718,11 +5720,10 @@ function sync(){applyFilter();addFilterBtn();drawChips()}
 /* ---------- command bar (⌘K / Ctrl K) ---------- */
 const MAC=/Mac|iPhone|iPad/.test(navigator.platform||'');
 const ICS={pg:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 9h16"/>',pr:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/>',ac:'<path d="M12 5v14M5 12h14"/>'};
-let cm,cmI=0,cmL=[];
-function cmItems(q){q=q.trim().toLowerCase();const out=[];
- const pages=[...document.querySelectorAll('a[data-act="go"][data-arg]')].filter(a=>!a.closest('#ukcmd')&&a.textContent.trim());const seen={};
- pages.forEach(a=>{const t=a.textContent.trim();if(seen[t])return;seen[t]=1;out.push({g:'Pages',ic:'pg',t,act:'go',arg:a.dataset.arg})});
- out.push({g:'Actions',ic:'ac',t:'New project',act:'newProject',arg:''});
+let cm,cmI=0,cmL=[],cmF='';
+function cmItems(q){q=q.trim().toLowerCase();const out=[];if(!q)return out;
+ const seen={};((window.hubKit&&window.hubKit.pages&&window.hubKit.pages())||[]).forEach(x=>{if(seen[x.l])return;seen[x.l]=1;out.push({g:'Pages',ic:'pg',t:x.l,act:'go',arg:x.k})});
+ if(window.hubKit&&window.hubKit.canCreate&&window.hubKit.canCreate())out.push({g:'Actions',ic:'ac',t:'New project',act:'newProject',arg:''});
  const ps=(window.hubKit&&window.hubKit.projects&&window.hubKit.projects())||[];
  ps.forEach(p=>out.push({g:'Projects',ic:'pr',t:p.name,s:[p.client,p.type].filter(Boolean).join(' · '),act:'openProject',arg:p.id,hay:(p.name+' '+p.client+' '+p.type+' '+p.status).toLowerCase()}));
  const toks=q.split(/\s+/).filter(Boolean);
@@ -5731,16 +5732,17 @@ function cmItems(q){q=q.trim().toLowerCase();const out=[];
  const have=l=>!!document.querySelector('a[data-act="go"][data-arg="'+l+'"]');
  deep.forEach(d=>{if(d.need&&!have(d.need))return;const L=d.text.length>90?(()=>{const i=d.text.toLowerCase().indexOf(toks[0]);const a=Math.max(0,i-30);return(a?'…':'')+d.text.slice(a,a+90)+'…'})():d.text;f.push({g:d.k,ic:d.k==='People'?'pg':d.k==='Tasks'?'ac':'pr',t:L,s:d.s,act:d.act,arg:d.arg,hit:d.hit})});
  return f.slice(0,60)}
-function cmDraw(){const q=cm.querySelector('input').value;cmL=cmItems(q);if(cmI>=cmL.length)cmI=0;const box=cm.querySelector('.rs');
+function cmDraw(){const q=cm.querySelector('input').value;const all=cmItems(q);const gs=[...new Set(all.map(i=>i.g))];if(cmF&&!gs.includes(cmF))cmF='';cmL=cmF?all.filter(i=>i.g===cmF):all;if(cmI>=cmL.length)cmI=0;const box=cm.querySelector('.rs');const fl=cm.querySelector('.fl');if(fl)fl.innerHTML=gs.length>1?['',...gs].map(g=>'<a class="fc'+(g===cmF?' on':'')+'" data-g="'+esc(g)+'">'+(g||'All')+'</a>').join(''):'';
+ if(!q.trim()){box.innerHTML='';return}
  if(!cmL.length){box.innerHTML='<div class="em">No matches</div>';return}
  let h='',g='';cmL.forEach((i,n)=>{if(i.g!==g){g=i.g;h+='<div class="gh">'+g+'</div>'}h+='<div class="it'+(n===cmI?' on':'')+'" data-n="'+n+'"><svg viewBox="0 0 24 24">'+ICS[i.ic]+'</svg>'+esc(i.t)+(i.s?'<small>'+esc(i.s)+'</small>':'')+'</div>'});
  box.innerHTML=h;const on=box.querySelector('.on');if(on)on.scrollIntoView({block:'nearest'})}
-function cmOpen(){if(!cm){cm=document.createElement('div');cm.id='ukcmd';cm.innerHTML='<div class="bx"><input placeholder="Search anything — projects, scenes, notes, tasks, people…" autocomplete="off"><div class="rs"></div><div class="ft"><span>↑↓ move</span><span>↵ open</span><span>esc close</span></div></div>';document.body.appendChild(cm);
+function cmOpen(){if(!cm){cm=document.createElement('div');cm.id='ukcmd';cm.innerHTML='<div class="bx"><input placeholder="Search" autocomplete="off"><div class="fl"></div><div class="rs"></div><div class="ft"><span>↑↓ move</span><span>↵ open</span><span>esc close</span></div></div>';document.body.appendChild(cm);
   cm.addEventListener('mousedown',e=>{if(e.target===cm)cmClose()});
   cm.querySelector('input').addEventListener('input',()=>{cmI=0;cmDraw()});
-  cm.addEventListener('click',e=>{const it=e.target.closest('.it');if(it)cmGo(+it.dataset.n)});
+  cm.addEventListener('click',e=>{const c=e.target.closest('.fc');if(c){cmF=c.dataset.g||'';cmI=0;cmDraw();return}const it=e.target.closest('.it');if(it)cmGo(+it.dataset.n)});
   cm.addEventListener('mousemove',e=>{const it=e.target.closest('.it');if(it&&+it.dataset.n!==cmI){cmI=+it.dataset.n;cm.querySelectorAll('.it').forEach(x=>x.classList.toggle('on',x===it))}})}
- cm.style.display='flex';const i=cm.querySelector('input');i.value='';cmI=0;cmDraw();setTimeout(()=>i.focus(),20)}
+ cm.style.display='flex';const i=cm.querySelector('input');i.value='';cmI=0;cmF='';cmDraw();setTimeout(()=>i.focus(),20)}
 function cmClose(){if(cm)cm.style.display='none'}
 function cmHL(text){if(!text)return;const key=text.toLowerCase().slice(0,40);let n=0;const t=setInterval(()=>{let el=null;
   const w=document.createTreeWalker(document.querySelector('main')||document.body,NodeFilter.SHOW_TEXT);let x;while(x=w.nextNode()){if(x.parentElement&&!x.parentElement.closest('#ukcmd,script,style')&&x.nodeValue.toLowerCase().includes(key)){el=x.parentElement;break}}
@@ -5758,7 +5760,7 @@ window.__ukKd=e=>{
  else if(e.key==='Enter'){e.preventDefault();cmGo(cmI)}};
 addEventListener('keydown',window.__ukKd,true);
 function cmBtn(){if(document.getElementById('ukcmdbtn'))return;const bw=$('.top .bellwrap');if(!bw)return;
- bw.insertAdjacentHTML('beforebegin','<a class="ukcmdbtn" id="ukcmdbtn" role="button" title="Search (Ctrl K)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>'+(MAC?'⌘K':'Ctrl K')+'</kbd></a>');
+ bw.insertAdjacentHTML('beforebegin','<a class="ukcmdbtn" id="ukcmdbtn" role="button" title="Search" aria-label="Search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></a>');
  document.getElementById('ukcmdbtn').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();cmOpen()})}
 /* ---------- one loop keeps everything applied after every Hub re-render ---------- */
 let q=0;const run=()=>{q=0;tag();addDots();sync();pageBits();cmBtn();window.hubUIApply()};
