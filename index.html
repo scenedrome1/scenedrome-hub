@@ -5382,10 +5382,56 @@ function fxFill(fd,date){const cur=String(fd.get('cur')||'EGP').toUpperCase();if
 
 window.hubKit=Object.freeze({dup:true,canCreate:()=>{try{return !!can('proj.create')}catch(e){return false}},pages:()=>{try{return navItems().filter(x=>x[0]!=='__').map(x=>({k:x[0],l:x[1]}))}catch(e){return[]}},typeOff:()=>BRAND.typeOff||{},typeOf:pid=>{const p=P(pid);return p?p.type:null},ui:()=>BRAND.ui||{},search:_kSearch,projects:()=>{try{return visibleProjects().map(p=>({id:p.id,name:p.name||'Untitled',client:((U(p.client)||{}).company)||'',type:(TYPES[p.type]||{}).label||'',status:p.status||'active'}))}catch(e){return[]}}});
 if(LIVE){meId='…';render();liveBoot().catch(e=>{console.error(e);if(booted){toast('Something didn’t load: '+e.message,'bad');return}bootMsg='Couldn’t reach the Hub database: '+e.message;booted=false;meId=null;render()});sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){booted=false;meId=null;render()}})}else render();
+/* ================= Days: four-line order (day no · date / location / status · data size / checklist), notes and add row moved down; Received starts a convert timer, Sync and to-Episode send notices ================= */
+(()=>{
+const css=document.createElement('style');css.id='dw-css';css.textContent=`
+.dayblk .dln{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin-bottom:10px}
+.dayblk .dln>label{flex:1 1 150px;min-width:0}
+.dayblk .dln1>label:first-child{flex:0 0 130px}
+.dayblk .dln2>label{flex:1 1 100%}
+.daypop{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);font:700 34px var(--display,inherit);color:#f3cf7e;text-shadow:0 0 18px rgba(245,192,75,.55),0 4px 20px #000;z-index:300;pointer-events:none;animation:dwpop 1.9s ease both;white-space:nowrap}
+@keyframes dwpop{0%{opacity:0;transform:translate(-50%,-40%) scale(.7)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}25%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0}}`;
+document.head.appendChild(css);
+const dwPop=t=>{const el=document.createElement('div');el.className='daypop';el.textContent=t;document.body.appendChild(el);setTimeout(()=>el.remove(),2000)};
+const dwSec=v=>{const s=String(v||'').trim();if(!s)return 0;if(s.includes(':')){const q=s.split(':').map(x=>+x||0);return q.length===3?q[0]*3600+q[1]*60+q[2]:q[0]*60+q[1]}const n=Math.round(+s.replace(/\D/g,'')||0);return Math.floor(n/10000)*3600+Math.floor(n/100)%100*60+n%100};
+const dwPeople=(p,kind)=>{const team=(p.team||[]).filter(Boolean);if(kind==='main')return team.filter(id=>pRole(p,id)==='main');if(kind==='post')return [...new Set([p.producer,...team.filter(id=>{const u=U(id);return u&&/post/i.test(u.title||'')})].filter(Boolean))];return team.filter(id=>EDIT_ROLES[pRole(p,id)])};
+const dwAll=p=>[...new Set([...dwPeople(p,'post'),...dwPeople(p,'edit')])];
+const dwLink=p=>({v:'project',p:p.id,tab:'tasks'});
+const dwAsk=(p,d)=>modal('Convert time · DAY '+pad2(d.n),`<form data-form="dwConvert" class="formgrid"><input type="hidden" name="pid" value="${p.id}"><input type="hidden" name="did" value="${d.id}"><label class="full">Convert time<input name="ct" placeholder="hh:mm:ss, e.g. 00:45:00" autofocus></label><div class="full row" style="justify-content:flex-end;gap:8px"><a class="btn sm" data-act="closeModal">Cancel</a><button class="btn sm pri" type="submit">Start convert</button></div></form>`);
+FORM.dwConvert=fd=>{const p=P(String(fd.get('pid')));const d=p&&pDays(p).find(x=>x.id===String(fd.get('did')));if(!p||!d)return;const sec=dwSec(fd.get('ct'));if(!sec){toast('Enter the convert time','bad');return}
+ d.received=true;const ppl=dwAll(p);
+ S.tasks.push({id:uid('t'),project:p.id,title:'Convert · DAY '+pad2(d.n),assignee:ppl[0]||null,assignees:ppl,stage:0,status:'doing',due:Date.now()+sec*1000,prio:'high',timer:{start:Date.now(),dur:sec,dayId:d.id},brief:'Convert running for DAY '+pad2(d.n)+'. Stops when Convert is ticked on the day.'});
+ notify(ppl,`${me().name} started Convert for DAY ${pad2(d.n)} · ${mmss(sec)}`,dwLink(p));
+ save();closeModal();dwPop('Thank you !');render()};
+const _dwBase=CHG.dayF;
+CHG.dayF=(a,el)=>{const[id,f]=String(a).split('|');if(!DAYCK.some(x=>x[0]===f))return _dwBase(a,el);
+ const p=bkPrep();const d=p&&pDays(p).find(x=>x.id===id);if(!d||!canEditFlow(p))return _dwBase(a,el);
+ if(f==='received'&&el.checked&&!d.received){el.checked=false;dwAsk(p,d);return}
+ const on=!!el.checked;const rc=el.getBoundingClientRect();
+ const r=_dwBase(a,el);
+ if(on&&f==='convert'){const t=S.tasks.find(x=>x.timer&&x.timer.dayId===d.id&&x.status==='doing');if(t){t.status='done';t.timer.stopped=Date.now();notify(dwAll(p),`Convert finished · DAY ${pad2(d.n)} · ran ${mmss((Date.now()-t.timer.start)/1000)}`,dwLink(p));save()}}
+ if(on&&f==='sync'){confetti(rc.left+rc.width/2,rc.top+rc.height/2);notify(dwAll(p),`Sync done · DAY ${pad2(d.n)}`,dwLink(p));save()}
+ if(on&&f==='assigned'){dwPop('Good luck !');notify([...new Set([...dwAll(p),...dwPeople(p,'main')])],`Scenes moved to episodes · DAY ${pad2(d.n)}`,dwLink(p));save()}
+ return r};
+const _dwDB=dayBlock;
+dayBlock=function(p,d,ce,mg){const h=_dwDB(p,d,ce,mg);
+ const t=document.createElement('template');t.innerHTML=h;const root=t.content.firstElementChild;const body=root&&root.querySelector('.ep-body');if(!body||!body.querySelector('.dl1'))return h;
+ const l1=body.querySelector('.dl1'),dl2=body.querySelector('.dl2'),dl3=body.querySelector('.dl3'),add=body.querySelector('.addsc');
+ const pick=re=>[...l1.children].find(x=>re.test((x.textContent||'').trim()));
+ const mk=(cls,items)=>{const dv=document.createElement('div');dv.className=cls;items.forEach(x=>x&&dv.appendChild(x));return dv};
+ const r1=mk('dln dln1',[pick(/^Day no/),pick(/^Date/)]),r2=mk('dln dln2',[pick(/^Location/)]),r3=mk('dln dln3',[pick(/^Status/),pick(/^Data size/)]);
+ if(dl2)dl2.querySelectorAll('label.dck').forEach((lb,i)=>{const inp=lb.querySelector('input');if(inp)lb.innerHTML=inp.outerHTML+' '+(i===3?'to Episode':(DAYCK[i]||[])[1]||'')});
+ const rest=[...body.children].filter(x=>x!==l1&&x!==dl2&&x!==dl3&&x!==add);
+ const isFoot=x=>!x.classList.contains('tablewrap')&&!!x.querySelector('[data-act="dayDel"]');
+ const foot=rest.filter(isFoot),mid=rest.filter(x=>!isFoot(x));
+ body.innerHTML='';[r1,r2,r3,dl2,...mid,dl3,add,...foot].forEach(x=>x&&body.appendChild(x));
+ return root.outerHTML};
+
 })();
 
 /* opening a storage card or drive row scrolls it to the top of the screen */
 document.addEventListener('click',e=>{const h=e.target.closest&&e.target.closest('[data-act="stTog"],.drvr[data-act="tog"]');if(!h)return;const act=h.getAttribute('data-act'),arg=h.getAttribute('data-arg');setTimeout(()=>{const n=act==='stTog'?document.querySelector('[data-act="stTog"][data-arg="'+arg+'"]'):[...document.querySelectorAll('.drvr[data-act="tog"]')].find(x=>x.getAttribute('data-arg')===arg);if(!n)return;const open=act==='stTog'?/▾/.test(n.textContent):!!(n.closest('.drv')||{classList:{contains:()=>false}}).classList.contains('open');if(open)n.scrollIntoView({block:'start',behavior:'smooth'})},80)});
+})();
 </script>
 <script id="hub-uikit">/* ================= SCENEDROME Hub · UI Kit layer (pass 1) =================
    One source of truth for: Buttons · Badges · Menus · Sub-page nav.
