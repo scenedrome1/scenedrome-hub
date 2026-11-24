@@ -2704,7 +2704,7 @@ function bothKPIs(p){const days=pDays(p);const cs=days.map(d=>dayCalc(p,d));cons
 const _tb21=TABS.breakdown;TABS.breakdown=p=>{if(!hasDays(p))return _tb21(p);const q=NP(p);const ce=canEditFlow(q),mg=canManage(q);const mode=(V.bkMode||{})[p.id]||'episodes';
  const locs=[...new Set([...pDays(q).map(d=>d.loc),...q.episodes.flatMap(e=>e.scenes.map(s=>s.loc))].filter(Boolean))];
  const seg=`<div class="seg">${[['episodes','Episodes'],['days','Shooting days'],['both','Side by side']].map(([k,l])=>`<a class="${mode===k?'on':''}" data-act="bkMode" data-arg="${p.id}|${k}">${l}</a>`).join('')}</div>`;
- const search=`<div class="scsearch"><input id="scSearch" data-pid="${p.id}" placeholder="Search ${TYPES[p.type].unit.toLowerCase()} descriptions, characters, locations…" value="${esc(V.scq||'')}" autocomplete="off"><div id="scResults">${V.scq?scResultsHTML(q,V.scq):''}</div></div>`;
+ const search='';
  const ep=()=>_tb21(p),dy=()=>daysHTML(q,ce,mg);
  const body=mode==='days'?dy():mode==='both'?`<div class="bkboth"><div><div class="eyebrow" style="margin-bottom:8px">${EPL(p)}</div>${ep()}</div><div><div class="eyebrow" style="margin-bottom:8px">Shooting days</div>${dy()}</div></div>`:ep();
  return`<datalist id="locs-${p.id}">${locs.map(l=>`<option value="${esc(l)}">`).join('')}</datalist><div class="row wrap" style="gap:10px;margin-bottom:12px">${seg}${search}</div>${bothKPIs(q)}${body}`};
@@ -3514,7 +3514,7 @@ daysHTML=function(p,ce,mg){const days=pDays(p).slice().sort((a,b)=>a.n-b.n);
 /* Footage must not fall back to editorial stages or require episode records. */
 function footageDays(p){const q=NP(p),ce=canEditFlow(q),mg=canManage(q);const days=pDays(q).slice().sort((a,b)=>a.n-b.n);
  const locs=`<datalist id="locs-${q.id}">${allLocs(q).map(l=>`<option value="${esc(l)}">`).join('')}</datalist>`;
- if(Array.isArray(q.episodes))return locs+`<div class="scsearch"><input id="scSearch" data-pid="${q.id}" placeholder="Search ${TYPES[q.type].unit.toLowerCase()} descriptions, characters, locations…" value="${esc(V.scq||'')}" autocomplete="off"><div id="scResults">${V.scq?scResultsHTML(q,V.scq):''}</div></div>`+daysHTML(q,ce,mg);
+ if(Array.isArray(q.episodes))return locs+daysHTML(q,ce,mg);
  return locs+`<div class="row wrap" style="margin:4px 0 12px;gap:8px">${ce?`<a class="btn pri" data-act="dayAdd">${ic('plus',14)}Add shooting day</a>`:''}<span class="tiny faint grow">Shooting days · footage processing · storage</span></div>${days.length?days.map(d=>dayBlock(q,d,ce,mg)).join(''):'<div class="card empty">No shooting days yet</div>'}`}
 /* scenes start folded after every page load */
 Object.keys(V.open||{}).forEach(k=>{if(k.startsWith('sn'))delete V.open[k]});
