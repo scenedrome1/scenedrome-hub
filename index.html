@@ -1193,7 +1193,7 @@ function breakdownSeries(p0){const p=NP(p0);const ce=canEditFlow(p),mg=canManage
 const tot=[...p.episodes,...(p.epX?[p.epX]:[])].reduce((a,e)=>a+epRun(e),0);const del=p.episodes.filter(epDone).length;const scenes=p.episodes.reduce((a,e)=>a+e.scenes.length,0);const locked=p.episodes.reduce((a,e)=>a+e.scenes.filter(s=>s.locked).length,0);
 const sh=p.episodes.flatMap(shotsOf);const ap=sh.filter(x=>x.h.status==='approved').length;
 return kpis([['Show progress',projProg(p)+'%','','hero'],[EPL(p)+' delivered',del+'/'+p.episodes.length],[T.unit+'s locked',locked+'/'+scenes,''],['VFX shots approved',ap+'/'+sh.length]])+
-`<div class="row wrap" style="margin:14px 0 10px"><div class="tiny faint grow">Open an episode for its status, checkpoints, ${T.unit.toLowerCase()}s, VFX shots and sound brief. Everything folds open and closed.</div><a class="btn sm ghost" data-act="epAll" data-arg="1">Expand all</a><a class="btn sm ghost" data-act="epAll" data-arg="0">Collapse all</a></div>
+`<div class="row wrap" style="margin:14px 0 10px"><div class="tiny faint grow">Open an episode for its status, checkpoints, ${T.unit.toLowerCase()}s, VFX shots and sound brief. Everything folds open and closed.</div></div>
 ${p.episodes.map(e=>epBlock(p,e,ce,mg)).join('')}`}
 
 function epBlock(p,e,ce,mg){const T=TYPES[p.type];const pr=epProg(p,e);const run=epRun(e);const lk=e.scenes.filter(s=>s.locked).length;const open=V.open[p.id+'-'+e.n];const sh=shotsOf(e);
