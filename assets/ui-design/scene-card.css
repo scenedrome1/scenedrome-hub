@@ -1,0 +1,16 @@
+.csrow.open>.sccell{background:linear-gradient(165deg,#0a2119 0%,#06170f 50%,#030d08 100%);border:1px solid #1f5a45;border-radius:16px;margin:8px 4px;overflow:hidden}
+.csrow.open .scbar{background:linear-gradient(90deg,rgba(245,192,75,.12),rgba(245,192,75,0) 60%);padding:14px 18px;border-bottom:1px solid #1d4a3b}
+.csrow.open .scbar .scn{font-size:20px;font-weight:600}
+.csrow.open .scbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;padding:16px;align-items:start}
+.csrow.open .scbody>.scl1,.csrow.open .scbody>.scl3{background:linear-gradient(180deg,#071a13 0%,#030e0a 100%);border:1px solid #17392d;border-radius:14px;padding:16px;min-width:0}
+.csrow.open .scbody>.scsub,.csrow.open .scbody>.scdel{grid-column:1/-1;border-top:1px solid #1d4a3b;padding-top:12px;margin:0}
+.csrow.open .scbody>.scl1{grid-template-columns:1fr 1fr;gap:12px}
+.csrow.open .scl3{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}
+.csrow.open .scflag{margin-top:0}
+.vmore{position:relative;display:inline-flex}
+.vdots{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid #1d4a3b;border-radius:8px;background:#0f2a20;color:#e5f2ec;cursor:pointer;font-size:16px;line-height:1}
+.vmenu{position:absolute;right:0;top:36px;width:200px;padding:8px;border-radius:12px;background:#0f2a20;border:1px solid #1d4a3b;box-shadow:0 18px 50px -12px rgba(10,35,29,.35);z-index:30;display:flex;flex-direction:column}
+.vmenu a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:14px;color:#eafaf2;cursor:pointer}
+.vmenu a:hover{background:#173a2e}
+.vmenu a.vdel{color:#ff7a6b}
+.vmenu hr{border:0;border-top:1px solid #1d4a3b;margin:6px 0}
