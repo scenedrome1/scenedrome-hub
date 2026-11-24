@@ -4326,8 +4326,9 @@ function asDevices(){const list=asSeen().filter(d=>d.owner==='studio'&&!isSto(d)
 function asStorage(){const keep=S.devices;S.devices=keep.filter(isSto);try{return _vsOrig()}finally{S.devices=keep}}
 const _vsOrig=VIEWS.storage;
 function asSeedOnce(){if(S.assetsSeeded)return;S.assetsSeeded=true;
- if(!(S.rooms||[]).length)S.rooms=[{id:uid('r'),name:'Edit suite 1',kind:'edit',note:'',active:true},{id:uid('r'),name:'Edit suite 2',kind:'edit',note:'',active:true},{id:uid('r'),name:'Grading room',kind:'grading',note:'',active:true}];
- if(!(S.devices||[]).some(d=>d.owner==='studio'))S.devices=[...(S.devices||[]),...[['Laptop','LP-01'],['Workstation','WS-01'],['Camera','CM-01'],['Monitor','MN-01']].map(([k,c])=>({id:uid('d'),code:c,kind:k,brand:'',model:'',sn:'',owner:'studio',status:'In studio',holder:null,client:null,project:null,note:'Placeholder — set brand, model and serial'}))];
+ const names=['Edit suite 1','Edit suite 2','Grading room'];
+ S.rooms=(S.rooms||[]).filter(r=>!names.includes(r.name));
+ S.devices=(S.devices||[]).filter(d=>!/^Placeholder/.test(d.note||''));
  save()}
 VIEWS.assets=()=>{asSeedOnce();const c=asCan();if(!c.s&&!c.r)return deny();const tabs=asTabs();if(!tabs.some(t=>t[0]===V.at))V.at='overview';
  let body;if(V.at==='rooms'){const rooms=RM().filter(r=>r.active!==false);body=`<div class="row wrap" style="gap:6px;margin-bottom:12px"><b>${rooms.length} room${rooms.length===1?'':'s'}</b>${rooms.map(r=>`<span class="chip">${esc(r.name)}</span>`).join('')}</div>`+VIEWS.rooms()}
