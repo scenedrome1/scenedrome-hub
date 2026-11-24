@@ -694,6 +694,17 @@ html[data-ui-scene="1"] .vmenu a:hover{background:#173a2e}
 html[data-ui-scene="1"] .vmenu a.vdel{color:#ff7a6b}
 html[data-ui-scene="1"] .vmenu hr{border:0;border-top:1px solid #1d4a3b;margin:6px 0}
 </style>
+<style id="dp-css">
+.dpcard{padding:14px;margin:6px 0 10px}
+.dprow{display:grid;grid-template-columns:170px 170px minmax(0,1fr);gap:12px;align-items:start;margin-bottom:12px}
+.dprev{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.dprev select{width:auto;max-width:190px;padding:5px 8px;font-size:12.5px}
+.dpsec{border-top:1px dashed var(--line);padding-top:10px;margin-top:10px}
+.dpsc{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:8px}
+.dpshot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}.dpshot input,.dpshot select{width:auto;min-width:0;padding:6px 8px;font-size:13px}.dpshot .grow2{flex:2 1 160px}.dpshot input:not(.grow2){flex:1 1 120px}
+.dpnote{display:flex;gap:8px;align-items:center;margin-top:6px}.dpnote select{width:auto;padding:6px 8px;font-size:13px}.dpnote input{min-width:0}
+select.cx.gold{border-color:var(--gold)}select.cx.warn{border-color:var(--warn)}select.cx.bad{border-color:var(--bad)}
+@media (max-width:760px){.dprow{grid-template-columns:1fr 1fr}.dprow .grow2{grid-column:1/-1}}
+</style>
 </head>
 <body>
 <div id="app"></div>
@@ -3712,6 +3723,74 @@ CHG.crF=(a,el)=>{const[id,f]=a.split('|');const p=bkPrep();const x=p&&(p.creativ
 ACT.crDel=id=>{const p=bkPrep();if(!p)return;const x=(p.creative||[]).find(y=>y.id===id);if(!x||!confirm(`Remove ${x.kind}${x.name?' — '+x.name:''}?`))return;p.creative=p.creative.filter(y=>y.id!==id);save();render()};
 /* creative rows reuse the service cells: route their edits */
 const _csv51=CHG.svc;CHG.svc=(a,el)=>{if(a.startsWith('c|')){const[,id,k,f]=a.split('|');const p=bkPrep();const x=p&&(p.creative||[]).find(y=>y.id===id);if(!x)return;x.sv=x.sv||{};x.sv.creative=Object.assign({st:'todo',by:'',note:''},x.sv.creative,{[f]:el.value});if(f==='by'&&el.value)notify([el.value],`${me().name} assigned you ${x.kind} on ${p.name}`,{v:'project',p:p.id,tab:'breakdown'});save();render();return}return _csv51(a,el)};
+/* ================= Grading · VFX · Sound: Edit-style episode dropdowns with a header (status · duration or shots) and a data card (checkpoints, reviewers, notes, VFX scenes and shots) ================= */
+const DPX={grading:{n:'Grading',ch:[['xml','XML',0],['prev','Preview',0],['conf','Conform',1],['exp','Exported Shots',1],['prog','In progress',2],['deliv','Delivered',5]]},
+ vfx:{n:'VFX',ch:[['xml','XML',0],['prev','Preview',0],['conf','Conform',1],['exp','Exported Shots',1],['prog','In progress',2],['deliv','Delivered',5]]},
+ sound:{n:'Sound',ch:[['omf','OMF',0],['prev','Preview',0],['link','Linked',1],['prog','In progress',2],['rev','In review',3],['deliv','Delivered',5]]}};
+const _dpS=[['offline','Offline',''],['conform','Conform','lilac'],['prog','In Progress','gold'],['review','In Review','info'],['appr','Approved','ok'],['deliv','Delivered','ok']];
+const DPS={grading:_dpS,vfx:_dpS,sound:[['offline','Offline',''],['linked','Linked','lilac'],['prog','In Progress','gold'],['review','In Review','info'],['appr','Approved','ok'],['deliv','Delivered','ok']]};
+const DPCX=[['low','Low',''],['med','Medium','gold'],['high','High','warn'],['hero','Hero','bad']];
+const DPNC=[['style','Scene style'],['dm','Digital makeup'],['general','General']];
+const dpDef=()=>({chk:{},st:0,dur:null,shots:null,rev:[],notes:[],scenes:[]});
+const dpRead=(e,k)=>Object.assign(dpDef(),(e.dp||{})[k]||{});
+const dpGet=(e,k)=>{e.dp=e.dp||{};e.dp[k]=Object.assign(dpDef(),e.dp[k]||{});return e.dp[k]};
+const dpEp=(p,n)=>allEps(p).find(x=>x.n===+n);
+const dpEdit=p=>canEditFlow(p)||canManage(p);
+const dpLink=p=>({v:'project',p:p.id,tab:'breakdown'});
+const dpPeople=p=>[...new Set([p.producer,...(p.team||[]).filter(id=>EDIT_ROLES[pRole(p,id)]||/post/i.test((U(id)||{}).title||''))].filter(Boolean))];
+const dpSec=v=>{const s=String(v||'').trim();if(!s)return null;if(s.includes(':')){const q=s.split(':').map(x=>+x||0);return q.length===3?q[0]*3600+q[1]*60+q[2]:q[0]*60+q[1]}const n=+s.replace(/\D/g,'');return n?n*60:null};
+function dpSetSt(p,e,k,idx){const d=dpGet(e,k);if(idx>=3&&!d.rev.length){toast('Assign at least one reviewer first','bad');return false}
+ const prev=d.st;d.st=idx;
+ if(idx!==prev){const lab=epL(e.n)+' '+DPX[k].n;
+  if(idx===3)notify(d.rev,`${lab} is ready for your review`,dpLink(p));
+  else if(idx===4)notify(dpPeople(p),`${lab} approved`,dpLink(p));
+  else if(idx===5)notify(dpPeople(p),`${lab} delivered`,dpLink(p))}
+ return true}
+const dpWith=(a,fn)=>{const parts=a.split('|');const p=bkPrep();const e=p&&dpEp(p,parts[0]);if(!e||!dpEdit(p))return;fn(p,e,parts);bkSave(p,e)};
+CHG.dpChk=(a,el)=>dpWith(a,(p,e,[n,k,f])=>{const d=dpGet(e,k);const def=DPX[k].ch.find(x=>x[0]===f);if(!def)return;const on=!!el.checked;
+ if(on&&def[2]>d.st&&def[2]>=3&&!d.rev.length){toast('Assign at least one reviewer first','bad');return}
+ d.chk[f]=on?{at:Date.now(),by:meId}:null;if(on&&def[2]>d.st)dpSetSt(p,e,k,def[2])});
+CHG.dpSt=(a,el)=>dpWith(a,(p,e,[n,k])=>{dpSetSt(p,e,k,+el.value)});
+CHG.dpDur=(a,el)=>dpWith(a,(p,e,[n,k])=>{dpGet(e,k).dur=dpSec(el.value)});
+CHG.dpShN=(a,el)=>dpWith(a,(p,e,[n,k])=>{dpGet(e,k).shots=el.value===''?null:Math.max(0,+el.value|0)});
+CHG.dpRevAdd=(a,el)=>dpWith(a,(p,e,[n,k])=>{const d=dpGet(e,k);if(el.value&&!d.rev.includes(el.value))d.rev.push(el.value)});
+ACT.dpRevDel=a=>dpWith(a,(p,e,[n,k,id])=>{const d=dpGet(e,k);d.rev=d.rev.filter(x=>x!==id)});
+ACT.dpNoteAdd=a=>dpWith(a,(p,e,[n,k])=>{dpGet(e,k).notes.push({id:uid('nt'),c:k==='vfx'?'':'general',t:''})});
+CHG.dpNote=(a,el)=>dpWith(a,(p,e,[n,k,id,f])=>{const x=dpGet(e,k).notes.find(y=>y.id===id);if(x)x[f]=el.value});
+ACT.dpNoteDel=a=>dpWith(a,(p,e,[n,k,id])=>{const d=dpGet(e,k);d.notes=d.notes.filter(y=>y.id!==id)});
+CHG.dpShF=(a,el)=>dpWith(a,(p,e,[n,sid,hid,f])=>{const s=(e.scenes||[]).find(x=>x.id===sid);const h=s&&(s.shots||[]).find(x=>x.id===hid);if(h)h[f]=el.value});
+ACT.dpScAdd=a=>dpWith(a,(p,e)=>{dpGet(e,'vfx').scenes.push({id:uid('vs'),n:'',shots:[]})});
+CHG.dpScN=(a,el)=>dpWith(a,(p,e,[n,sid])=>{const s=dpGet(e,'vfx').scenes.find(x=>x.id===sid);if(s)s.n=el.value});
+ACT.dpScDel=a=>dpWith(a,(p,e,[n,sid])=>{const d=dpGet(e,'vfx');d.scenes=d.scenes.filter(x=>x.id!==sid)});
+ACT.dpShAdd=a=>dpWith(a,(p,e,[n,sid])=>{const s=dpGet(e,'vfx').scenes.find(x=>x.id===sid);if(s)s.shots.push({id:uid('vh'),name:'',dur:null,brief:'',cx:'low'})});
+CHG.dpShC=(a,el)=>dpWith(a,(p,e,[n,sid,hid,f])=>{const s=dpGet(e,'vfx').scenes.find(x=>x.id===sid);const h=s&&s.shots.find(x=>x.id===hid);if(h)h[f]=f==='dur'?dpSec(el.value):el.value});
+ACT.dpShDel=a=>dpWith(a,(p,e,[n,sid,hid])=>{const s=dpGet(e,'vfx').scenes.find(x=>x.id===sid);if(s)s.shots=s.shots.filter(x=>x.id!==hid)});
+const dpCx=v=>DPCX.find(x=>x[0]===v)||DPCX[0];
+function dpNotesSec(e,k,d,canE){if(!canE&&!d.notes.length)return'';
+ const rows=d.notes.map(n=>`<div class="dpnote"><span class="faint">•</span>${k==='vfx'?'':canE?`<select data-change="dpNote" data-arg="${e.n}|${k}|${n.id}|c">${DPNC.map(([v,l])=>`<option value="${v}" ${n.c===v?'selected':''}>${l}</option>`).join('')}</select>`:`<span class="chip">${esc((DPNC.find(x=>x[0]===n.c)||DPNC[2])[1])}</span>`}${canE?`<input class="grow" value="${esc(n.t)}" data-change="dpNote" data-arg="${e.n}|${k}|${n.id}|t" placeholder="${k==='vfx'?'Note on the scenes':'Write a note'}">`:`<span class="grow">${esc(n.t)}</span>`}${canE?`<a class="faint" data-act="dpNoteDel" data-arg="${e.n}|${k}|${n.id}" title="Remove note" style="cursor:pointer">${ic('trash',13)}</a>`:''}</div>`).join('');
+ return`<div class="dpsec"><div class="row"><b>Notes</b>${canE?`<a class="btn sm ghost right" data-act="dpNoteAdd" data-arg="${e.n}|${k}">${ic('plus',13)}Add note</a>`:''}</div>${rows||'<div class="tiny faint">No notes yet.</div>'}</div>`}
+function dpVfxSec(p,e,d,canE,eIn){
+ if(eIn){const sc=(e.scenes||[]).filter(s=>(s.vfx&&s.vfx!=='none')||(s.shots||[]).length);
+  return`<div class="dpsec"><b>Scenes and shots</b><span class="tiny faint"> · from Edit</span>${sc.length?sc.map(s=>`<div class="dpsc"><div class="row"><b>Sc ${esc(s.n)}</b><span class="tiny faint">${esc(s.loc||'')}</span></div>${(s.shots||[]).length?s.shots.map(h=>{const cx=dpCx(h.cx);return`<div class="dpshot"><b>#${esc(h.n)}</b><span class="grow">${esc(h.name)||'—'}</span><span class="num tiny">${mmss(h.dur)}</span>${canE?`<select class="cx ${cx[2]}" data-change="dpShF" data-arg="${e.n}|${s.id}|${h.id}|cx" title="Complexity">${DPCX.map(([v,l])=>`<option value="${v}" ${h.cx===v?'selected':''}>${l}</option>`).join('')}</select><input class="grow2" value="${esc(h.cm||'')}" data-change="dpShF" data-arg="${e.n}|${s.id}|${h.id}|cm" placeholder="Comment">`:`<span class="chip ${cx[2]}">${cx[1]}</span><span class="grow2 tiny">${esc(h.cm||'')}</span>`}</div>`}).join(''):'<div class="tiny faint">No shots yet. The editing team adds them in Edit.</div>'}</div>`).join(''):'<div class="tiny faint" style="margin-top:6px">No VFX scenes yet. Scenes with VFX shots appear here from Edit.</div>'}</div>`}
+ return`<div class="dpsec"><div class="row"><b>Scenes and shots</b>${canE?`<a class="btn sm ghost right" data-act="dpScAdd" data-arg="${e.n}">${ic('plus',13)}Add scene</a>`:''}</div>${d.scenes.length?d.scenes.map(s=>`<div class="dpsc"><div class="row">${canE?`<input value="${esc(s.n)}" data-change="dpScN" data-arg="${e.n}|${s.id}" placeholder="Scene name or number" style="max-width:220px">`:`<b>${esc(s.n)||'Scene'}</b>`}<span class="grow"></span>${canE?`<a class="faint" data-act="dpScDel" data-arg="${e.n}|${s.id}" title="Remove scene" style="cursor:pointer">${ic('trash',13)}</a>`:''}</div>${s.shots.map(h=>{const cx=dpCx(h.cx);return`<div class="dpshot">${canE?`<input value="${esc(h.name)}" data-change="dpShC" data-arg="${e.n}|${s.id}|${h.id}|name" placeholder="Shot name"><input value="${h.dur?mmss(h.dur):''}" data-change="dpShC" data-arg="${e.n}|${s.id}|${h.id}|dur" placeholder="hh:mm:ss" style="max-width:96px"><input class="grow2" value="${esc(h.brief||'')}" data-change="dpShC" data-arg="${e.n}|${s.id}|${h.id}|brief" placeholder="Brief"><select class="cx ${cx[2]}" data-change="dpShC" data-arg="${e.n}|${s.id}|${h.id}|cx" title="Complexity">${DPCX.map(([v,l])=>`<option value="${v}" ${h.cx===v?'selected':''}>${l}</option>`).join('')}</select><a class="faint" data-act="dpShDel" data-arg="${e.n}|${s.id}|${h.id}" title="Remove shot" style="cursor:pointer">${ic('trash',13)}</a>`:`<span class="grow">${esc(h.name)||'—'}</span><span class="num tiny">${h.dur?mmss(h.dur):'—'}</span><span class="grow2 tiny">${esc(h.brief||'')}</span><span class="chip ${cx[2]}">${cx[1]}</span>`}</div>`}).join('')}${canE?`<a class="btn sm ghost" style="margin-top:6px" data-act="dpShAdd" data-arg="${e.n}|${s.id}">${ic('plus',13)}Add shot</a>`:''}</div>`).join(''):'<div class="tiny faint" style="margin-top:6px">Add a scene, then add its shots.</div>'}</div>`}
+function dpBlock(p,e,k,canE,eIn){const X=DPX[k],S=DPS[k];const d=dpRead(e,k);const kk='dp'+k+p.id+e.n;const open=V.open[kk]===true;const st=S[d.st]||S[0];
+ const run=epRun(e),shn=shotsOf(e).length;const fromEdit=eIn&&(k==='vfx'?shn>0:run>0);
+ const added=(d.scenes||[]).reduce((a,s)=>a+s.shots.length,0);const shTxt=fromEdit?shn:(d.shots!=null?d.shots:added);
+ const meta=k==='vfx'?`${shTxt} shot${shTxt===1?'':'s'}`:(fromEdit?mmss(run):(d.dur?mmss(d.dur):'—'));
+ const done=X.ch.filter(c=>d.chk[c[0]]).length;
+ const field=k==='vfx'?`<div><div class="lbl">Shots</div>${fromEdit?`<div class="fld ro">${shn} · from Edit</div>`:canE?`<input type="number" min="0" value="${d.shots!=null?d.shots:added}" data-change="dpShN" data-arg="${e.n}|${k}">`:`<div class="fld ro">${shTxt}</div>`}</div>`
+  :`<div><div class="lbl">Final duration</div>${fromEdit?`<div class="fld ro">${mmss(run)} · from Edit</div>`:canE?`<input value="${d.dur?mmss(d.dur):''}" placeholder="hh:mm:ss" data-change="dpDur" data-arg="${e.n}|${k}">`:`<div class="fld ro">${d.dur?mmss(d.dur):'—'}</div>`}</div>`;
+ const body=`<div class="card dpcard"><div class="dprow"><div><div class="lbl">Status</div><select class="svst ${st[2]}" data-change="dpSt" data-arg="${e.n}|${k}" ${canE?'':'disabled'}>${S.map(([v,l],i)=>`<option value="${i}" ${d.st===i?'selected':''}>${l}</option>`).join('')}</select></div>${field}
+  <div class="grow2"><div class="lbl">Reviewers <span class="faint">(required before review)</span></div><div class="dprev">${d.rev.map(id=>`<span class="chip">${esc((U(id)||{}).name||'?')}${canE?` <a data-act="dpRevDel" data-arg="${e.n}|${k}|${id}" style="cursor:pointer" title="Remove">✕</a>`:''}</span>`).join('')}${canE?`<select data-change="dpRevAdd" data-arg="${e.n}|${k}" aria-label="Add reviewer">${crewOpts(p,'','＋ Add reviewer')}</select>`:(d.rev.length?'':'<span class="tiny faint">None yet</span>')}</div></div></div>
+  <div class="dl2">${X.ch.map(([f,l])=>{const c=d.chk[f];return`<label class="dck" title="${c?esc(who(c.by).replace(/<[^>]*>/g,''))+' · '+new Date(c.at).toLocaleDateString():''}"><input type="checkbox" data-change="dpChk" data-arg="${e.n}|${k}|${f}" ${c?'checked':''} ${canE?'':'disabled'}> ${l}</label>`}).join('')}</div>
+  ${k==='vfx'?dpVfxSec(p,e,d,canE,eIn):''}${dpNotesSec(e,k,d,canE)}</div>`;
+ return`<div class="ep ${open?'open':''}"><div class="ep-row dyrow" data-act="tog" data-arg="${kk}|0"><b style="font-family:var(--display)">${epL(e.n)}</b><span class="chip ${st[2]}">${st[1]}</span><span class="tiny grow">${meta}${fromEdit?' <span class="faint">· from Edit</span>':''}</span><span class="chip ${done===X.ch.length?'ok':done?'gold':''}" style="font-size:11px">${done}/${X.ch.length}</span><span class="faint">${open?'▾':'▸'}</span></div>${open?`<div class="ep-body">${body}</div>`:''}</div>`}
+const _dpOrig=svcView;
+svcView=function(p,k){const q=NP(p);if(!DPX[k]||!TYPES[q.type].episodic||!q.episodes)return _dpOrig(p,k);
+ const canE=dpEdit(q),eIn=pSvc(q).includes('edit');const qq=hasDays(q)?schedProj(q):q;const eps=allEps(qq);
+ if(!eps.length)return'<div class="card empty">No episodes yet.</div>';
+ return eps.map(e=>dpBlock(q,e,k,canE,eIn)).join('')};
+
 /* the production menu replaces By shooting day / By episode / Side by side */
 const _tb51=TABS.breakdown;TABS.breakdown=p=>{if(!isStaff())return _tb51(p);const on=pSvc(p);let mode=(V.bkMode||{})[p.id];if(!on.includes(mode))mode=on[0]||'';
  const menu=`<div class="seg svcmenu" role="tablist" aria-label="Production">${SVCS.filter(([k])=>on.includes(k)).map(([k,l,i])=>`<a role="tab" aria-selected="${mode===k}" aria-label="${esc(l)}" title="${esc(l)}" class="${mode===k?'on':''}" data-act="bkMode" data-arg="${p.id}|${k}">${ic(i,16)}<span>${esc(l)}</span></a>`).join('')}</div>`;
