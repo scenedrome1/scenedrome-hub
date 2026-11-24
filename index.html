@@ -667,6 +667,24 @@ html.still .content>*,html.still .content.entering,html.still .msg,html.still .m
 
 .chip.roleme66{font-size:11px;margin:6px 0;display:inline-flex;background:color-mix(in srgb,var(--sig-clients,#79aec2) 20%,transparent);color:var(--sig-clients,#79aec2);border-color:transparent}
 </style>
+<style id="scene-card-design">
+.csrow.open>.sccell{background:linear-gradient(165deg,#0a2119 0%,#06170f 50%,#030d08 100%);border:1px solid #1f5a45;border-radius:16px;margin:8px 4px;overflow:hidden}
+.csrow.open .scbar{background:linear-gradient(90deg,rgba(245,192,75,.12),rgba(245,192,75,0) 60%);padding:14px 18px;border-bottom:1px solid #1d4a3b}
+.csrow.open .scbar .scn{font-size:20px;font-weight:600}
+.csrow.open .scbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;padding:16px;align-items:start}
+.csrow.open .scbody>.scl1,.csrow.open .scbody>.scl3{background:linear-gradient(180deg,#071a13 0%,#030e0a 100%);border:1px solid #17392d;border-radius:14px;padding:16px;min-width:0}
+.csrow.open .scbody>.scsub,.csrow.open .scbody>.scdel{grid-column:1/-1;border-top:1px solid #1d4a3b;padding-top:12px;margin:0}
+.csrow.open .scbody>.scl1{grid-template-columns:1fr 1fr;gap:12px}
+.csrow.open .scl3{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}
+.csrow.open .scflag{margin-top:0}
+.vmore{position:relative;display:inline-flex}
+.vdots{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid #1d4a3b;border-radius:8px;background:#0f2a20;color:#e5f2ec;cursor:pointer;font-size:16px;line-height:1}
+.vmenu{position:absolute;right:0;top:36px;width:200px;padding:8px;border-radius:12px;background:#0f2a20;border:1px solid #1d4a3b;box-shadow:0 18px 50px -12px rgba(10,35,29,.35);z-index:30;display:flex;flex-direction:column}
+.vmenu a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:14px;color:#eafaf2;cursor:pointer}
+.vmenu a:hover{background:#173a2e}
+.vmenu a.vdel{color:#ff7a6b}
+.vmenu hr{border:0;border-top:1px solid #1d4a3b;margin:6px 0}
+</style>
 </head>
 <body>
 <div id="app"></div>
@@ -2990,6 +3008,8 @@ scRow=function(p,e,s,ctx,d){const ce=canEditFlow(p),mg=canManage(p);const k='sn'
  const cols=2+(epc?1:0)+(dyc?1:0)+5+(rm?1:0);
  return`<tr class="csrow ${open?'open':''}"><td class="cs-tog" data-act="tog" data-arg="${k}|0" title="Notes, VFX, sound">${open?'▾':'▸'}</td>${scn}${epc}${dyc}${loc}${vers}<td class="num">${mmss(s.dur)}</td>${take}<td><span class="chip ${st[1]}" style="font-size:11px">${st[0]}</span>${chips}</td>${rm}</tr>${open?`<tr><td colspan="${cols}" style="padding:0 0 8px">${sceneDetail(p,e,s,ctx==='ep'?false:ce,ctx==='ep'?false:mg)}</td></tr>`:''}`};
 scHead=ctx=>`<thead><tr><th style="width:22px"></th><th style="width:70px">Scene</th>${ctx==='day'||ctx==='un'?'<th style="width:84px">EP</th>':''}${ctx==='ep'||ctx==='un'?'<th style="width:72px">Shoot day</th>':''}<th>Location</th><th style="min-width:230px">Versions</th><th style="width:76px">Duration</th><th style="width:84px">Best take</th><th style="width:130px">Status</th>${ctx==='day'?'<th style="width:22px"></th>':''}</tr></thead>`;
+ACT.vmenu=a=>{const vid=a.split('|').pop();V.vm=V.vm===vid?null:vid;render()};
+ACT.vedit=a=>{const[n,sid,vid]=a.split('|');V.vm=null;render();setTimeout(()=>{const i=document.querySelector(`input[data-arg="e${n}.s${sid}.v${vid}.l"]`);if(i){i.focus();i.select()}},0)};
 ACT.verDel=a=>{const[n,sid,vid]=a.split('|');const p=bkPrep();if(!p||!canEditFlow(p))return;const e=epFind(p,n);const s=e&&e.scenes.find(x=>x.id===sid);if(!s)return;const v=s.versions.find(x=>x.id===vid);s.versions=s.versions.filter(x=>x.id!==vid);if(s.sel===vid)s.sel=s.versions.length?s.versions[s.versions.length-1].id:null;scCalc(s);bkSave(p,e);toast(`Version ${v?v.l:''} removed`)};
 /* scene details: no characters field; sound brief opens when sound work is needed, like VFX */
 const _sd28=sceneDetail;sceneDetail=function(p,e,s,ce,mg){let h=_sd28(p,e,s,ce,mg);if(!hasDays(p))return h;const b=`e${e.n}.s${s.id}`;const ro=!ce;
@@ -3523,7 +3543,7 @@ scRow=function(p,e,s,ctx,d){if(!hasDays(p)&&ctx!=='day')return'';const ce=canEdi
   <label>Status${edit?`<select ${B('kind')}>${SK_KIND.map(([v,l,t])=>`<option value="${v}" title="${t}" ${(s.kind||'ind')===v?'selected':''}>${l}</option>`).join('')}</select>`:`<div title="${(SK_KIND.find(x=>x[0]===(s.kind||'ind'))||[])[2]}">${(SK_KIND.find(x=>x[0]===(s.kind||'ind'))||[])[1]}</div>`}
    <span class="sclock"><input type="checkbox" ${s.locked?'checked':''} ${ce?`data-act="lockScene" data-arg="${e.n}|${s.id}"`:'disabled'}> Locked</span></label></div>`;
  const l2=(edit||s.note)?`<label class="scfull">Scene notes${edit?`<textarea rows="2" ${B('note')} placeholder="Notes for the edit…">${esc(s.note||'')}</textarea>`:`<div>${esc(s.note||'')}</div>`}</label>`:'';
- const vers=`<div class="scvers">${vs.map(v=>{const on=v.id===s.sel;return`<div class="cs-v ${on?'on':''}">${ce?`<a class="cs-pick" data-act="selVer" data-arg="${e.n}|${s.id}|${v.id}" title="${on?'This version counts':'Use this version'}"><span class="vdot">${on?'✓':''}</span></a><input class="cs-vl" value="${esc(v.l)}" ${B('v'+v.id+'.l')}><input class="cs-vd" value="${mmss(v.dur)}" ${B('v'+v.id+'.dur')} title="hh:mm:ss — 142 = 00:01:42"><a class="cs-del" data-act="verDel" data-arg="${e.n}|${s.id}|${v.id}" title="Remove this version">${ic('trash',13)}</a>`:`<span class="vdot">${on?'✓':''}</span><b>${esc(v.l)}</b> <span class="num">${mmss(v.dur)}</span>`}</div>`}).join('')}${ce?`<a class="cs-add" data-act="addVer" data-arg="${e.n}|${s.id}">＋ version</a>`:''}${!vs.length&&!ce?'<span class="faint">—</span>':''}</div>`;
+ const vers=`<div class="scvers">${vs.map(v=>{const on=v.id===s.sel;return`<div class="cs-v ${on?'on':''}">${ce?`<a class="cs-pick" data-act="selVer" data-arg="${e.n}|${s.id}|${v.id}" title="${on?'This version counts':'Use this version'}"><span class="vdot">${on?'✓':''}</span></a><input class="cs-vl" value="${esc(v.l)}" ${B('v'+v.id+'.l')}><input class="cs-vd" value="${mmss(v.dur)}" ${B('v'+v.id+'.dur')} title="hh:mm:ss — 142 = 00:01:42">${ce?`<span class="vmore"><a class="vdots" data-act="vmenu" data-arg="${e.n}|${s.id}|${v.id}" title="Version actions" aria-label="Version actions">⋯</a>${V.vm===v.id?`<div class="vmenu"><a data-act="vedit" data-arg="${e.n}|${s.id}|${v.id}">${ic('pen',13)}Edit</a><hr><a class="vdel" data-act="verDel" data-arg="${e.n}|${s.id}|${v.id}">${ic('trash',13)}Delete</a></div>`:''}</span>`:''}`:`<span class="vdot">${on?'✓':''}</span><b>${esc(v.l)}</b> <span class="num">${mmss(v.dur)}</span>`}</div>`}).join('')}${ce?`<a class="cs-add" data-act="addVer" data-arg="${e.n}|${s.id}">＋ version</a>`:''}${!vs.length&&!ce?'<span class="faint">—</span>':''}</div>`;
  const showVers=ce||vs.length; const showVfxF=edit||(s.vfx&&s.vfx!=='none'); const showSndF=edit||(s.snd&&s.snd!=='none');
  const l3=`<div class="scl3">${showVers?`<div class="grow"><div class="lbl">Versions</div>${vers}</div>`:'<div class="grow"></div>'}${showVfxF?`<label class="scflag"><input type="checkbox" ${s.vfx&&s.vfx!=='none'?'checked':''} ${edit?`data-change="scFlag" data-arg="${e.n}|${s.id}|vfx"`:'disabled'}> VFX</label>`:''}${showSndF?`<label class="scflag"><input type="checkbox" ${s.snd&&s.snd!=='none'?'checked':''} ${edit?`data-change="scFlag" data-arg="${e.n}|${s.id}|snd"`:'disabled'}> Sound</label>`:''}</div>`;
  const et=editTeam(p)||ce;
