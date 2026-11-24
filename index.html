@@ -4336,16 +4336,18 @@ function asSeedOnce(){if(S.assetsCleaned)return;S.assetsCleaned=true;
  S.devices=(S.devices||[]).filter(d=>!/^Placeholder/.test(d.note||''));
  save()}
 /* studio equipment list from the owner (Nov 2026): added once, one entry per unit, all editable */
-function asListOnce(){if(S.assetsListed)return;S.assetsListed=true;
+const _eq=d=>d.seed==='eq1'||(d.brand==='Apple'&&d.model==='Mac Studio 1');
+function asDedupe(){const seen=new Set();let n=0;S.devices=(S.devices||[]).filter(d=>{if(!(d.sn===''&&/^Set /.test(d.content||'')&&!d.holder&&!d.project))return true;const k=d.kind+'|'+d.brand+'|'+d.model;if(seen.has(k)){n++;return false}seen.add(k);d.seed='eq1';return true});if(n)save()}
+function asListOnce(){if(S.assetsListed||(S.devices||[]).some(_eq))return;S.assetsListed=true;
  const L=[['Workstation','Apple','Mac Studio',5],['Workstation','Apple','Mac Pro (cylinder)',3],['Monitor','Apple','27-inch display',13],['Monitor','Asus','Screen',1],['Monitor','HP','Screen',1],['Monitor','Eizo','Broadcast monitor',2],['Monitor','Flanders Scientific','Broadcast monitor',1],['Other','Blackmagic','DaVinci Resolve panel',1],['Other','PreSonus','Monitor speakers',2],['Monitor','','TV 55-inch+',2],['RAID','G-Technology','G-RAID',3]];
  let n=(S.devices||[]).length;S.devices=S.devices||[];
- L.forEach(([kind,brand,model,q])=>{for(let i=1;i<=q;i++){n++;S.devices.push({id:uid('d'),code:'AS-'+String(n).padStart(4,'0'),kind,brand,model:q>1?model+' '+i:model,sn:'',capGB:0,usedGB:0,owner:'studio',client:null,project:null,dir:'internal',status:'In studio',dateIn:Date.now(),holder:null,location:'Studio',content:'Set serial and details'})}});
+ L.forEach(([kind,brand,model,q])=>{for(let i=1;i<=q;i++){n++;S.devices.push({id:uid('d'),code:'AS-'+String(n).padStart(4,'0'),kind,brand,model:q>1?model+' '+i:model,sn:'',capGB:0,usedGB:0,owner:'studio',client:null,project:null,dir:'internal',status:'In studio',dateIn:Date.now(),holder:null,location:'Studio',content:'Set serial and details',seed:'eq1'})}});
  save()}
-function asNasOnce(){if(S.nasListed)return;S.nasListed=true;S.devices=S.devices||[];
- if(!S.devices.some(d=>d.kind==='NAS'&&/synology/i.test((d.brand||'')+(d.model||'')))){const n=S.devices.length+1;S.devices.push({id:uid('d'),code:'AS-'+String(n).padStart(4,'0'),kind:'NAS',brand:'Synology',model:'Synology NAS',sn:'',capGB:0,usedGB:0,owner:'studio',client:null,project:null,dir:'internal',status:'In studio',dateIn:Date.now(),holder:null,location:'Studio',content:'Set model, serial and capacity'});save()}}
-function asRoomsOnce(){if(S.roomsListed)return;S.roomsListed=true;
- [['Edit 1 · Viewing Room','edit'],['Edit 2','edit'],['Edit 3','edit'],['Edit 4','edit'],['Edit 5','edit'],['Creative','edit']].forEach(([name,kind])=>{if(!RM().some(r=>r.name===name))RM().push({id:uid('rm'),name,kind,note:/Viewing/.test(name)?'Edit and grading':'',active:true})});save()}
-VIEWS.assets=()=>{asSeedOnce();asListOnce();asNasOnce();asRoomsOnce();const c=asCan();if(!c.s&&!c.r)return deny();const tabs=asTabs();if(!tabs.some(t=>t[0]===V.at))V.at='overview';
+function asNasOnce(){if(S.nasListed||(S.devices||[]).some(d=>d.kind==='NAS'&&/synology/i.test((d.brand||'')+(d.model||''))))return;S.nasListed=true;S.devices=S.devices||[];
+ if(!S.devices.some(d=>d.kind==='NAS'&&/synology/i.test((d.brand||'')+(d.model||'')))){const n=S.devices.length+1;S.devices.push({id:uid('d'),code:'AS-'+String(n).padStart(4,'0'),kind:'NAS',brand:'Synology',model:'Synology NAS',sn:'',capGB:0,usedGB:0,owner:'studio',client:null,project:null,dir:'internal',status:'In studio',dateIn:Date.now(),holder:null,location:'Studio',content:'Set model, serial and capacity',seed:'eq1'});save()}}
+function asRoomsOnce(){if(S.roomsListed||RM().some(r=>r.seed==='eq1'))return;S.roomsListed=true;
+ [['Edit 1 · Viewing Room','edit'],['Edit 2','edit'],['Edit 3','edit'],['Edit 4','edit'],['Edit 5','edit'],['Creative','edit']].forEach(([name,kind])=>{if(!RM().some(r=>r.name===name))RM().push({id:uid('rm'),name,kind,note:/Viewing/.test(name)?'Edit and grading':'',active:true,seed:'eq1'})});save()}
+VIEWS.assets=()=>{asSeedOnce();asDedupe();asListOnce();asNasOnce();asRoomsOnce();const c=asCan();if(!c.s&&!c.r)return deny();const tabs=asTabs();if(!tabs.some(t=>t[0]===V.at))V.at='overview';
  let body;if(V.at==='rooms'){const rooms=RM().filter(r=>r.active!==false);body=`<div class="row wrap" style="gap:6px;margin-bottom:12px"><b>${rooms.length} room${rooms.length===1?'':'s'}</b>${rooms.map(r=>`<span class="chip">${esc(r.name)}</span>`).join('')}</div>`+VIEWS.rooms()}
  else if(V.at==='devices')body=asDevices();else if(V.at==='storage')body=asStorage();else body=asOverview(c);
  return asBar(tabs)+body};
