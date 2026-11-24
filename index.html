@@ -668,22 +668,22 @@ html.still .content>*,html.still .content.entering,html.still .msg,html.still .m
 .chip.roleme66{font-size:11px;margin:6px 0;display:inline-flex;background:color-mix(in srgb,var(--sig-clients,#79aec2) 20%,transparent);color:var(--sig-clients,#79aec2);border-color:transparent}
 </style>
 <style id="scene-card-design">
-.csrow.open>.sccell{background:linear-gradient(165deg,#0a2119 0%,#06170f 50%,#030d08 100%);border:1px solid #1f5a45;border-radius:16px;margin:8px 4px;overflow:hidden}
-.csrow.open .scbar{background:linear-gradient(90deg,rgba(245,192,75,.12),rgba(245,192,75,0) 60%);padding:14px 18px;border-bottom:1px solid #1d4a3b}
-.csrow.open .scbar .scn{font-size:20px;font-weight:600}
-.csrow.open .scbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;padding:16px;align-items:start}
-.csrow.open .scbody>.scl1,.csrow.open .scbody>.scl3{background:linear-gradient(180deg,#071a13 0%,#030e0a 100%);border:1px solid #17392d;border-radius:14px;padding:16px;min-width:0}
-.csrow.open .scbody>.scsub,.csrow.open .scbody>.scdel{grid-column:1/-1;border-top:1px solid #1d4a3b;padding-top:12px;margin:0}
-.csrow.open .scbody>.scl1{grid-template-columns:1fr 1fr;gap:12px}
-.csrow.open .scl3{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}
-.csrow.open .scflag{margin-top:0}
-.vmore{position:relative;display:inline-flex}
-.vdots{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid #1d4a3b;border-radius:8px;background:#0f2a20;color:#e5f2ec;cursor:pointer;font-size:16px;line-height:1}
-.vmenu{position:absolute;right:0;top:36px;width:200px;padding:8px;border-radius:12px;background:#0f2a20;border:1px solid #1d4a3b;box-shadow:0 18px 50px -12px rgba(10,35,29,.35);z-index:30;display:flex;flex-direction:column}
-.vmenu a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:14px;color:#eafaf2;cursor:pointer}
-.vmenu a:hover{background:#173a2e}
-.vmenu a.vdel{color:#ff7a6b}
-.vmenu hr{border:0;border-top:1px solid #1d4a3b;margin:6px 0}
+html[data-ui-scene="1"] .csrow.open>.sccell{background:linear-gradient(165deg,#0a2119 0%,#06170f 50%,#030d08 100%);border:1px solid #1f5a45;border-radius:16px;margin:8px 4px;overflow:hidden}
+html[data-ui-scene="1"] .csrow.open .scbar{background:linear-gradient(90deg,rgba(245,192,75,.12),rgba(245,192,75,0) 60%);padding:14px 18px;border-bottom:1px solid #1d4a3b}
+html[data-ui-scene="1"] .csrow.open .scbar .scn{font-size:20px;font-weight:600}
+html[data-ui-scene="1"] .csrow.open .scbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;padding:16px;align-items:start}
+html[data-ui-scene="1"] .csrow.open .scbody>.scl1, html[data-ui-scene="1"] .csrow.open .scbody>.scl3{background:linear-gradient(180deg,#071a13 0%,#030e0a 100%);border:1px solid #17392d;border-radius:14px;padding:16px;min-width:0}
+html[data-ui-scene="1"] .csrow.open .scbody>.scsub, html[data-ui-scene="1"] .csrow.open .scbody>.scdel{grid-column:1/-1;border-top:1px solid #1d4a3b;padding-top:12px;margin:0}
+html[data-ui-scene="1"] .csrow.open .scbody>.scl1{grid-template-columns:1fr 1fr;gap:12px}
+html[data-ui-scene="1"] .csrow.open .scl3{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}
+html[data-ui-scene="1"] .csrow.open .scflag{margin-top:0}
+html[data-ui-scene="1"] .vmore{position:relative;display:inline-flex}
+html[data-ui-scene="1"] .vdots{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid #1d4a3b;border-radius:8px;background:#0f2a20;color:#e5f2ec;cursor:pointer;font-size:16px;line-height:1}
+html[data-ui-scene="1"] .vmenu{position:absolute;right:0;top:36px;width:200px;padding:8px;border-radius:12px;background:#0f2a20;border:1px solid #1d4a3b;box-shadow:0 18px 50px -12px rgba(10,35,29,.35);z-index:30;display:flex;flex-direction:column}
+html[data-ui-scene="1"] .vmenu a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:14px;color:#eafaf2;cursor:pointer}
+html[data-ui-scene="1"] .vmenu a:hover{background:#173a2e}
+html[data-ui-scene="1"] .vmenu a.vdel{color:#ff7a6b}
+html[data-ui-scene="1"] .vmenu hr{border:0;border-top:1px solid #1d4a3b;margin:6px 0}
 </style>
 </head>
 <body>
@@ -5224,7 +5224,7 @@ ACT.projSettings=id=>{const p=P(String(id).split('|')[0]);if(!p||!isStaff())retu
 ACT.uiSet=a=>{const[k,v]=String(a).split('|');if(!(isOwner()||can('settings.manage')))return;BRAND.ui=Object.assign({},BRAND.ui||{},{[k]:v});brandSave();if(window.hubUIApply)window.hubUIApply();render()};
 ACT.stTypes=()=>{go('handbook');V.tab='types';render()};
 VIEWS.settings=()=>{if(!(isOwner()||can('settings.manage')))return deny();const u=BRAND.ui||{};
- const comp=[['btn','Buttons',['Soft Studio','Outline','Solid pill']],['badge','Badges',['Soft tint','Outline','Solid']],['menu','Menus',['Soft card','Compact','Glass']],['subnav','Sub-page navigation',['Segmented','Underline','Pills']],['card','Project cards',['Poster','Square outline','Elevated']],['filter','Filter button',['Icon','Square outline','Accent circle']]];
+ const comp=[['btn','Buttons',['Soft Studio','Outline','Solid pill']],['badge','Badges',['Soft tint','Outline','Solid']],['menu','Menus',['Soft card','Compact','Glass']],['subnav','Sub-page navigation',['Segmented','Underline','Pills']],['card','Project cards',['Poster','Square outline','Elevated']],['filter','Filter button',['Icon','Square outline','Accent circle']],['scene','Scene cards',['Cinematic panels','Flat (previous)']]];
  const ui=comp.map(([k,l,o])=>`<div class="row" style="gap:10px;flex-wrap:wrap;align-items:center;padding:8px 0;border-top:1px solid var(--line)"><b style="width:170px;font-weight:600">${l}</b>${o.map((n,i)=>`<a class="btn sm ${String(u[k]||'1')===String(i+1)?'pri':''}" data-act="uiSet" data-arg="${k}|${i+1}">${i+1} · ${n}</a>`).join('')}</div>`).join('');
  const prev=`<div class="row" style="gap:10px;flex-wrap:wrap;margin:14px 0 4px"><a class="btn pri sm">＋ Create</a><a class="btn sm">Neutral</a><a class="btn sm" style="color:var(--bad)">Delete</a><span class="chip ok">Approved</span><span class="chip warn">Waiting</span><span class="chip bad">Late</span><span class="chip info">Info</span></div><div class="tiny faint">Changes apply to everyone in the studio instantly.</div>`;
  const link=(t,sub,btn)=>`<div class="row" style="gap:12px;align-items:center;padding:6px 0"><div class="grow muted">${sub}</div>${btn}</div>`;
@@ -5392,7 +5392,7 @@ document.addEventListener('click',e=>{const h=e.target.closest&&e.target.closest
    Uses the Branding theme variables (--panel, --panel2, --line, --line2, --text, --muted) so Branding keeps control. */
 (()=>{
 const H=document.documentElement;
-const DEF={btn:'1',badge:'1',menu:'1',subnav:'1',card:'1',filter:'1'};
+const DEF={btn:'1',badge:'1',menu:'1',subnav:'1',card:'1',filter:'1',scene:'1'};
 for(const k in DEF)if(!H.hasAttribute('data-ui-'+k))H.setAttribute('data-ui-'+k,DEF[k]);
 window.hubUI=(k,v)=>H.setAttribute('data-ui-'+k,String(v));
 window.hubUIApply=()=>{try{const u=(window.hubKit&&window.hubKit.ui&&window.hubKit.ui())||{};for(const k in DEF){const v=String(u[k]||DEF[k]);if(H.getAttribute('data-ui-'+k)!==v)H.setAttribute('data-ui-'+k,v)}}catch(e){}};
