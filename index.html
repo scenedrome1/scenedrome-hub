@@ -512,7 +512,7 @@ html[data-theme] .modal{width:min(560px,96vw)}html[data-theme] .modal.wide{width
 html[data-theme] tr.csrow>td{background:var(--panel)}
 html[data-theme] tr.csrow:nth-child(even of .csrow)>td{background:color-mix(in srgb,var(--text) 4%,var(--panel))}
 html[data-theme=dark] tr.csrow:nth-child(even of .csrow)>td{background:color-mix(in srgb,#fff 4.5%,var(--panel))}
-html[data-theme] tr.csrow:hover>td{background:var(--sel)}
+html[data-theme] tr.csrow:hover>td{background:linear-gradient(90deg,color-mix(in srgb,var(--gold2,#d6a03d) 30%,transparent) 0%,transparent 100%);border-radius:0}
 @media (max-width:760px){
  .ep-row:not(.br):not(.dyrow){display:flex!important;flex-wrap:wrap;align-items:center;gap:6px 10px}.ep-row:not(.br):not(.dyrow)>.bar{flex:1 1 70px;min-width:60px}.ep-row:not(.br):not(.dyrow)>span{white-space:nowrap}
  .content .item:has(>select[data-change=checkWho]){flex-wrap:nowrap}.content .item:has(>select[data-change=checkWho])>.grow{min-width:0;flex:1 1 auto}.content .item>select[data-change=checkWho]{width:46%!important;min-width:0;font-size:14px;padding:6px 8px}
