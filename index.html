@@ -4341,7 +4341,9 @@ function asListOnce(){if(S.assetsListed)return;S.assetsListed=true;
  let n=(S.devices||[]).length;S.devices=S.devices||[];
  L.forEach(([kind,brand,model,q])=>{for(let i=1;i<=q;i++){n++;S.devices.push({id:uid('d'),code:'AS-'+String(n).padStart(4,'0'),kind,brand,model:q>1?model+' '+i:model,sn:'',capGB:0,usedGB:0,owner:'studio',client:null,project:null,dir:'internal',status:'In studio',dateIn:Date.now(),holder:null,location:'Studio',content:'Set serial and details'})}});
  save()}
-VIEWS.assets=()=>{asSeedOnce();asListOnce();const c=asCan();if(!c.s&&!c.r)return deny();const tabs=asTabs();if(!tabs.some(t=>t[0]===V.at))V.at='overview';
+function asRoomsOnce(){if(S.roomsListed)return;S.roomsListed=true;
+ [['Edit 1','edit'],['Edit 2','edit'],['Edit 3','edit'],['Edit 4','edit'],['Edit 5','edit'],['Creative','edit']].forEach(([name,kind])=>{if(!RM().some(r=>r.name===name))RM().push({id:uid('rm'),name,kind,note:'',active:true})});save()}
+VIEWS.assets=()=>{asSeedOnce();asListOnce();asRoomsOnce();const c=asCan();if(!c.s&&!c.r)return deny();const tabs=asTabs();if(!tabs.some(t=>t[0]===V.at))V.at='overview';
  let body;if(V.at==='rooms'){const rooms=RM().filter(r=>r.active!==false);body=`<div class="row wrap" style="gap:6px;margin-bottom:12px"><b>${rooms.length} room${rooms.length===1?'':'s'}</b>${rooms.map(r=>`<span class="chip">${esc(r.name)}</span>`).join('')}</div>`+VIEWS.rooms()}
  else if(V.at==='devices')body=asDevices();else if(V.at==='storage')body=asStorage();else body=asOverview(c);
  return asBar(tabs)+body};
