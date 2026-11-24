@@ -5287,7 +5287,7 @@ function pageBits(){if(document.documentElement.getAttribute('data-ui-card')!=='
  const hp=$('.phead');const pid=hp&&hp.dataset.pid;const ty=pid&&window.hubKit&&window.hubKit.typeOf?window.hubKit.typeOf(pid):null;const off=ty&&window.hubKit.typeOff?(window.hubKit.typeOff()[ty]||[]):[];
  const hid=(el,on)=>{if(el)el.style.display=on?'none':''};
  $$('.tabs a[data-arg="report"],.ptabs2 a[data-arg="report"]').forEach(a=>hid(a,true));
- $$('.sec,details,.card').forEach(e=>{const hd=$(':scope>.sh,:scope>summary',e);if(hd&&/Project (settings|specs)/i.test(hd.textContent)&&!e.classList.contains('ukdlv'))hid(e,true)});
+ $$('.sec,details,.card').forEach(e=>{const hd=$(':scope>.sh,:scope>summary',e);if(hd&&/Project (settings|specs)|Episodes Report/i.test(hd.textContent)&&!e.classList.contains('ukdlv'))hid(e,true)});
  $$('a[data-act="stAdd"]').forEach(a=>hid(a,true));
  $$('.tile').forEach(t=>{const l=$('.tl',t);hid(t,!!l&&/^(Unassigned|Reviews)/i.test(l.textContent.trim()))});
  $$('div,h3,h2,span,b').forEach(h=>{if(h.children.length<3&&/^Project storage$/i.test(h.textContent.trim())){const blk=h.parentElement&&h.parentElement.parentElement;if(blk&&!blk.classList.contains('phead')&&!blk.classList.contains('main'))hid(blk,true)}});
