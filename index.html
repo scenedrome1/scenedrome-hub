@@ -755,7 +755,7 @@ commercial:{label:'Commercial / TVC',stages:['Brief & quotation','Pre-production
 promo:{label:'Trailer / promo',stages:['Brief','Material received','Selects','Edit v1','Client review','Graphics & titles','Sound & mix','Versions','Deliver'],team:'Producer · Trailer editor · Motion · Sound',deliver:'Trailer, teasers, platform versions'},
 titles:{label:'Titles & credits',stages:['Brief','Moodboard','Styleframes','Client approval','Animatic','Animation','Client review','Credits check','Deliver'],team:'Art director · Motion / titles designer',deliver:'Opening titles, end credits, textless'},
 branding:{label:'Branding & identity',stages:['Discovery brief','Research & moodboard','Concepts','Client presentation','Refinement','Guidelines','Asset pack','Deliver'],team:'Art director · Brand designer',deliver:'Logo suite, guidelines, asset pack'},
-design:{label:'Design (key art · social · print)',stages:['Brief','Concepts','Client review','Revisions','Final artwork','Formats & export','Deliver'],team:'Art director · Designer',deliver:'Final artwork in every format'},
+design:{label:'Branding & identity / Design',stages:['Brief','Concepts','Client review','Revisions','Final artwork','Formats & export','Deliver'],team:'Art director · Designer',deliver:'Final artwork in every format'},
 aivfx:{label:'AI VFX job',stages:['Brief & plates','Look tests','Client approves look','Shot production','Comp & cleanup','Client review','Final renders','Deliver'],team:'VFX supervisor · AI VFX artist · Compositor',deliver:'Final shots (EXR/ProRes), before/after'},
 corporate:{label:'Corporate / explainer',stages:['Brief','Script','Storyboard','Production / animation','Edit','Client review','Final','Deliver'],team:'Producer · Motion · Editor',deliver:'Master + social versions'},
 music:{label:'Music video',stages:['Brief & treatment','Drive received','Ingest','Edit','Artist review','VFX & color','Final','Deliver'],team:'Producer · Editor · VFX · Colorist',deliver:'Master, vertical versions'}};
@@ -2223,7 +2223,7 @@ ACT.projEdit=pid=>{const p=P(pid);if(!canEditProj(p))return;const T=TYPES[p.type
  modal('Edit details · '+esc(p.name),`<form data-form="projEdit" data-arg="${p.id}" class="formgrid pedit">
  ${peSec('Project','',`<div class="formgrid"><label class="full">Name<input name="name" required value="${esc(p.name)}"></label>
  <label>Type<select name="type" data-change="peType">${Object.entries(TYPES).map(([k,X])=>`<option value="${k}" ${p.type===k?'selected':''}>${esc(X.label)}</option>`).join('')}</select></label>
- <label>Genre<input name="genre" list="pe-genres" value="${esc(p.genre||'')}" placeholder="e.g. Drama, Thriller"><datalist id="pe-genres">${GENRES.map(g=>`<option value="${g}">`).join('')}</datalist></label>
+ <label>Genre<input name="genre" list="pe-genres" value="${esc(p.genre||'')}" placeholder="Genre"><datalist id="pe-genres">${GENRES.map(g=>`<option value="${g}">`).join('')}</datalist></label>
  <label>Start date<input type="date" name="start" value="${dIn(p.start)}"></label><label>End / delivery date<input type="date" name="due" value="${dIn(p.due)}" required></label>
  <label class="full">Format line<input name="format" value="${esc(p.format||'')}" placeholder="e.g. 30 episodes × 42 min"></label>
  <label>Client<select name="client"><option value="">— internal / no client yet —</option>${S.users.filter(u=>u.role==='client'&&!u.removed).map(c=>`<option value="${c.id}" ${p.client===c.id?'selected':''}>${esc(c.company||c.name)}</option>`).join('')}</select></label>
@@ -2631,7 +2631,7 @@ const XL={crcT:(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n
   ...sheets.map((s,i)=>[`xl/worksheets/sheet${i+1}.xml`,XL.sheet(s)])];return XL.zip(f)}};
 
 /* ================= shooting days: a full mirror of the episodes, scenes shared between both ================= */
-TYPES.film=Object.assign({},TYPES.series,{label:'Film',deliver:'Feature master, M&E + stems, subtitles, QC report'});
+TYPES.film=Object.assign({},TYPES.series,{label:'Feature film',deliver:'Feature master, M&E + stems, subtitles, QC report'});
 const dramaDays=p=>!!p&&Array.isArray(p.episodes)&&['series','film'].includes(p.type);
 const hasDays=p=>!!p&&Array.isArray(p.episodes)&&!!TYPES[p.type]?.episodic;
 const DAY_ST=[['planned','Planned',''],['shooting','Shooting','gold'],['wrapped','Wrapped','ok'],['moved','Moved','warn'],['cancelled','Cancelled','bad']];
@@ -4976,7 +4976,7 @@ function dlvFormHTML(p){const d=p.delivery||{};const pv=d.previews||{};const mg=
  const ck=(list,key,arr)=>list.map(([v,l])=>`<label class="jp" style="${mg?'cursor:pointer':''}"><input type="checkbox" ${(arr||[]).includes(v)?'checked':''} ${dis} ${mg?`data-change="dlvSet" data-arg="${p.id}|${key}|${v}"`:''}><span><b>${l}</b></span></label>`).join('');
  return`<div class="full"><div class="eyebrow" style="margin:6px 0">Preview formats</div><div class="row wrap" style="gap:8px">${ck(DLV_PREV,'prev',pv.formats)}</div></div>
  <label>Watermark on previews<select ${dis} ${mg?`data-change="dlvSet" data-arg="${p.id}|mark|"`:''}>${[['none','None'],['person','Person name'],['company','Company name']].map(([v,l])=>`<option value="${v}" ${(pv.mark||'none')===v?'selected':''}>${l}</option>`).join('')}</select></label>
- <label>Watermark note<input value="${esc(pv.note||'')}" ${dis} ${mg?`data-change="dlvSet" data-arg="${p.id}|note|"`:''} placeholder="e.g. Ashour · SCENEDROME — not for distribution"></label>
+ <label>P.S. note<input value="${esc(pv.note||'')}" ${dis} ${mg?`data-change="dlvSet" data-arg="${p.id}|note|"`:''} placeholder="Add watermark with person or company name"></label>
  <div class="full"><div class="eyebrow" style="margin:6px 0">Mastering</div><div class="row wrap" style="gap:8px">${ck(DLV_MAST,'mast',d.masters)}</div></div>
  <label class="full">Masters language<input value="${esc(d.languages||'')}" ${dis} ${mg?`data-change="dlvSet" data-arg="${p.id}|lang|"`:''} placeholder="e.g. Arabic (Egyptian) · English subtitles"></label>
  <div class="full"><div class="eyebrow" style="margin:6px 0">Social</div><div class="row wrap" style="gap:8px">${ck(DLV_SOC,'soc',d.social)}</div></div>
