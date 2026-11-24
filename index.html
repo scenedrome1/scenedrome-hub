@@ -4337,7 +4337,7 @@ function asSeedOnce(){if(S.assetsCleaned)return;S.assetsCleaned=true;
  save()}
 /* studio equipment list from the owner (Nov 2026): added once, one entry per unit, all editable */
 function asListOnce(){if(S.assetsListed)return;S.assetsListed=true;
- const L=[['Workstation','Apple','Mac Studio',5],['Workstation','Apple','Mac Pro (cylinder)',3],['Monitor','Apple','27-inch display',13],['Monitor','Asus','Screen',1],['Monitor','HP','Screen',1],['Monitor','Eizo','Broadcast monitor',2],['Monitor','Flanders Scientific','Broadcast monitor',1],['Other','Blackmagic','DaVinci Resolve panel',1],['Other','PreSonus','Monitor speakers',1],['Monitor','','TV 55-inch+',2],['RAID','G-Technology','G-RAID',3]];
+ const L=[['Workstation','Apple','Mac Studio',5],['Workstation','Apple','Mac Pro (cylinder)',3],['Monitor','Apple','27-inch display',13],['Monitor','Asus','Screen',1],['Monitor','HP','Screen',1],['Monitor','Eizo','Broadcast monitor',2],['Monitor','Flanders Scientific','Broadcast monitor',1],['Other','Blackmagic','DaVinci Resolve panel',1],['Other','PreSonus','Monitor speakers',2],['Monitor','','TV 55-inch+',2],['RAID','G-Technology','G-RAID',3]];
  let n=(S.devices||[]).length;S.devices=S.devices||[];
  L.forEach(([kind,brand,model,q])=>{for(let i=1;i<=q;i++){n++;S.devices.push({id:uid('d'),code:'AS-'+String(n).padStart(4,'0'),kind,brand,model:q>1?model+' '+i:model,sn:'',capGB:0,usedGB:0,owner:'studio',client:null,project:null,dir:'internal',status:'In studio',dateIn:Date.now(),holder:null,location:'Studio',content:'Set serial and details'})}});
  save()}
