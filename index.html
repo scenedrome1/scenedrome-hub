@@ -5280,6 +5280,35 @@ function teamLineHTML(p,u,team){return `<div class="crline"><label><input type="
 function teamBodyHTML(p,crew,team){const inH=crew.filter(u=>inhouse(u)),out=crew.filter(u=>!inhouse(u));const studios=S.users.filter(u=>u.role==='partner'&&!u.removed&&!u.suspended);const ps=new Set(p.partners||[]);
  return `<input type="hidden" name="team_marker" value="1"><div class="tgrp"><div class="tgh">In-house</div><div class="crgrid">${inH.map(u=>teamLineHTML(p,u,team)).join('')||'<div class="tiny faint">No in-house people yet.</div>'}</div></div>
  <div class="tgrp"><div class="tgh">Outsourced</div><div class="tiny faint" style="margin-bottom:6px">Freelancers are paid per cost agreed. Partner studios are counted as one row.</div><div class="crgrid">${out.map(u=>teamLineHTML(p,u,team)).join('')}${studios.map(c=>`<div class="crline"><label><input type="checkbox" name="partner" value="${c.id}" ${ps.has(c.id)?'checked':''}><span><b>${esc(c.company||c.name)}</b><i>Partner studio</i></span></label></div>`).join('')}</div></div>`}
+/* ===== Cost agreed: Outsourced people and studios, deal or monthly, counted by day ===== */
+const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+function costOutsourced(p){const team=(p.team||[]).map(U).filter(x=>x&&!inhouse(x));const studios=(p.partners||[]).map(U).filter(Boolean);return [...team,...studios]}
+function ensureCostRows(p){p.cost=Array.isArray(p.cost)?p.cost:[];const today=ymd(new Date());costOutsourced(p).forEach(x=>{if(!p.cost.some(c=>c.who===x.id)){p.cost.push({id:uid('k'),who:x.id,kind:'deal',amount:0,cur:'EGP',start:(p.start?ymd(new Date(p.start)):today),end:'',fees:[]})}});return p.cost}
+function costTotal(c,today){today=today||ymd(new Date());if(!c.start)return 0;if(c.kind!=='monthly')return c.start<=today?(+c.amount||0):0;
+ const end=c.end&&c.end<today?c.end:today;if(c.start>end)return 0;const fees=(c.fees||[]).filter(f=>f.from).slice().sort((a,b)=>a.from<b.from?-1:1);let tot=0;const d=new Date(c.start+'T00:00');const last=new Date(end+'T00:00');
+ for(;d<=last;d.setDate(d.getDate()+1)){const ds=ymd(d);let fee=0;fees.forEach(f=>{if(f.from<=ds)fee=+f.amount||0});const dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();tot+=fee/dim}
+ return Math.round(tot)}
+function costWho(id){const x=U(id);return x?(x.role==='partner'?(x.company||x.name):x.name):'—'}
+const costRowsTotal=p=>(p.cost||[]).reduce((a,c)=>a+costTotal(c),0);
+function costSecHTML(p){const rows=ensureCostRows(p);const mg=canManage(p);
+ return `<div class="full pesec"><div class="pesh"><b>Cost agreed</b><span class="tiny faint">Outsourced people and studios · counted to today</span></div>
+ ${rows.length?`<div class="crgrid">${rows.map(c=>`<div class="crline"><label><span><b>${esc(costWho(c.who))}</b><i>${c.kind==='monthly'?'Monthly fee':'Deal'}${c.start?' · from '+esc(c.start):''}${c.end?' to '+esc(c.end):''}</i></span></label><b class="num">${money(costTotal(c))}</b>${mg?`<a class="btn sm" data-act="costEdit" data-arg="${p.id}|${c.id}">Edit</a>`:''}</div>`).join('')}</div><div class="row" style="margin-top:8px"><span class="faint">Cost agreed total</span><span class="grow"></span><b class="num">${money(costRowsTotal(p))}</b></div>`:'<div class="tiny faint">No outsourced people or studios on this project yet.</div>'}</div>`}
+ACT.costEdit=a=>{const[pid,id]=a.split('|');const p=P(pid);const c=p&&(p.cost||[]).find(x=>x.id===id);if(!c||!canManage(p))return;
+ const fees=(c.fees||[]).slice().sort((x,y)=>x.from<y.from?-1:1);
+ modal('Cost agreed · '+esc(costWho(c.who)),`<form data-form="cost" data-arg="${pid}|${id}" class="formgrid"><label>Type<select name="kind" data-change="costKind">${[['deal','Deal (one amount)'],['monthly','Monthly fee']].map(([k,l])=>`<option value="${k}" ${c.kind===k?'selected':''}>${l}</option>`).join('')}</select></label>
+ <label>Currency<select name="cur">${['EGP','USD'].map(k=>`<option ${c.cur===k?'selected':''}>${k}</option>`).join('')}</select></label>
+ <label>Start date<input type="date" name="start" value="${esc(c.start||'')}" required></label><label>End date <span class="tiny faint">(blank = until today)</span><input type="date" name="end" value="${esc(c.end||'')}"></label>
+ <label class="full" data-cost-deal ${c.kind==='monthly'?'style="display:none"':''}>Deal amount<input type="number" name="amount" min="0" step="1" value="${+c.amount||0}"></label>
+ <div class="full" data-cost-monthly ${c.kind==='monthly'?'':'style="display:none"'}><div class="tiny faint" style="margin-bottom:6px">Monthly fees — each applies from its date. Add a new fee as a new line.</div>
+ ${fees.map((f,i)=>`<div class="row" style="gap:8px;margin-bottom:6px"><input type="date" name="fee_from" value="${esc(f.from)}"><input type="number" name="fee_amt" min="0" step="1" value="${+f.amount||0}" placeholder="Amount"></div>`).join('')}
+ <div class="row" style="gap:8px"><input type="date" name="fee_from" value=""><input type="number" name="fee_amt" min="0" step="1" value="" placeholder="New fee amount"></div></div>
+ <div class="full row"><button class="btn pri right" type="submit">Save</button></div></form>`)};
+CHG.costKind=(arg,el)=>{const f=el.closest('form');if(!f)return;const m=el.value==='monthly';f.querySelector('[data-cost-deal]').style.display=m?'none':'';f.querySelector('[data-cost-monthly]').style.display=m?'':'none'};
+FORM.cost=(fd,a)=>{const[pid,id]=String(a).split('|');const p=P(pid);const c=p&&(p.cost||[]).find(x=>x.id===id);if(!c||!canManage(p))return;
+ c.kind=String(fd.get('kind')||'deal')==='monthly'?'monthly':'deal';c.cur=String(fd.get('cur')||'EGP');c.start=String(fd.get('start')||'');c.end=String(fd.get('end')||'');c.amount=+fd.get('amount')||0;
+ const froms=fd.getAll('fee_from').map(String),amts=fd.getAll('fee_amt').map(String);c.fees=froms.map((f,i)=>({from:f,amount:+amts[i]||0,raw:amts[i]})).filter(f=>f.from&&f.raw!=='').map(({from,amount})=>({from,amount}));
+ save();closeModal();render();toast('Cost agreed saved','ok')};
+const _cstE=ACT.projEdit;ACT.projEdit=pid=>{_cstE(pid);const p=P(pid);const f=document.querySelector('form[data-form="projEdit"]');if(!p||!f||!isStaff())return;const tg=f.querySelector('.tgrp');if(!tg)return;const host=tg.closest('.pesec')||tg.closest('details');if(!host)return;const box=document.createElement('div');box.innerHTML=costSecHTML(p);host.after(box.firstElementChild)};
 window.hubKit=Object.freeze({dup:true,typeOff:()=>BRAND.typeOff||{},typeOf:pid=>{const p=P(pid);return p?p.type:null},ui:()=>BRAND.ui||{},search:_kSearch,projects:()=>{try{return visibleProjects().map(p=>({id:p.id,name:p.name||'Untitled',client:((U(p.client)||{}).company)||'',type:(TYPES[p.type]||{}).label||'',status:p.status||'active'}))}catch(e){return[]}}});
 if(LIVE){meId='…';render();liveBoot().catch(e=>{console.error(e);if(booted){toast('Something didn’t load: '+e.message,'bad');return}bootMsg='Couldn’t reach the Hub database: '+e.message;booted=false;meId=null;render()});sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){booted=false;meId=null;render()}})}else render();
 })();
