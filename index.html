@@ -4680,7 +4680,7 @@ const _vpB2=VIEWS.project;VIEWS.project=()=>{const h=_vpB2();const p=P(V.p);if(!
  const rest=ch.filter(x=>![ovs,tiles,main,stor,...head].includes(x));
  const crewc=col?[...col.children].filter(x=>x.classList.contains('crewc')):[];const other=col?[...col.children].filter(x=>!x.classList.contains('crewc')):[];
  flow.classList.remove('span2');flowFix(p,flow);if(ovs&&p.episodes&&(TYPES[p.type]||{}).episodic)badgeFix(p,ovs);
- const out=[...head.map(x=>hdFix(p,x)).map(x=>x.outerHTML),flow.outerHTML,ovs?ovs.outerHTML:sharedProjectSummary(p),tiles?tiles.outerHTML:'',stor?stor.outerHTML:'',crewc.length?`<div class="grid g2 ovteam">${crewc.map(x=>crFix(x).outerHTML).join('')}</div>`:'',other.map(x=>x.outerHTML).join(''),...prevWrap(rest)].join('');
+ const out=[...head.map(x=>hdFix(p,x)).map(x=>x.outerHTML),flow.outerHTML,ovs?ovs.outerHTML:sharedProjectSummary(p),tiles?tiles.outerHTML:'',stor?stor.outerHTML:'',crewc.length?`<div class="grid g2 ovteam">${crewc.map(x=>crFix(x).outerHTML).join('')}</div>`:'',other.map(x=>x.outerHTML).join(''),...prevWrap(rest),deliveryHTML(p)].join('');
  return p.episodes&&(TYPES[p.type]||{}).episodic?out.replace(/(>)Status report(<)/g,'$1Episodes Report$2'):out};
 
 /* ---------- round 4: episodes ---------- */
@@ -4964,6 +4964,28 @@ const _kSearch=q=>{q=String(q||'').trim().toLowerCase();if(q.length<2)return[];c
 const TYPE_KEYS=[['breakdown','Episodes & scenes / flow'],['report','Episodes report'],['briefs','VFX & sound briefs'],['tasks','Tasks'],['thread','Thread'],['files','Files & links'],['drives','Drives'],['money','Deal & money']];
 function typeGrid(){const off=(BRAND.typeOff||{});return`<div class="tiny faint" style="margin-bottom:10px">Tick the project details each type includes. Unticked details are hidden for every project of that type. Overview is always included.</div><div class="grid g2">${Object.entries(TYPES).map(([t,T])=>{const o=new Set(off[t]||[]);return`<div class="card"><h3 style="margin:0 0 8px">${esc(T.label)}</h3><div class="col" style="gap:6px">${TYPE_KEYS.filter(([k])=>T.episodic||!['report','breakdown'].includes(k)||k==='breakdown').map(([k,l])=>`<label style="display:flex;gap:10px;align-items:center;margin:0;width:auto;font-weight:400"><input type="checkbox" style="width:auto;height:auto;margin:0;flex:none" data-change="typeInc" data-arg="${t}|${k}" ${o.has(k)?'':'checked'}><span>${esc(k==='breakdown'&&!T.episodic?'Flow':l)}</span></label>`).join('')}</div></div>`}).join('')}</div>`}
 CHG.typeInc=(a,el)=>{const[t,k]=String(a).split('|');BRAND.typeOff=BRAND.typeOff||{};const o=new Set(BRAND.typeOff[t]||[]);if(el.checked)o.delete(k);else o.add(k);BRAND.typeOff[t]=[...o];brandSave();if(window.hubKit&&window.hubKit.refreshTypes)window.hubKit.refreshTypes();render()};
+const DLV_PREV=[['h264','H.264 1080p review'],['proxy','ProRes proxy'],['web720','Web 720p'],['screener','Client screener']];
+const DLV_MAST=[['bcast','Broadcast HD master'],['uhd','UHD / 4K master'],['textless','Textless master'],['clean','Clean version'],['stems','M&E stems']];
+const DLV_SOC=[['yt','YouTube 16:9'],['reels','Reels / TikTok 9:16'],['feed','Feed 1:1']];
+function dlvFormHTML(p){const d=p.delivery||{};const pv=d.previews||{};const mg=canManage(p);const dis=mg?'':'disabled';
+ const ck=(list,key,arr)=>list.map(([v,l])=>`<label class="jp" style="${mg?'cursor:pointer':''}"><input type="checkbox" ${(arr||[]).includes(v)?'checked':''} ${dis} ${mg?`data-change="dlvSet" data-arg="${p.id}|${key}|${v}"`:''}><span><b>${l}</b></span></label>`).join('');
+ return`<div class="full"><div class="eyebrow" style="margin:6px 0">Preview formats</div><div class="row wrap" style="gap:8px">${ck(DLV_PREV,'prev',pv.formats)}</div></div>
+ <label>Watermark on previews<select ${dis} ${mg?`data-change="dlvSet" data-arg="${p.id}|mark|"`:''}>${[['none','None'],['person','Person name'],['company','Company name']].map(([v,l])=>`<option value="${v}" ${(pv.mark||'none')===v?'selected':''}>${l}</option>`).join('')}</select></label>
+ <label>Watermark note<input value="${esc(pv.note||'')}" ${dis} ${mg?`data-change="dlvSet" data-arg="${p.id}|note|"`:''} placeholder="e.g. Ashour · SCENEDROME — not for distribution"></label>
+ <div class="full"><div class="eyebrow" style="margin:6px 0">Mastering</div><div class="row wrap" style="gap:8px">${ck(DLV_MAST,'mast',d.masters)}</div></div>
+ <label class="full">Masters language<input value="${esc(d.languages||'')}" ${dis} ${mg?`data-change="dlvSet" data-arg="${p.id}|lang|"`:''} placeholder="e.g. Arabic (Egyptian) · English subtitles"></label>
+ <div class="full"><div class="eyebrow" style="margin:6px 0">Social</div><div class="row wrap" style="gap:8px">${ck(DLV_SOC,'soc',d.social)}</div></div>
+ <label class="full">Other settings<textarea rows="2" ${dis} ${mg?`data-change="dlvSet" data-arg="${p.id}|other|"`:''}>${esc(d.other||'')}</textarea></label>`}
+CHG.dlvSet=(a,el)=>{const[id,key]=String(a).split('|');const p=P(id);if(!p||!canManage(p))return;p.delivery=p.delivery||{};const d=p.delivery;d.previews=d.previews||{};
+ if(el.type==='checkbox'){const val=String(a).split('|')[2];const f={prev:'formats',mast:'masters',soc:'social'}[key];const tgt=key==='prev'?d.previews:d;const s=new Set(tgt[f]||[]);if(el.checked)s.add(val);else s.delete(val);tgt[f]=[...s]}
+ else if(key==='mark'||key==='note')d.previews[key]=el.value;else if(key==='lang')d.languages=el.value;else if(key==='other')d.other=el.value;
+ save();if(!document.querySelector('#modal form'))render()};
+function deliveryHTML(p){if(!isStaff())return'';const d=p.delivery||{};const pv=d.previews||{};const lab=(L,arr)=>(arr||[]).map(v=>(L.find(x=>x[0]===v)||[0,v])[1]);
+ const chips=[...lab(DLV_PREV,pv.formats).map(x=>'Preview · '+x),...(pv.mark&&pv.mark!=='none'?['Watermark · '+(pv.mark==='person'?'person':'company')]:[]),...lab(DLV_MAST,d.masters),...(d.languages?['Language · '+d.languages]:[]),...(p.airing||[]).map(a=>'Airing · '+((AIR.find(x=>x[0]===a)||[0,a])[1])),...lab(DLV_SOC,d.social).map(x=>'Social · '+x)];
+ const n=chips.length;
+ return`<details class="card full ukdlv" style="margin-top:14px;padding:0;overflow:hidden"><summary class="ukdlvh"><b>Delivery settings</b><span class="tiny faint">${n?esc(chips.slice(0,3).join(' · '))+(n>3?' · +'+(n-3):''):'Not set yet — open ⋯ → Project settings'}</span><span class="pcaret">▾</span></summary><div style="padding:12px 16px 14px"><div class="row wrap" style="gap:6px">${chips.map(c=>`<span class="chip">${esc(c)}</span>`).join('')}</div><div class="tiny faint" style="margin-top:8px">Set in ⋯ → Project settings.</div></div></details>`}
+ACT.projSettings=id=>{const p=P(String(id).split('|')[0]);if(!p||!isStaff())return;const k='ps'+p.id;const was=V.open[k];V.open[k]=true;let body='';try{body=projSpecsHTML(p)}finally{V.open[k]=was}
+ modal('Project settings · '+esc(p.name),`${body}<div class="sec" style="margin-top:14px"><div class="sh"><b style="font-weight:600">Delivery settings</b></div><div class="sb"><div class="formgrid mini">${dlvFormHTML(p)}</div></div></div>`,true)};
 ACT.uiSet=a=>{const[k,v]=String(a).split('|');if(!(isOwner()||can('settings.manage')))return;BRAND.ui=Object.assign({},BRAND.ui||{},{[k]:v});brandSave();if(window.hubUIApply)window.hubUIApply();render()};
 ACT.stTypes=()=>{go('handbook');V.tab='types';render()};
 VIEWS.settings=()=>{if(!(isOwner()||can('settings.manage')))return deny();const u=BRAND.ui||{};
@@ -5101,7 +5123,12 @@ html[data-ui-card="1"] body .pcard2 .art{position:relative}
 /* ---------- project page: header ⋯, progress tile, team/crew headers ---------- */
 html[data-ui-card="1"] body .phead a[data-act="projEdit"]{display:none!important}
 html[data-ui-card="1"] body .phead{position:relative}
-.ukdots.phd{position:absolute;top:auto;left:52px;bottom:auto;width:26px;height:26px;font-size:16px;opacity:1;margin-top:-4px}
+.ukdots.phd{position:absolute;top:12px;right:12px;left:auto;bottom:auto;width:32px;height:32px;font-size:20px;opacity:1;margin:0;background:transparent;border:1px solid var(--line2);color:#fff;z-index:4}
+.phead .phright{padding-right:44px}
+.ukdlvh{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 16px;font-size:14px;flex-wrap:wrap}
+.ukdlvh::-webkit-details-marker{display:none}
+.ukdlv[open] .ukdlvh .pcaret{transform:rotate(180deg)}
+.ukdlvh .tiny{margin-left:auto;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ukgone{display:none!important}
 html[data-ui-card="1"] body .tiles{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))!important}
 html[data-ui-card="1"] body .kpi.ukprog{--tone:#4fd1a1;position:relative;display:flex!important;flex-direction:column;gap:2px;padding:14px 16px 14px 20px!important;border-radius:10px!important;border:0!important;box-shadow:none!important;background:color-mix(in srgb,var(--tone) 12%,var(--panel))!important;overflow:hidden}
@@ -5238,8 +5265,7 @@ function runItem(k,id){
   if(k==='open')fire('openProject',id);
   else if(k==='edit')fire('projEdit',id);
   else if(k==='report')openTab(id,'report');
-  else if(k==='settings'){fire('openProject',id+'|overview');let n=0;const t=setInterval(()=>{const h=$('[data-act="tog"][data-arg="ps'+id+'|0"]');
-    if(h||++n>25){clearInterval(t);if(h){if(!/▾/.test(h.textContent))h.click();setTimeout(()=>{const x=$('[data-act="tog"][data-arg="ps'+id+'|0"]');if(x)x.scrollIntoView({behavior:'smooth',block:'center'})},60)}}},60)}
+  else if(k==='settings')fire('projSettings',id);
   else if(k==='dup'){if(window.hubKit&&window.hubKit.dup)fire('projDup',id);else toast('Duplicate turns on when this update is published')}}
 let lp=null,swEl=null,swUntil=0;
 addEventListener('click',e=>{
@@ -5259,6 +5285,12 @@ function pageBits(){if(document.documentElement.getAttribute('data-ui-card')!=='
  $$('.phead').forEach(h=>{const b=$('a[data-act="projEdit"]',h);if(b)h.dataset.pid=b.getAttribute('data-arg');if(!h.dataset.pid||$('.ukdots',h))return;h.insertAdjacentHTML('beforeend','<span class="ukdots phd" role="button" tabindex="0" aria-label="Project actions" title="Actions">⋯</span>')});
  $$('.grid.g4').forEach(g=>{if(!/Show progress/i.test(g.textContent))return;[...g.children].forEach((k,i)=>{if(k.classList.contains('kpi')){k.classList.add('ukprog','ukk'+i)}})});
  const hp=$('.phead');const pid=hp&&hp.dataset.pid;const ty=pid&&window.hubKit&&window.hubKit.typeOf?window.hubKit.typeOf(pid):null;const off=ty&&window.hubKit.typeOff?(window.hubKit.typeOff()[ty]||[]):[];
+ const hid=(el,on)=>{if(el)el.style.display=on?'none':''};
+ $$('.tabs a[data-arg="report"],.ptabs2 a[data-arg="report"]').forEach(a=>hid(a,true));
+ $$('.sec,details,.card').forEach(e=>{const hd=$('.sh,summary',e);if(hd&&/Project (settings|specs)/i.test(hd.textContent)&&!e.classList.contains('ukdlv'))hid(e,true)});
+ $$('a[data-act="stAdd"]').forEach(a=>hid(a,true));
+ $$('.tile').forEach(t=>{const l=$('.tl',t);hid(t,!!l&&/^(Unassigned|Reviews)/i.test(l.textContent.trim()))});
+ $$('h3').forEach(h=>{if(/^Project storage$/i.test(h.textContent.trim())){const wrap=h.closest('div')&&h.closest('div').parentElement;let blk=wrap;if(blk&&blk.parentElement&&blk.parentElement.classList.contains('grid')===false)blk=wrap;if(blk)hid(blk,true)}});
  $$('.tabs a[data-arg],.ptabs2 a[data-arg]').forEach(a=>{const k=a.dataset.arg;const hide=off.includes(k);a.style.display=hide?'none':'';});
  $$('.tile').forEach(t=>{const l=$('.tl',t);if(l&&/^Next delivery/i.test(l.textContent))t.classList.add('ukgone')})}
 function addDots(){if(document.documentElement.getAttribute('data-ui-card')!=='1')return;$$('.pcard2 .pf').forEach(a=>{if(!$('.ukdots',a))a.insertAdjacentHTML('beforeend','<span class="ukdots cf" role="button" tabindex="0" aria-label="Project actions" title="Actions">⋯</span>')})}
