@@ -908,7 +908,7 @@ if(isOwner()){out.fin_rows=new Map(finRowsOut().map(r=>[r.id,r]));out.fin_privat
 if(isOwner())out.settings=new Map([['brand',{id:'brand',data:BRAND}]]);return out}
 function liveSave(){if(!LIVE||!booted||!me())return;const cur=currentRows();const ops=[];
 Object.entries(cur).forEach(([tb,m])=>{const prev=SYNCED[tb]||(SYNCED[tb]=new Map());m.forEach((row,id)=>{const js=JSON.stringify(row);if(!prev.has(id))ops.push(['insert',tb,row,id,js]);else if(prev.get(id)!==js)ops.push(['update',tb,row,id,js])});
- if(tb!=='notifications'&&tb!=='settings'&&tb!=='fin_private'&&tb!=='fin_meta'&&tb!=='project_money'&&tb!=='fin_books')prev.forEach((js,id)=>{if(!m.has(id))ops.push(['delete',tb,null,id,null])})});
+ if(tb!=='notifications'&&tb!=='settings'&&tb!=='fin_private'&&tb!=='fin_meta'&&tb!=='project_money'&&tb!=='project_costs'&&tb!=='fin_books')prev.forEach((js,id)=>{if(!m.has(id))ops.push(['delete',tb,null,id,null])})});
 ops.forEach(o=>{const[op,tb,row,id,js]=o;if(op==='delete')SYNCED[tb].delete(id);else SYNCED[tb].set(id,js)});
 if(!ops.length)return;syncChain=syncChain.then(async()=>{for(const[op,tb,row,id]of ops){const key=tb==='cashflow_docs'?'path':'id';let q;
  if(op==='insert'){q=sb.from(tb).insert(row)}else if(op==='update'){const r=Object.assign({},row);delete r.id;q=sb.from(tb).update(r).eq(key,id)}else q=sb.from(tb).delete().eq(key,id);
@@ -2498,14 +2498,17 @@ function pubHTML(){const mem=S.users.filter(x=>isStaff(x)&&!isOwner(x)&&x.access
 const _lo14=ACT.logout;ACT.logout=(...a)=>{FIN_SHOW=false;return _lo14(...a)};const _perm14=ACT.perm;ACT.perm=a=>{const k=a.split('|')[1]||'';if(k.startsWith('fin.')&&!isOwner()){toast('Only an owner changes finance access','bad');return}_perm14(a)};
 /* ---------- live sync: project money and the books ---------- */
 let PM_READY=false,BK_READY=false,finCh=null;
-const pmData=p=>{const d={};MKEYS.forEach(k=>{if(p[k]!==undefined&&p[k]!==null)d[k]=p[k]});return d};
+const CKEYS=['budget','spent','cf'];// internal costs: staff only (project_costs)
+const pmData=p=>{const d={};MKEYS.forEach(k=>{if(!CKEYS.includes(k)&&p[k]!==undefined&&p[k]!==null)d[k]=p[k]});return d};
+const cData=p=>{const d={};CKEYS.forEach(k=>{if(p[k]!==undefined&&p[k]!==null)d[k]=p[k]});return d};
 const _cr14=currentRows;currentRows=function(){const out=_cr14();const u=me();if(!LIVE||!u)return out;
- if(PM_READY&&isStaff(u))out.project_money=new Map(S.projects.filter(p=>finSees(p,u)).map(p=>[p.id,{id:p.id,data:pmData(p)}]));
+ if(PM_READY&&isStaff(u)){out.project_money=new Map(S.projects.filter(p=>finSees(p,u)).map(p=>[p.id,{id:p.id,data:pmData(p)}]));out.project_costs=new Map(S.projects.filter(p=>finSees(p,u)).map(p=>[p.id,{id:p.id,data:cData(p)}]))}
  if(BK_READY)out.fin_books=new Map(Object.keys(BOOKK).filter(b=>bookOk(b,u)&&S.books&&S.books[b]).map(b=>[b,{id:b,data:S.books[b]}]));return out};
 async function finLoad(){PM_READY=false;BK_READY=false;
  try{const rows=await fetchAll('project_money');SYNCED.project_money=new Map();rows.forEach(r=>{const p=S.projects.find(x=>x.id===r.id);if(p)Object.assign(p,r.data||{});SYNCED.project_money.set(r.id,JSON.stringify({id:r.id,data:p?pmData(p):r.data}))});PM_READY=true}catch(e){console.warn('[hub] project money',e)}
+ try{if(isStaff()){const rows=await fetchAll('project_costs');SYNCED.project_costs=new Map();rows.forEach(r=>{const p=S.projects.find(x=>x.id===r.id);if(p)Object.assign(p,r.data||{});SYNCED.project_costs.set(r.id,JSON.stringify({id:r.id,data:p?cData(p):r.data}))})}}catch(e){console.warn('[hub] project costs',e)}
  try{const rows=await fetchAll('fin_books');S.books={};SYNCED.fin_books=new Map();rows.forEach(r=>{S.books[r.id]=r.data||{};BK(r.id);SYNCED.fin_books.set(r.id,JSON.stringify({id:r.id,data:S.books[r.id]}))});BK_READY=true}catch(e){console.warn('[hub] books',e)}
- if(finCh)sb.removeChannel(finCh);finCh=sb.channel('hub-fin').on('postgres_changes',{event:'*',schema:'public',table:'project_money'},pl=>{if(pl.eventType==='DELETE')return;const r=pl.new;const p=S.projects.find(x=>x.id===r.id);if(!p)return;MKEYS.forEach(k=>delete p[k]);Object.assign(p,r.data||{});SYNCED.project_money&&SYNCED.project_money.set(r.id,JSON.stringify({id:r.id,data:pmData(p)}));softRender()})
+ if(finCh)sb.removeChannel(finCh);finCh=sb.channel('hub-fin').on('postgres_changes',{event:'*',schema:'public',table:'project_costs'},pl=>{if(pl.eventType==='DELETE')return;const r=pl.new;const p=S.projects.find(x=>x.id===r.id);if(!p)return;CKEYS.forEach(k=>delete p[k]);Object.assign(p,r.data||{});SYNCED.project_costs&&SYNCED.project_costs.set(r.id,JSON.stringify({id:r.id,data:cData(p)}));softRender()}).on('postgres_changes',{event:'*',schema:'public',table:'project_money'},pl=>{if(pl.eventType==='DELETE')return;const r=pl.new;const p=S.projects.find(x=>x.id===r.id);if(!p)return;MKEYS.forEach(k=>delete p[k]);Object.assign(p,r.data||{});SYNCED.project_money&&SYNCED.project_money.set(r.id,JSON.stringify({id:r.id,data:pmData(p)}));softRender()})
   .on('postgres_changes',{event:'*',schema:'public',table:'fin_books'},pl=>{if(pl.eventType==='DELETE')return;const r=pl.new;S.books=S.books||{};S.books[r.id]=r.data||{};BK(r.id);SYNCED.fin_books&&SYNCED.fin_books.set(r.id,JSON.stringify({id:r.id,data:S.books[r.id]}));softRender()}).subscribe()}
 const _lb14=liveBoot;liveBoot=async function(){PM_READY=false;BK_READY=false;await _lb14();if(booted&&me()){await finLoad();render()}};
 
