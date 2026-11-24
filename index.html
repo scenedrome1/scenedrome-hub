@@ -961,7 +961,8 @@ function load(){try{const r=localStorage.getItem(KEY);if(!r)return null;const s=
 let warned=false;
 function save(){if(LIVE){liveSave();return}try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){if(!warned){warned=true;toast('Demo storage is full — new uploads won’t survive a reload','bad')}}}
 let meId=null;if(!LIVE){try{meId=sessionStorage.getItem(KEY+'-me')}catch(e){}}
-const U=id=>S.users.find(u=>u.id===id);const P=id=>S.projects.find(p=>p.id===id);
+const U=id=>S.users.find(u=>u.id===id);const P=id=>S.projects.find(p=>p.id===id)||custP(id);
+function custP(id){const s=String(id||'');if(!s.startsWith('cust:'))return undefined;let label='';try{label=decodeURIComponent(s.slice(5))}catch(e){label=s.slice(5)}return{id:s,name:label,type:'branding',status:'active',team:[],partners:[],producer:'',client:'',stage:0,custom:true,roles:{},expect:{},partnersList:[]}}
 const me=()=>{const u=U(meId);return u&&!u.suspended?u:null};
 let V={v:'home',p:null,tab:'overview',ch:null,open:{}};
 let pending=[];
@@ -3144,7 +3145,7 @@ const DAYMS=864e5;let dmon=ts=>{const d=new Date(ts);return d.getDate()+' '+d.to
 let whenTxt=ts=>{if(!ts)return'';const d=Math.round((new Date(ts).setHours(0,0,0,0)-new Date().setHours(0,0,0,0))/DAYMS);const hm=new Date(ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});return d===0?'Today':d===1?'Tomorrow':d===-1?'Yesterday':d<0?Math.abs(d)+' days overdue':d<7?new Date(ts).toLocaleDateString('en-GB',{weekday:'long'}):dstr(ts)};
 const tag=(t,c)=>`<span class="otag ${c||''}">${esc(t)}</span>`;
 function todayData(){const u=me();const ps=visibleProjects().filter(p=>(p.status||'active')==='active');const pid=new Set(ps.map(p=>p.id));const now=Date.now();
- const open=S.tasks.filter(t=>t.status!=='done'&&pid.has(t.project));const mine=t=>tAs(t,u.id)||P(t.project).producer===u.id||isMgmt();
+ const open=S.tasks.filter(t=>t.status!=='done'&&(pid.has(t.project)||isCustP(t.project)));const mine=t=>tAs(t,u.id)||P(t.project).producer===u.id||isMgmt();
  const review=open.filter(t=>t.status==='review'&&mine(t));const unas=can('proj.tasks')?open.filter(t=>!t.assignee&&mine(t)):[];const overdue=open.filter(t=>t.due&&t.due<now&&mine(t)&&t.status!=='review');
  const items=[];
  if(isOwner()){const pe=S.entries.filter(e=>e.status==='submitted');if(pe.length)items.push({k:'money',ini:'FN',c:'honey',t:`${pe.length} project money entr${pe.length>1?'ies':'y'} to review`,m:`From ${[...new Set(pe.map(e=>first(U(e.by)||{name:'?'})))].join(', ')} / Cashflow`,a:'Review entries',act:'go',arg:'finance',ts:0})}
@@ -3225,7 +3226,7 @@ const tUnas=t=>!tPeople(t).length;
 /* scope: Studio for owner/management, My projects for producers, My work for everyone else */
 function workScope(u){u=u||me();const ps=visibleProjects().filter(p=>(p.status||'active')==='active');
  if(isMgmt(u))return{key:'studio',label:'Studio',ps,manage:true};const mine=ps.filter(p=>canManage(p));if(mine.length)return{key:'proj',label:'My projects',ps:mine,manage:true};return{key:'me',label:'My work',ps,manage:false}}
-function workLists(scope){const u=me();const sc=scope||workScope(u);const pid=new Set(sc.ps.map(p=>p.id));const open=S.tasks.filter(t=>t.status!=='done'&&pid.has(t.project));
+function workLists(scope){const u=me();const sc=scope||workScope(u);const pid=new Set(sc.ps.map(p=>p.id));const open=S.tasks.filter(t=>t.status!=='done'&&(pid.has(t.project)||isCustP(t.project)));
  const scoped=sc.manage?open:open.filter(t=>tAs(t,u.id));const soon=7;
  return{sc,open:scoped,unas:sc.manage?open.filter(tUnas):[],review:sc.manage?open.filter(t=>t.status==='review'):scoped.filter(t=>t.status==='review'),
   late:scoped.filter(t=>t.due&&cDiff(t.due)<0&&t.status!=='review'),
@@ -4947,7 +4948,7 @@ Object.assign(ACT,{custOpen:pid=>{V.custAdd=pid;render();setTimeout(()=>{const i
 /* ---------- round 5: Dashboard ---------- */
 const dbMine=u=>{u.sticky=u.sticky||[];u.todos=u.todos||[];return u};
 const STK=['#F7DC6F','#8FE3B0','#F5A98E','#9CD7F0','#D5B8F2'];
-function dbTasks(u){return S.tasks.filter(t=>t.assignee===u.id&&t.status!=='done'&&P(t.project)).sort((a,b)=>(a.due||9e15)-(b.due||9e15))}
+function dbTasks(u){return S.tasks.filter(t=>tAs(t,u.id)&&t.status!=='done'&&P(t.project)).sort((a,b)=>(a.due||9e15)-(b.due||9e15))}
 function dbRequests(u){const mg=isMgmt(u);const out=[];S.leaves.filter(l=>l.status==='pending'&&(mg||l.user===u.id)).forEach(l=>out.push({t:`${(S.users.find(x=>x.id===l.user)||{}).name||'Someone'} · ${l.type}, ${l.days} day${l.days>1?'s':''}`,s:'Leave request',v:'team'}));
  (S.expenses||[]).filter(x=>x.status==='pending'&&(mg||x.by===u.id)).forEach(x=>out.push({t:`${x.note||'Expense'} · EGP ${nf.format(x.amount||0)}`,s:'Expense',v:'finance'}));
  (S.bookings||[]).filter(b=>b.status==='pending'&&(mg||b.by===u.id)).forEach(b=>out.push({t:b.title||'Room booking',s:'Booking request',v:'rooms'}));
@@ -4957,7 +4958,7 @@ function dbCover(p){return p.poster?`<img src="${p.poster}" alt="">`:`<span>${es
 VIEWS.home_stf=()=>{const u=dbMine(me());const mg=isMgmt(u);const tasks=dbTasks(u);const reqs=dbRequests(u);const urg=dbUrgent(u);const prs=visibleProjects().filter(p=>p.status==='active'||!p.status);
  const addMenu=mg?`<details class="addm dbadd"><summary class="btn goldy big">${ic('plus',22)}Add Task<span class="pcaret">▾</span></summary><div class="addl"><a data-act="dbBook">${ic('clip',14)}Book a room</a><a data-act="dbAssign">${ic('users',14)}Assign a task to the team</a><a data-act="offerNew">${ic('gift',14)}Share an offer with a client</a><a data-act="mktNew">${ic('mega',14)}Start a marketing request</a><a data-act="newProject">${ic('film',14)}Start a project</a></div></details>`:`<a class="btn goldy big" data-act="dbAssign">${ic('plus',22)}New task</a>`;
  const hero=`<div class="dbtop"><div><div class="hidate" style="font-size:12px;letter-spacing:.16em;text-transform:uppercase;opacity:.7">${new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div><h1 style="margin:4px 0 0;font-size:34px;font-weight:800">Hello, ${esc(first(u))}</h1></div><span class="grow"></span>${addMenu}</div>`;
- const tk=`<div class="card dbc c-green"><div class="dbh">${ic('check',16)}Task list<span class="cnt">${tasks.length}</span></div>${tasks.length?tasks.slice(0,6).map(t=>{const late=t.due&&t.due<Date.now();return`<a class="dbrow" data-act="taskOpen" data-arg="${t.id}"><span class="dot ${late?'late':''}"></span><span class="grow"><b>${esc(t.title)}</b><i>${esc((P(t.project)||{}).name||'')}</i></span><em class="${late?'late':''}">${t.due?dstr(t.due):''}</em></a>`}).join(''):'<div class="dbe">Nothing assigned to you</div>'}</div>`;
+ const tkL=mg?dbTeamOpen():tasks;const tk=`<div class="card dbc c-green"><div class="dbh">${ic('check',16)}${mg?'Team tasks':'Task list'}<span class="cnt">${tkL.length}</span></div>${tkL.length?tkL.slice(0,mg?8:6).map(t=>{const late=t.due&&t.due<Date.now();const who=mg?(t.assignees&&t.assignees.length?t.assignees:[t.assignee]).filter(Boolean).map(x=>first(U(x))).join(', ')||'Unassigned':'';return`<a class="dbrow" data-act="taskOpen" data-arg="${t.id}"><span class="dot ${late?'late':''}"></span><span class="grow"><b>${esc(t.title)}</b><i>${esc((P(t.project)||{}).name||'')}${mg?' · '+esc(who):''}</i></span><em class="${late?'late':''}">${t.due?dstr(t.due):''}</em></a>`}).join(''):`<div class="dbe">${mg?'No open team tasks':'Nothing assigned to you'}</div>`}</div>`;
  const ap=`<div class="card dbc c-teal dbwide"><div class="dbh">${ic('film',16)}Active projects<span class="cnt">${prs.length}</span></div><div class="dbproj">${prs.map(p=>{const pc=projProg(p);return`<a class="dbp" data-act="openProject" data-arg="${p.id}"><div class="cv">${dbCover(p)}</div><div class="in"><b>${esc(p.name)}</b><i>${esc((TYPES[p.type]||{}).label||'')}</i><div class="pb"><u style="width:${pc}%"></u></div><em>${pc}%</em></div></a>`}).join('')||'<div class="dbe">No active projects</div>'}</div></div>`;
  const sn=`<div class="card dbc c-sun"><div class="dbh">${ic('edit',16)}Self notes<a class="sqplus" data-act="stkAdd" title="New note">+</a></div><div class="stks">${u.sticky.map((n,i)=>`<div class="stk" data-id="${n.id}" style="--sc:${n.c||STK[i%STK.length]};--rot:${n.r!=null?n.r:[-3.2,2.4,-1.4,3.4,-2.4][i%5]}deg;--br:${['4px 22px 6px 30px / 22px 6px 28px 4px','26px 4px 24px 6px / 6px 26px 4px 22px','8px 30px 10px 24px / 28px 8px 26px 6px','30px 8px 4px 26px / 6px 24px 30px 8px','6px 18px 34px 10px / 24px 6px 10px 30px'][i%5]};left:min(${n.x!=null?n.x:(i%4)*225+14}px,calc(100% - 214px));top:${n.y!=null?n.y:Math.floor(i/4)*225+14}px"><div class="sth" title="Drag to move"></div><textarea rows="6" data-change="stkSet" data-arg="${n.id}" placeholder="Write a note…">${esc(n.t||'')}</textarea><a class="x" data-act="stkDel" data-arg="${n.id}" title="Delete">✕</a></div>`).join('')||'<div class="dbe">Tap + to stick a note</div>'}</div></div>`;
  const rq=`<div class="card dbc c-lime"><div class="dbh">${ic('hand',16)}Requests<span class="cnt">${reqs.length}</span></div>${reqs.length?reqs.slice(0,6).map(r=>`<a class="dbrow" data-act="go" data-arg="${r.v}"><span class="dot"></span><span class="grow"><b>${esc(r.t)}</b><i>${esc(r.s)}</i></span></a>`).join(''):'<div class="dbe">No pending requests</div>'}</div>`;
@@ -5218,6 +5219,32 @@ const _trTK=taskRow;taskRow=function(t,sp){const h=_trTK(t,sp);return t.tpl==='t
 const _tmTK=taskModal;taskModal=function(t){_tmTK(t);if(!t||t.tpl!=='task')return;const m=document.querySelector('#modal .modal');if(!m)return;
  const c=[...m.querySelectorAll('.card')].find(x=>/Spec sheet|request/i.test(x.textContent));if(c)c.innerHTML=`<div class="eyebrow" style="margin-bottom:10px">Level & priority</div><dl class="kv"><dt>Level</dt><dd>${esc(tkLvlLabel(t.level))}</dd><dt>Priority</dt><dd>${esc(tkPriLabel(t.prio))}</dd></dl>`;
  m.querySelectorAll('.row .chip.gold').forEach(x=>{if(STG(P(t.project))[t.stage]===x.textContent.trim())x.remove()})};
+/* ================= One task form everywhere: project cell picks a project or takes a custom name ================= */
+function dbTeamOpen(){const ps=new Set(visibleProjects().map(p=>p.id));return S.tasks.filter(t=>t.status!=='done'&&(ps.has(t.project)||isCustP(t.project))).sort((a,b)=>(a.due||9e15)-(b.due||9e15))}
+function isCustP(id){return String(id||'').startsWith('cust:')}
+const tkProjList=()=>visibleProjects().filter(p=>p.status==='active'||!p.status);
+COMBO.tkProj={items:()=>tkProjList().map(p=>({v:p.id,l:p.name,s:((U(p.client)||{}).company)||'Studio'})),newLabel:n=>'Use “'+n+'” as a custom project'};
+function tkProjCell(p){return`<label class="full">Project <span class="tiny faint">— pick one, or type a custom name</span><div style="margin-top:6px">${combo({src:'tkProj',arg:'',name:'project_name',idName:'project',idValue:p?p.id:'',value:p?p.name:'',ph:'Search projects, or type a custom name',req:true})}</div></label>`}
+function taskForm(pid){const ps=tkProjList();const p=P(pid)&&ps.includes(P(pid))?P(pid):(pid?null:ps[0]||null);
+ modal('New task',`<form data-form="task" class="formgrid"><label class="full">Title <span class="tiny faint">— 3 words max</span><input name="title" required placeholder="e.g. EP09 color pass" autocomplete="off"></label>
+ ${tkProjCell(p)}
+ <label>Due<input type="date" name="due" required value="${new Date(Date.now()+3*D).toISOString().slice(0,10)}"></label>
+ <label>Level<select name="level">${TK_LVL.map(([k,l])=>`<option value="${k}" ${k==='draft'?'selected':''}>${l}</option>`).join('')}</select></label>
+ <label>Priority<select name="prio">${TK_PRI.map(([k,l])=>`<option value="${k}" ${k==='med'?'selected':''}>${l}</option>`).join('')}</select></label>
+ ${tkAsgBox()}
+ <label class="full">Brief<textarea name="brief" rows="2"></textarea></label>
+ <div class="full row"><button class="btn pri right" type="submit">Create & notify</button></div></form>`)}
+ACT.dbAssign=()=>taskForm(null);
+FORM.task=(fd)=>{const title=String(fd.get('title')||'').trim();if(!title){toast('Give the task a title','bad');return}if(tkWords(title)>3){toast('Keep the title to 3 words or fewer','bad');return}
+ let pid=String(fd.get('project')||'');const typed=String(fd.get('project_name')||'').trim();
+ if(!pid){if(!typed){toast('Pick a project or type one','bad');return}const same=tkProjList().find(x=>x.name.trim().toLowerCase()===typed.toLowerCase());pid=same?same.id:'cust:'+encodeURIComponent(typed)}
+ const p=P(pid);if(!p){toast('Pick a project','bad');return}
+ if(!pid.startsWith('cust:')&&!(canDo('proj.tasks',p)||pRole(p)==='a1')){toast('You can’t add tasks to this project','bad');return}
+ const as=fd.getAll('as').map(String).filter(Boolean);
+ const t={id:uid('t'),project:pid,title,assignee:as[0]||null,assignees:as,stage:0,status:'todo',due:new Date(String(fd.get('due'))).getTime()+12*H,prio:String(fd.get('prio')||'med'),level:String(fd.get('level')||'draft'),brief:String(fd.get('brief')||''),created:Date.now(),by:meId,tpl:'task',spec:null,req:null};
+ S.tasks.push(t);
+ const others=as.filter(x=>x!==meId);if(others.length)notify(others,`${me().name} assigned you "${title}"`,{v:'project',p:pid,tab:'tasks'});
+ save();closeModal();render();toast(as.length?`Task created — ${as.map(x=>first(U(x))).join(', ')} notified`:'Task created','ok')};
 window.hubKit=Object.freeze({dup:true,typeOff:()=>BRAND.typeOff||{},typeOf:pid=>{const p=P(pid);return p?p.type:null},ui:()=>BRAND.ui||{},search:_kSearch,projects:()=>{try{return visibleProjects().map(p=>({id:p.id,name:p.name||'Untitled',client:((U(p.client)||{}).company)||'',type:(TYPES[p.type]||{}).label||'',status:p.status||'active'}))}catch(e){return[]}}});
 if(LIVE){meId='…';render();liveBoot().catch(e=>{console.error(e);if(booted){toast('Something didn’t load: '+e.message,'bad');return}bootMsg='Couldn’t reach the Hub database: '+e.message;booted=false;meId=null;render()});sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){booted=false;meId=null;render()}})}else render();
 })();
