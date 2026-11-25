@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
       const t = await r.text(); let j: any = null; try { j = t ? JSON.parse(t) : null; } catch { /* empty */ }
       return { s: r.status, j };
     }
-    const projOf = async (pid: string) => (await me.from("projects").select("id,name,producer,client,data").eq("id", String(pid || "")).maybeSingle()).data;
+    const projOf = async (pid: string) => (await me.from("projects").select("id,producer,client,data").eq("id", String(pid || "")).maybeSingle()).data;
     async function ensureProj(pid: string, name: string, at: string) {
       const { data: mp } = await adm.from("media_projects").select("item_id").eq("project_id", pid).maybeSingle();
       if (mp) return mp.item_id as string;
@@ -88,10 +88,16 @@ Deno.serve(async (req) => {
       return json({ linked: !!data, account: data?.account || null });
     }
 
+    if (A === "ensure_project") {
+      const p = await projOf(b.project_id); if (!p) return json({ error: "no access to this project" }, 403);
+      await ensureProj(p.id, p.data?.name || p.id, await accessToken());
+      return json({ ok: true });
+    }
+
     // ---- uploads ----
     if (A === "upload_start") {
       const p = await projOf(b.project_id); if (!p) return json({ error: "no access to this project" }, 403);
-      const at = await accessToken(); const folder = await ensureProj(p.id, p.name, at);
+      const at = await accessToken(); const folder = await ensureProj(p.id, p.data?.name || p.id, at);
       const fname = safe(b.name);
       const r = await gj(at, "/me/drive/items/" + folder + ":/" + encodeURIComponent(fname) + ":/createUploadSession", { method: "POST", body: JSON.stringify({ item: { "@microsoft.graph.conflictBehavior": "rename" } }) });
       if (!r.j?.uploadUrl) return json({ error: "could not start the upload (" + r.s + ")" }, 500);
@@ -99,7 +105,7 @@ Deno.serve(async (req) => {
     }
     if (A === "upload_done") {
       const p = await projOf(b.project_id); if (!p) return json({ error: "no access to this project" }, 403);
-      const at = await accessToken(); const folder = await ensureProj(p.id, p.name, at);
+      const at = await accessToken(); const folder = await ensureProj(p.id, p.data?.name || p.id, at);
       const it = await gj(at, "/me/drive/items/" + encodeURIComponent(String(b.item_id)) + "?$select=id,name,size,parentReference,file");
       if (!it.j?.id || it.j.parentReference?.id !== folder) return json({ error: "file not found in the project folder" }, 400);
       let group = String(b.group_id || ""); let ver = 1; let fid: string | null = b.folder_id ? String(b.folder_id) : null;
