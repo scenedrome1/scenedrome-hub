@@ -4034,7 +4034,9 @@ function clientsCard61(p){const u=me();if(!isStaff(u)||!(canManage(p)||seesClien
  const rows=[main?row(main,'Main contact',`<span class="tiny faint">Sees the full client view, quotation and payments</span>`):'',
   ...list.map(c=>{const x=U(c.id);return row(x,c.title||x.title,permChips(c.perms||{}),ed?`<a class="iconbtn sm" data-act="ccEdit" data-arg="${p.id}|${x.id}" title="Title and what they see" aria-label="Edit ${esc(x.name)}">${ic('edit',14)}</a><a class="iconbtn sm" data-act="ccDel" data-arg="${p.id}|${x.id}" title="Remove from this project" aria-label="Remove ${esc(x.name)}">${ic('x',14)}</a>`:'')})].join('');
  const add=ed?`<div class="row wrap" style="gap:8px;margin-top:12px"><a class="btn sm" data-act="ccAdd" data-arg="${p.id}">${ic('plus',14)}Add client person</a></div>`:'';
- return`<div class="card crewc clic ${open?'open':''}"><h3 class="crewh" data-act="tog" data-arg="${k}|0"><span class="faint">${open?'▾':'▸'}</span> Clients <span class="cnt">${n}</span></h3><div class="list">${rows||'<div class="empty tiny">No client people on this project yet</div>'}</div>${add}</div>`}
+ const cf=p.clientFacing||[];const seen=new Set();const team=crewList(p).filter(x=>x.k!=='client'&&U(x.id)&&!seen.has(x.id)&&seen.add(x.id));
+ const vis=`<div style="margin-top:14px;border-top:1px solid var(--line,rgba(255,255,255,.1));padding-top:10px"><div class="tiny faint" style="margin-bottom:6px">Team members clients can see and message — everyone else stays hidden from them</div>${team.length?team.map(x=>{const u=U(x.id);const on=cf.includes(x.id);return`<div class="row" style="gap:8px;padding:4px 0">${av(u,24)}<span class="grow">${esc(u.name)} <span class="tiny faint">${esc(u.title||'')}</span></span>${ed?`<a class="btn sm ${on?'pri':''}" data-act="cfTog" data-arg="${p.id}|${x.id}">${on?'Visible to clients':'Hidden'}</a>`:`<span class="chip" style="font-size:11px">${on?'Visible':'Hidden'}</span>`}</div>`}).join(''):'<div class="tiny faint">No team members on this project yet</div>'}</div>`;
+ return`<div class="card crewc clic ${open?'open':''}"><h3 class="crewh" data-act="tog" data-arg="${k}|0"><span class="faint">${open?'▾':'▸'}</span> Clients <span class="cnt">${n}</span></h3><div class="list">${rows||'<div class="empty tiny">No client people on this project yet</div>'}</div>${vis}${add}</div>`}
 const _ov61=TABS.overview;TABS.overview=p=>{let h=_ov61(p);const u=me();if(!u)return h;
  /* client people without Status & progress don't get the flow */
  const c=crewOnly(p,u)&&ccOf(p,u.id);
@@ -4043,6 +4045,7 @@ const _ov61=TABS.overview;TABS.overview=p=>{let h=_ov61(p);const u=me();if(!u)re
  const t=document.createElement('template');t.innerHTML=h;const cr=t.content.querySelector('.crewc');if(cr){cr.insertAdjacentHTML('afterend',card);return t.innerHTML}
  return h+card};
 Object.assign(ACT,{
+ cfTog:a=>{const[pid,id]=a.split('|');const p=P(pid);if(!ccEditor(p)||!U(id))return;const l=p.clientFacing||[];p.clientFacing=l.includes(id)?l.filter(x=>x!==id):[...l,id];V.open['cli'+pid]=true;save();render()},
  ccEdit:a=>{const[pid,id]=a.split('|');const p=P(pid);const c=ccOf(p,id);const x=U(id);if(!ccEditor(p)||!c||!x)return;
   modal(esc(x.name)+' · '+esc(p.name),`<form data-form="ccEdit" data-arg="${pid}|${id}" class="formgrid">${ctPick(c.title||x.title,'Title on this project')}${permBoxes(c.perms||{})}<div class="full row"><button class="btn pri right" type="submit">Save</button></div></form>`)},
  ccDel:a=>{const[pid,id]=a.split('|');const p=P(pid);const x=U(id);if(!ccEditor(p)||!x)return;if(!confirm(`Remove ${x.name} from ${p.name}? They stop seeing this project.`))return;p.clientCrew=(p.clientCrew||[]).filter(c=>c.id!==id);save();render();toast(`${x.name} removed from ${p.name}`,'ok')},
