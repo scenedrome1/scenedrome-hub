@@ -1101,7 +1101,7 @@ return`<div class="shell"><aside class="side ${MORE_OPEN?'more':''}"><div class=
 ${LIVE?'':'<div class="draftnote">Draft · demo data lives in this browser only.</div>'}<div class="side-foot" data-act="go" data-arg="profile">${av(u,34)}<div class="grow"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500">${esc(u.name)}</b><span class="tiny faint">${esc(u.title||u.company||'')}</span></div></div></aside>
 <main><header class="top"><div><div class="crumb">${crumbHTML()}</div><h2>${homeT}</h2></div>
 <div class="row" style="gap:8px">${LIVE?'':`<label class="viewas"><span class="lbl eyebrow">Draft · view as</span><select data-change="switchUser">${S.users.filter(x=>!x.suspended).map(x=>`<option value="${x.id}" ${x.id===u.id?'selected':''}>${esc(x.name)} — ${esc(x.company||x.title)}</option>`).join('')}</select></label>`}
-<div class="bellwrap"><a class="iconbtn" data-act="bell" title="Notifications" aria-label="Notifications">${ic('bell')}${un?`<span class="badge">${un}</span>`:''}</a><div class="bellpanel" id="bellpanel"><div class="row" style="padding:12px 14px"><b style="font-weight:500">Notifications</b><a class="btn sm ghost right" data-act="readAll">Mark all read</a></div>
+<div class="bellwrap"><a class="iconbtn" data-act="bell" title="Notifications" aria-label="Notifications">${ic('bell')}${un?`<span class="badge">${un}</span>`:''}</a><div class="bellpanel" id="bellpanel"><div class="row" style="padding:12px 14px"><b style="font-weight:500">Notifications</b><a class="btn sm ghost right" data-act="readAll">Mark all read</a><a class="iconbtn sm" data-act="bellMenu" title="Notification settings" aria-label="Notification settings" style="font-size:18px;line-height:1">⋯</a></div>
 ${bellListHTML(u)}</div></div>${acctHTML()}</div></header><section class="content">${body}</section></main></div>`}
 
 /* ================= views ================= */
@@ -5522,6 +5522,23 @@ dayBlock=function(p,d,ce,mg){const h=_dwDB(p,d,ce,mg);
 /* opening a storage card or drive row scrolls it to the top of the screen */
 document.addEventListener('click',e=>{const h=e.target.closest&&e.target.closest('[data-act="stTog"],.drvr[data-act="tog"]');if(!h)return;const act=h.getAttribute('data-act'),arg=h.getAttribute('data-arg');setTimeout(()=>{const n=act==='stTog'?document.querySelector('[data-act="stTog"][data-arg="'+arg+'"]'):[...document.querySelectorAll('.drvr[data-act="tog"]')].find(x=>x.getAttribute('data-arg')===arg);if(!n)return;const open=act==='stTog'?/▾/.test(n.textContent):!!(n.closest('.drv')||{classList:{contains:()=>false}}).classList.contains('open');if(open)n.scrollIntoView({block:'start',behavior:'smooth'})},80)});
 })();
+
+/* ===== step 4 · notifications per role + the ⋯ menu in the bell header ===== */
+const NP_CATS=[['feedback','Comments, feedback & mentions','Replies, @mentions and messages'],['approvals','Approvals & reviews','Things waiting for a decision, returned or approved'],['tasks','Tasks & assignments','New tasks and changes on yours'],['bookings','Bookings, rooms & leave','Room bookings, leave requests'],['money','Money & quotations','Quotations, payments, costs'],['other','Everything else','Storage alerts, welcome notes, system messages']];
+const npCat=t=>{t=String(t||'');return /quotation|payment|cost|money|cashflow|EGP|USD|invoice/i.test(t)?'money':/feedback|comment|mention|@|message|thread|replied/i.test(t)?'feedback':/approv|review|returned|declin|reject/i.test(t)?'approvals':/assign|task/i.test(t)?'tasks':/book|room|leave/i.test(t)?'bookings':'other'};
+const npDef=(u,k)=>{const r=u&&u.role;if(r==='owner'||r==='manager')return true;if(k==='money')return false;if(r==='client'||r==='partner')return k==='feedback'||k==='approvals';if(u&&u.job==='freelancer')return k==='feedback'||k==='approvals'||k==='tasks';return true};
+const npOn=(u,k)=>{const v=u&&u.np&&u.np[k];return v===undefined?npDef(u,k):!!v};
+const _npNotify=notify;notify=function(ids,text,link){const k=npCat(text);return _npNotify([...new Set(ids||[])].filter(i=>!U(i)||npOn(U(i),k)),text,link)};
+const _npBell=ACT.bell;
+Object.assign(ACT,{
+ bellMenu:()=>{const u=me();if(!u)return;const rows=NP_CATS.map(([k,l,d])=>{const on=npOn(u,k);return`<div class="row" style="gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.07)"><div class="grow"><div>${esc(l)}</div><div class="tiny faint">${esc(d)}</div></div><a class="btn sm ${on?'pri':''}" data-act="npTog" data-arg="${k}">${on?'On':'Off'}</a></div>`}).join('');
+  const rd=S.notifs.filter(n=>n.to===u.id&&n.read).length;
+  modal('Notifications',`<div class="row wrap" style="gap:8px;margin-bottom:10px"><a class="btn sm" data-act="readAllClose">Mark all read</a><a class="btn sm ghost" data-act="npClear">Clear ${rd} read</a></div><div class="tiny faint" style="margin-bottom:4px">What reaches you — set for your role (${esc(u.title||u.role)}). Turn off anything you don't want to be told about.</div>${rows}<div class="row" style="margin-top:12px"><a class="btn sm ghost" data-act="npReset">Back to my role's defaults</a></div>`)},
+ npTog:k=>{const u=me();u.np=Object.assign({},u.np||{});u.np[k]=!npOn(u,k);save();ACT.bellMenu()},
+ npReset:()=>{const u=me();u.np={};save();ACT.bellMenu();toast('Back to defaults','ok')},
+ npClear:()=>{const u=me();S.notifs=S.notifs.filter(n=>!(n.to===u.id&&n.read));save();closeModal();render()},
+ readAllClose:()=>{ACT.readAll();closeModal()}
+});
 </script>
 <script id="hub-uikit">/* ================= SCENEDROME Hub · UI Kit layer (pass 1) =================
    One source of truth for: Buttons · Badges · Menus · Sub-page nav.
