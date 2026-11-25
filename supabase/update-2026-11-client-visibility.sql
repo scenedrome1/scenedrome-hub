@@ -18,5 +18,5 @@ drop policy if exists hub_select on public.profiles;
 create policy hub_select on public.profiles for select using (
   id = auth.uid()
   or public.is_staff()
-  or (role not in ('client','partner') and public.client_sees_staff(id))
+  or (role not in ('client','partner') and public.client_sees_staff(id::text))
 );
