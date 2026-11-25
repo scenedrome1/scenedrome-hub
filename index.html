@@ -5521,8 +5521,6 @@ dayBlock=function(p,d,ce,mg){const h=_dwDB(p,d,ce,mg);
 
 /* opening a storage card or drive row scrolls it to the top of the screen */
 document.addEventListener('click',e=>{const h=e.target.closest&&e.target.closest('[data-act="stTog"],.drvr[data-act="tog"]');if(!h)return;const act=h.getAttribute('data-act'),arg=h.getAttribute('data-arg');setTimeout(()=>{const n=act==='stTog'?document.querySelector('[data-act="stTog"][data-arg="'+arg+'"]'):[...document.querySelectorAll('.drvr[data-act="tog"]')].find(x=>x.getAttribute('data-arg')===arg);if(!n)return;const open=act==='stTog'?/▾/.test(n.textContent):!!(n.closest('.drv')||{classList:{contains:()=>false}}).classList.contains('open');if(open)n.scrollIntoView({block:'start',behavior:'smooth'})},80)});
-})();
-
 /* ===== step 4 · notifications per role + the ⋯ menu in the bell header ===== */
 const NP_CATS=[['feedback','Comments, feedback & mentions','Replies, @mentions and messages'],['approvals','Approvals & reviews','Things waiting for a decision, returned or approved'],['tasks','Tasks & assignments','New tasks and changes on yours'],['bookings','Bookings, rooms & leave','Room bookings, leave requests'],['money','Money & quotations','Quotations, payments, costs'],['other','Everything else','Storage alerts, welcome notes, system messages']];
 const npCat=t=>{t=String(t||'');return /quotation|payment|cost|money|cashflow|EGP|USD|invoice/i.test(t)?'money':/feedback|comment|mention|@|message|thread|replied/i.test(t)?'feedback':/approv|review|returned|declin|reject/i.test(t)?'approvals':/assign|task/i.test(t)?'tasks':/book|room|leave/i.test(t)?'bookings':'other'};
@@ -5548,6 +5546,9 @@ Object.assign(ACT,{
  npClear:()=>{const u=me();S.notifs=S.notifs.filter(n=>!(n.to===u.id&&n.read));save();closeModal();render()},
  readAllClose:()=>{ACT.readAll();closeModal()}
 });
+
+})();
+
 </script>
 <script id="hub-uikit">/* ================= SCENEDROME Hub · UI Kit layer (pass 1) =================
    One source of truth for: Buttons · Badges · Menus · Sub-page nav.
