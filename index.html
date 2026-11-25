@@ -5677,6 +5677,199 @@ Object.assign(ACT,{msgDel:id=>{if(!isOwner())return;const m=S.msgs.find(x=>x.id=
  let q=0;const run=()=>{q=0;try{decorate()}catch(e){}};
  new MutationObserver(()=>{if(!q)q=requestAnimationFrame(run)}).observe(document.body,{childList:true,subtree:true});run();
 })();
+/* ===== review player: our own Frame.io-style review (versions, time-coded comments, drawing, approval) ===== */
+(function(){
+const RVS={p:null,v:null,ver:null,cmp:null,cm:[],sel:null,tool:false,col:'#ff4d4d',strokes:[],cur:null,useT:true,ch:null,hide:false,reply:null,dur:0,chg:false,nv:null,fail:{}};
+const RVC=['#ff4d4d','#ffd23f','#4dd2ff','#ffffff'];
+const fmtT=s=>{s=Math.max(0,s||0);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0')};
+const vers=v=>(v.vers&&v.vers.length)?v.vers:[{id:'v1',label:'v1',url:v.url,ts:v.ts,kind:'video'}];
+const b64u=s=>btoa(unescape(encodeURIComponent(s))).replace(/=+$/,'').replace(/\+/g,'-').replace(/\//g,'_');
+function srcOf(url){url=String(url||'').trim();if(!url)return'';
+ if(/^https?:\/\/(1drv\.ms|onedrive\.live\.com|1drv\.com)\b/i.test(url))return'https://api.onedrive.com/v1.0/shares/u!'+b64u(url)+'/root/content';
+ if(/sharepoint\.com/i.test(url)){try{const u=new URL(url);u.searchParams.set('download','1');return u.toString()}catch(e){return url}}
+ return url}
+const canPlay=url=>!!url&&!/frame\.io/i.test(url);
+const cur=()=>{const p=P(RVS.p);const v=p&&(p.previews||[]).find(x=>x.id===RVS.v);return{p,v}};
+const curVer=()=>{const{v}=cur();if(!v)return null;const a=vers(v);return a.find(x=>x.id===RVS.ver)||a[a.length-1]};
+const verOf=id=>{const{v}=cur();return v?vers(v).find(x=>x.id===id):null};
+const rvCP=p=>!!p&&isStaff()&&(canDo('proj.previews',p)||editTeam(p)||canManage(p));
+const rvCanV=p=>!!p&&(p.client===meId||crewAcc(p)==='approve');
+const rvStaff=()=>isStaff()&&(inhouse(me())||isMgmt());
+const mediaEl=()=>document.getElementById('rvM');
+const isImg=ver=>(ver&&ver.kind)==='image';
+const fromRow=r=>Object.assign({},r.data,{id:r.id,pid:r.project_id,vid:r.preview_id,user:r.user_id});
+const toRow=c=>({id:c.id,project_id:c.pid,preview_id:c.vid,user_id:c.user,data:{ver:c.ver,t:c.t,text:c.text,draw:c.draw||null,re:c.re||null,res:!!c.res,resBy:c.resBy||null,resTs:c.resTs||null,task:c.task||null,ts:c.ts}});
+async function loadCm(){RVS.cm=[];if(LIVE){const{data,error}=await sb.from('review_comments').select('*').eq('project_id',RVS.p).eq('preview_id',RVS.v).order('created_at');if(error){toast('Couldn’t load comments: '+error.message,'bad');return}RVS.cm=(data||[]).map(fromRow)}else RVS.cm=(S.rvc||[]).filter(c=>c.pid===RVS.p&&c.vid===RVS.v)}
+function unsub(){if(RVS.ch){try{sb.removeChannel(RVS.ch)}catch(e){}RVS.ch=null}}
+function sub(){unsub();if(!LIVE)return;RVS.ch=sb.channel('rv-'+RVS.v).on('postgres_changes',{event:'*',schema:'public',table:'review_comments',filter:'preview_id=eq.'+RVS.v},pl=>{
+ if(pl.eventType==='DELETE'){const id=pl.old&&pl.old.id;RVS.cm=RVS.cm.filter(c=>c.id!==id)}else{const c=fromRow(pl.new);const i=RVS.cm.findIndex(x=>x.id===c.id);if(i>=0)RVS.cm[i]=c;else RVS.cm.push(c)}paintSide();paintCv()}).subscribe()}
+async function putCm(c){RVS.cm.push(c);paintSide();if(LIVE){const{error}=await sb.from('review_comments').insert(toRow(c));if(error){RVS.cm=RVS.cm.filter(x=>x.id!==c.id);paintSide();toast('Couldn’t save the comment: '+error.message,'bad')}}else{(S.rvc=S.rvc||[]).push(c);save()}}
+async function patchCm(c){paintSide();if(LIVE){const r=toRow(c);delete r.id;const{error}=await sb.from('review_comments').update(r).eq('id',c.id);if(error)toast('Couldn’t save: '+error.message,'bad')}else save()}
+async function delCm(id){const all=RVS.cm;const ids=all.filter(c=>c.id===id||c.re===id).map(c=>c.id);RVS.cm=all.filter(c=>!ids.includes(c.id));paintSide();paintCv();
+ if(LIVE){const{error}=await sb.from('review_comments').delete().in('id',ids);if(error){RVS.cm=all;paintSide();toast('Couldn’t delete: '+error.message,'bad')}}else{S.rvc=(S.rvc||[]).filter(c=>!ids.includes(c.id));save()}}
+const notifyTeam=(p,msg)=>{const to=[...new Set([p.producer,...(p.team||[]).filter(i=>['main','sreditor'].includes(pRole(p,i)))])].filter(i=>i&&i!==meId&&U(i));if(to.length)notify(to,msg,{v:'project',p:p.id})};
+
+/* ---- the overlay ---- */
+function root(){let r=document.getElementById('rvw');if(!r){r=document.createElement('div');r.id='rvw';document.body.appendChild(r)}return r}
+function paint(){const{p,v}=cur();if(!v){close();return}const vs=vers(v);const ver=curVer();const cp=rvCP(p);
+ const pane=(ve,id,lab)=>{const url=ve.url;const k=ve.kind||'video';const s=srcOf(url);
+  if(!canPlay(url)||RVS.fail[ve.id])return`<div class="rv-wrap rv-na" ${id?'id="rvWrap"':''}><div class="rv-fail"><b>${canPlay(url)?'This link can’t play inside the Hub':'Frame.io links open on Frame.io'}</b><div class="tiny" style="margin:6px 0 12px">${canPlay(url)?'Set the OneDrive share link to “Anyone with the link can view”, then try again.':'Add the video from OneDrive to review it here.'}</div><a class="btn sm pri" href="${esc(url)}" target="_blank" rel="noopener">Open source</a></div></div>`;
+  const media=k==='image'?`<img ${id?'id="rvM"':''} src="${esc(s)}" alt="">`:`<video ${id?'id="rvM"':'id="rvM2" muted'} playsinline preload="metadata" src="${esc(s)}"></video>${k==='audio'?'<div class="rv-aud">♪</div>':''}`;
+  return`<div class="rv-wrap" ${id?'id="rvWrap"':''}>${media}${id?'<canvas id="rvCv"></canvas>':''}<span class="rv-lab">${esc(lab)}</span></div>`};
+ const second=RVS.cmp&&RVS.cmp!==ver.id?verOf(RVS.cmp):null;
+ root().innerHTML=`<div class="rv-bg"><div class="rv-top"><div class="grow" style="min-width:0"><div class="tiny faint">${esc(p.name)}</div><h3 style="margin:2px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.label)}</h3></div>
+  <div class="rv-vers">${vs.map(x=>`<a class="chip ${x.id===ver.id?'gold':''}" data-act="rvVer" data-arg="${x.id}">${esc(x.label)}</a>`).join('')}</div>
+  ${vs.length>1?`<select class="rv-sel" data-change="rvCmp"><option value="">Compare…</option>${vs.filter(x=>x.id!==ver.id).map(x=>`<option value="${x.id}" ${RVS.cmp===x.id?'selected':''}>vs ${esc(x.label)}</option>`).join('')}</select>`:''}
+  ${cp?`<a class="btn sm" data-act="rvNv" data-arg="new">+ Version</a><a class="btn sm ghost" data-act="rvNv" data-arg="edit">Edit</a>`:''}
+  <a class="btn sm ghost" href="${esc(ver.url)}" target="_blank" rel="noopener">Source</a><a class="iconbtn" data-act="rvFs" title="Full screen">⛶</a><a class="iconbtn" data-act="rvClose" title="Close">${ic('x')}</a></div>
+ <div class="rv-main"><div class="rv-stage"><div class="rv-area" id="rvArea">${pane(ver,true,ver.label)}${second?pane(second,false,second.label):''}</div>
+  <div class="rv-ctl">${isImg(ver)?'':`<a class="iconbtn" id="rvPlay" data-act="rvPlay">▶</a><span class="tiny" id="rvTime" style="min-width:86px;text-align:center">00:00 / 00:00</span><div class="rv-bar" id="rvBar"><div class="rv-fill" id="rvFill"></div><div id="rvMk"></div></div>`}
+   <a class="chip" id="rvDrawB" data-act="rvDraw">✏ Draw</a><span id="rvCols"></span></div></div>
+  <div class="rv-side"><div id="rvAppr"></div><div class="rv-ch"><b id="rvCnt"></b><a class="tiny right" data-act="rvHide" id="rvHide"></a></div><div class="rv-list" id="rvList"></div>
+   <div class="rv-comp"><div class="row" style="gap:6px;margin-bottom:6px">${isImg(ver)?'':`<a class="chip" id="rvTchip" data-act="rvT">⏱ 00:00</a>`}<span class="tiny faint" id="rvHint"></span></div><textarea id="rvTa" rows="2" placeholder="Write a comment…"></textarea><div class="row" style="margin-top:8px"><a class="tiny" id="rvAdd" style="display:none" data-act="rvUndo">Undo stroke</a><button class="btn pri sm right" data-act="rvSend">Comment</button></div></div></div></div>
+ ${RVS.nv?nvHTML(p,v,ver):''}</div>`;wire();paintSide();paintTools()}
+function nvHTML(p,v,ver){const ed=RVS.nv==='edit';const n=vers(v).length+1;return`<div class="rv-dlg"><div class="rv-dbox"><h3 style="margin:0 0 12px">${ed?'Edit '+esc(ver.label):'Add a new version'}</h3>
+ <label>Name<input id="rvNn" value="${esc(ed?ver.label:'v'+n)}"></label><label>OneDrive share link<input id="rvNu" value="${esc(ed?ver.url:'')}" placeholder="https://…"></label>
+ <label>Type<select id="rvNk">${[['video','Video'],['audio','Audio'],['image','Image / design']].map(([k,l])=>`<option value="${k}" ${(ed?(ver.kind||'video'):'video')===k?'selected':''}>${l}</option>`).join('')}</select></label>
+ <div class="tiny faint" style="margin:6px 0 12px">In OneDrive: Share → “Anyone with the link can view” → Copy link. The people this preview is sent to are told when you add a version.</div>
+ <div class="row"><a class="btn ghost" data-act="rvNvX">Cancel</a><a class="btn pri right" data-act="rvNvSave">Save</a></div></div></div>`}
+function wire(){const m=mediaEl();const ver=curVer();
+ if(m&&m.tagName==='VIDEO'){m.addEventListener('loadedmetadata',()=>{RVS.dur=m.duration||0;fit();paintBar()});m.addEventListener('timeupdate',()=>{paintBar();paintCv()});m.addEventListener('play',()=>{const b=document.getElementById('rvPlay');if(b)b.textContent='❚❚'});m.addEventListener('pause',()=>{const b=document.getElementById('rvPlay');if(b)b.textContent='▶'});
+  m.addEventListener('error',()=>{if(!RVS.fail[ver.id]){RVS.fail[ver.id]=1;paint()}});
+  const m2=document.getElementById('rvM2');if(m2){m.addEventListener('play',()=>m2.play().catch(()=>{}));m.addEventListener('pause',()=>m2.pause());m.addEventListener('seeked',()=>{m2.currentTime=m.currentTime});m.addEventListener('timeupdate',()=>{if(Math.abs(m2.currentTime-m.currentTime)>.35)m2.currentTime=m.currentTime})}
+  document.getElementById('rvWrap').addEventListener('click',e=>{if(RVS.tool||e.target.closest('.rv-fail'))return;m.paused?m.play().catch(()=>{}):m.pause()})}
+ if(m&&m.tagName==='IMG'){m.addEventListener('load',fit);m.addEventListener('error',()=>{if(!RVS.fail[ver.id]){RVS.fail[ver.id]=1;paint()}})}
+ const bar=document.getElementById('rvBar');if(bar&&m){const go=e=>{const r=bar.getBoundingClientRect();const f=Math.min(1,Math.max(0,(e.clientX-r.left)/r.width));if(m.duration)m.currentTime=f*m.duration;paintBar()};let dn=false;bar.onpointerdown=e=>{dn=true;bar.setPointerCapture(e.pointerId);go(e)};bar.onpointermove=e=>{if(dn)go(e)};bar.onpointerup=()=>{dn=false}}
+ const ta=document.getElementById('rvTa');if(ta){ta.addEventListener('focus',()=>{const mm=mediaEl();if(mm&&mm.pause&&mm.tagName==='VIDEO')mm.pause()});ta.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();ACT.rvSend()}})}
+ wireDraw();fit();paintBar()}
+function fit(){const area=document.getElementById('rvArea');const ws=[...document.querySelectorAll('#rvw .rv-wrap')];if(!area||!ws.length)return;const m=mediaEl();const w0=m&&(m.videoWidth||m.naturalWidth),h0=m&&(m.videoHeight||m.naturalHeight);const ar=w0&&h0?w0/h0:16/9;const n=ws.length;const gap=10;const pw=(area.clientWidth-(n-1)*gap)/n,ah=area.clientHeight;
+ ws.forEach(w=>{let W=pw,H=W/ar;if(H>ah){H=ah;W=H*ar}w.style.width=Math.max(120,W)+'px';w.style.height=Math.max(70,H)+'px'});
+ const cv=document.getElementById('rvCv');if(cv&&ws[0]){cv.width=ws[0].clientWidth;cv.height=ws[0].clientHeight}paintCv()}
+function paintBar(){const m=mediaEl();const t=m&&m.tagName==='VIDEO'?m.currentTime||0:0;const d=RVS.dur||(m&&m.duration)||0;
+ const f=document.getElementById('rvFill');if(f)f.style.width=(d?t/d*100:0)+'%';const tm=document.getElementById('rvTime');if(tm)tm.textContent=fmtT(t)+' / '+fmtT(d);const tc=document.getElementById('rvTchip');if(tc){tc.textContent=RVS.useT?'⏱ '+fmtT(t):'⏱ no time';tc.classList.toggle('gold',RVS.useT)}
+ const mk=document.getElementById('rvMk');if(mk)mk.innerHTML=d?RVS.cm.filter(c=>!c.re&&c.ver===RVS.ver&&c.t!=null).map(c=>`<i class="${c.res?'r':''} ${RVS.sel===c.id?'s':''}" style="left:${Math.min(100,c.t/d*100)}%" data-act="rvSeek" data-arg="${c.id}"></i>`).join(''):''}
+function paintCv(){const cv=document.getElementById('rvCv');if(!cv)return;const g=cv.getContext('2d');g.clearRect(0,0,cv.width,cv.height);const m=mediaEl();const ct=m&&m.tagName==='VIDEO'?m.currentTime||0:0;const lists=[];
+ RVS.cm.filter(c=>!c.re&&c.ver===RVS.ver&&c.draw).forEach(c=>{if(c.id===RVS.sel||(!c.res&&c.t!=null&&Math.abs(ct-c.t)<=1.2))lists.push(c.draw)});lists.push(RVS.strokes);
+ g.lineCap='round';g.lineJoin='round';g.lineWidth=Math.max(2,cv.width/320);
+ lists.forEach(ss=>ss.forEach(s=>{g.strokeStyle=s.c;g.beginPath();s.p.forEach((q,i)=>{const x=q[0]*cv.width,y=q[1]*cv.height;if(i)g.lineTo(x,y);else g.moveTo(x,y)});if(s.p.length===1)g.lineTo(s.p[0][0]*cv.width+.1,s.p[0][1]*cv.height);g.stroke()}))}
+function wireDraw(){const cv=document.getElementById('rvCv');if(!cv)return;const pt=e=>{const r=cv.getBoundingClientRect();return[Math.round((e.clientX-r.left)/r.width*1000)/1000,Math.round((e.clientY-r.top)/r.height*1000)/1000]};
+ cv.onpointerdown=e=>{if(!RVS.tool)return;cv.setPointerCapture(e.pointerId);RVS.cur={c:RVS.col,p:[pt(e)]};RVS.strokes.push(RVS.cur);const m=mediaEl();if(m&&m.tagName==='VIDEO')m.pause();paintCv();paintTools()};
+ cv.onpointermove=e=>{if(!RVS.cur)return;const q=pt(e),l=RVS.cur.p[RVS.cur.p.length-1];if(Math.abs(q[0]-l[0])+Math.abs(q[1]-l[1])>.004){RVS.cur.p.push(q);paintCv()}};
+ cv.onpointerup=cv.onpointercancel=()=>{RVS.cur=null}}
+function paintTools(){const b=document.getElementById('rvDrawB');if(b){b.classList.toggle('gold',RVS.tool);b.textContent=RVS.tool?'✏ Drawing…':'✏ Draw'}const cv=document.getElementById('rvCv');if(cv)cv.classList.toggle('on',RVS.tool);
+ const c=document.getElementById('rvCols');if(c)c.innerHTML=RVS.tool?RVC.map(x=>`<a class="rv-dot ${x===RVS.col?'on':''}" style="background:${x}" data-act="rvCol" data-arg="${x}"></a>`).join('')+`<a class="chip" data-act="rvClear">Clear</a>`:'';
+ const a=document.getElementById('rvAdd');if(a)a.style.display=RVS.strokes.length?'':'none';const h=document.getElementById('rvHint');if(h)h.textContent=RVS.strokes.length?'Drawing will be attached':''}
+function cmHTML(c){const x=U(c.user);const mine=c.user===meId;const sa=rvStaff();const reps=RVS.cm.filter(r=>r.re===c.id).sort((a,b)=>a.ts-b.ts);
+ return`<div class="rv-c ${c.res?'res':''} ${RVS.sel===c.id?'sel':''}"><div class="row" style="gap:8px">${av(x,24)}<b>${esc(x?first(x):'Former member')}</b>${c.t!=null?`<a class="rv-tm" data-act="rvSeek" data-arg="${c.id}">${fmtT(c.t)}</a>`:''}${c.draw?'<span class="chip">✏</span>':''}<span class="tiny faint right">${ago(c.ts)}</span></div>
+ <div class="rv-tx" data-act="rvSeek" data-arg="${c.id}">${esc(c.text)}</div>
+ ${reps.map(r=>`<div class="rv-rep"><b>${esc(U(r.user)?first(U(r.user)):'Former member')}</b> ${esc(r.text)}${r.user===meId||isOwner()?` <a class="tiny" data-act="rvDel" data-arg="${r.id}">✕</a>`:''}</div>`).join('')}
+ <div class="rv-ac"><a data-act="rvReply" data-arg="${c.id}">Reply</a>${sa||mine?`<a data-act="rvRes" data-arg="${c.id}">${c.res?'Reopen':'Resolve'}</a>`:''}${sa?(c.task?'<span class="tiny">✓ Task created</span>':`<a data-act="rvTask" data-arg="${c.id}">→ Task</a>`):''}${mine||isOwner()?`<a data-act="rvDel" data-arg="${c.id}">Delete</a>`:''}</div>
+ ${RVS.reply===c.id?`<div class="rv-rp"><input id="rvRp" placeholder="Reply…"><a class="btn sm pri" data-act="rvRpSend" data-arg="${c.id}">Send</a></div>`:''}</div>`}
+function paintSide(){const act=document.activeElement;if(act&&act.id==='rvRp'&&act.value){return}
+ const top=RVS.cm.filter(c=>!c.re&&c.ver===RVS.ver).sort((a,b)=>((a.t==null?1e9:a.t)-(b.t==null?1e9:b.t))||a.ts-b.ts);const open=top.filter(c=>!c.res).length;
+ const l=document.getElementById('rvList');if(l){const show=RVS.hide?top.filter(c=>!c.res):top;l.innerHTML=show.length?show.map(cmHTML).join(''):'<div class="tiny faint" style="padding:18px 4px">No comments yet. Pause the video where something needs a change and write it below.</div>';if(RVS.reply){const i=document.getElementById('rvRp');if(i)i.focus()}}
+ const n=document.getElementById('rvCnt');if(n)n.textContent=`${top.length} comment${top.length===1?'':'s'}${top.length?' · '+open+' open':''}`;const h=document.getElementById('rvHide');if(h)h.textContent=RVS.hide?'Show resolved':'Hide resolved';paintAppr();paintBar();paintCv()}
+function paintAppr(){const el=document.getElementById('rvAppr');if(!el)return;const{p,v}=cur();if(!v)return;const ver=curVer();const vv=((v.vv||{})[ver.id])||{};const ents=Object.entries(vv).filter(([i])=>U(i));
+ const chips=ents.map(([i,o])=>`<div class="tiny" style="margin-top:6px"><span class="chip ${o.ok?'ok':'warn'}">${o.ok?'✓ Approved':'Changes requested'}</span> ${esc(first(U(i)))}${o.note?` — <span class="faint">${esc(o.note)}</span>`:''}</div>`).join('');
+ const mine=vv[meId];let btn='';if(rvCanV(p)){btn=RVS.chg?`<div style="margin-top:10px"><textarea id="rvCn" rows="3" placeholder="What should change?" style="width:100%"></textarea><div class="row" style="margin-top:6px"><a class="btn sm ghost" data-act="rvChgX">Cancel</a><a class="btn sm pri right" data-act="rvChgSend">Send</a></div></div>`:`<div class="row" style="gap:6px;margin-top:10px"><a class="btn sm ${mine&&mine.ok?'pri':''}" data-act="rvOk">${ic('check',13)}Approve ${esc(ver.label)}</a><a class="btn sm" data-act="rvChgOpen">Request changes</a></div>`}
+ el.innerHTML=`<div class="rv-ap"><div class="eyebrow">${esc(ver.label)} · approval</div>${chips||'<div class="tiny faint" style="margin-top:6px">Waiting for a decision</div>'}${btn}</div>`}
+function verdict(ok,note){const{p,v}=cur();const ver=curVer();if(!v||!rvCanV(p))return;
+ const apply=()=>{v.vv=Object.assign({},v.vv||{});v.vv[ver.id]=Object.assign({},v.vv[ver.id]||{},{[meId]:{ok,note:note||'',ts:Date.now()}})};
+ const msg=`${me().name} ${ok?'approved':'asked for changes on'} “${v.label} ${ver.label}” · ${p.name}${note?': '+note:''}`;
+ if(LIVE&&!isStaff()){sb.rpc('hub_review_verdict',{pid:p.id,vid:v.id,ver:ver.id,ok,note:note||''}).then(({data,error})=>{if(error||!data){toast(error?'Couldn’t save: '+error.message:'That isn’t allowed for your account','bad');return}apply();const d=TB.find(x=>x[0]==='projects');SYNCED.projects&&SYNCED.projects.set(p.id,JSON.stringify(d[2](p)));notifyTeam(p,msg);RVS.chg=false;paintAppr();toast(ok?'Approved':'Sent to the team','ok')});return}
+ apply();notifyTeam(p,msg);save();RVS.chg=false;paintAppr();toast(ok?'Approved':'Sent to the team','ok')}
+function simplify(ss){return ss.slice(0,40).map(s=>({c:s.c,p:s.p.slice(0,400)}))}
+function close(){unsub();const r=document.getElementById('rvw');if(r){const m=mediaEl();if(m&&m.pause)m.pause();r.remove()}document.body.style.overflow='';RVS.p=RVS.v=null;RVS.tool=false;RVS.strokes=[];RVS.nv=null;RVS.chg=false;RVS.reply=null;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}
+addEventListener('keydown',e=>{if(!document.getElementById('rvw'))return;const t=e.target;const typing=t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+ if(e.key==='Escape'){if(RVS.nv){RVS.nv=null;paint()}else close();return}
+ if(typing)return;const m=mediaEl();if(!m||m.tagName!=='VIDEO')return;
+ if(e.key===' '){e.preventDefault();m.paused?m.play().catch(()=>{}):m.pause()}else if(e.key==='ArrowLeft'){m.currentTime=Math.max(0,m.currentTime-(e.shiftKey?10:2))}else if(e.key==='ArrowRight'){m.currentTime=m.currentTime+(e.shiftKey?10:2)}},true);
+addEventListener('resize',()=>{if(document.getElementById('rvw'))fit()});
+
+Object.assign(ACT,{
+ rvOpen:a=>{const[pid,vid]=String(a).split('|');const p=P(pid);const v=p&&(p.previews||[]).find(x=>x.id===vid);if(!v)return;RVS.p=pid;RVS.v=vid;RVS.ver=vers(v).slice(-1)[0].id;RVS.cmp=null;RVS.sel=null;RVS.tool=false;RVS.strokes=[];RVS.reply=null;RVS.chg=false;RVS.nv=null;RVS.fail={};RVS.dur=0;RVS.useT=true;document.body.style.overflow='hidden';paint();loadCm().then(()=>{paintSide()});sub()},
+ rvClose:()=>close(),
+ rvVer:id=>{RVS.ver=id;RVS.cmp=null;RVS.sel=null;RVS.strokes=[];RVS.tool=false;RVS.reply=null;RVS.chg=false;RVS.dur=0;paint()},
+ rvPlay:()=>{const m=mediaEl();if(!m||m.tagName!=='VIDEO')return;m.paused?m.play().catch(()=>{}):m.pause()},
+ rvFs:()=>{const r=document.getElementById('rvw');if(!r)return;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});else if(r.requestFullscreen)r.requestFullscreen().then(()=>setTimeout(fit,200)).catch(()=>{})},
+ rvT:()=>{RVS.useT=!RVS.useT;paintBar()},
+ rvDraw:()=>{RVS.tool=!RVS.tool;if(RVS.tool){const m=mediaEl();if(m&&m.tagName==='VIDEO')m.pause()}paintTools()},
+ rvCol:c=>{RVS.col=c;paintTools()},
+ rvClear:()=>{RVS.strokes=[];paintTools();paintCv()},
+ rvUndo:()=>{RVS.strokes.pop();paintTools();paintCv()},
+ rvHide:()=>{RVS.hide=!RVS.hide;paintSide()},
+ rvSeek:id=>{const c=RVS.cm.find(x=>x.id===id);if(!c)return;RVS.sel=c.id;const m=mediaEl();if(m&&m.tagName==='VIDEO'&&c.t!=null){m.pause();m.currentTime=c.t}paintSide();paintCv()},
+ rvSend:()=>{const ta=document.getElementById('rvTa');const ver=curVer();if(!ta||!ver)return;const text=ta.value.trim();if(!text&&!RVS.strokes.length)return;const m=mediaEl();
+  const t=(isImg(ver)||!RVS.useT||!m||m.tagName!=='VIDEO')?null:Math.round((m.currentTime||0)*10)/10;
+  const c={id:uid('rc'),pid:RVS.p,vid:RVS.v,user:meId,ver:RVS.ver,t,text:(text||'(drawing)').slice(0,2000),draw:RVS.strokes.length?simplify(RVS.strokes):null,ts:Date.now()};
+  const{p,v}=cur();ta.value='';RVS.strokes=[];RVS.tool=false;RVS.sel=c.id;putCm(c);paintTools();paintCv();
+  if(!rvStaff())notifyTeam(p,`${me().name} commented on “${v.label} ${ver.label}”${t!=null?' at '+fmtT(t):''} · ${p.name}: “${c.text.slice(0,60)}”`)},
+ rvReply:id=>{RVS.reply=RVS.reply===id?null:id;paintSide()},
+ rvRpSend:id=>{const i=document.getElementById('rvRp');const text=i?i.value.trim():'';if(!text)return;const par=RVS.cm.find(x=>x.id===id);if(!par)return;RVS.reply=null;
+  putCm({id:uid('rc'),pid:RVS.p,vid:RVS.v,user:meId,ver:par.ver,t:null,text:text.slice(0,2000),re:id,ts:Date.now()});const{p,v}=cur();
+  if(par.user!==meId&&U(par.user))notify([par.user],`${me().name} replied on “${v.label}” · ${p.name}: “${text.slice(0,60)}”`,{v:'project',p:p.id});else if(!rvStaff())notifyTeam(p,`${me().name} replied on “${v.label}” · ${p.name}: “${text.slice(0,60)}”`)},
+ rvRes:id=>{const c=RVS.cm.find(x=>x.id===id);if(!c)return;c.res=!c.res;c.resBy=c.res?meId:null;c.resTs=c.res?Date.now():null;patchCm(c);paintBar()},
+ rvDel:id=>{if(!confirm('Delete this comment?'))return;delCm(id)},
+ rvTask:id=>{const c=RVS.cm.find(x=>x.id===id);const{p,v}=cur();const ver=curVer();if(!c||!v||!rvStaff()||c.task)return;
+  const who=U(c.user);const t={id:uid('t'),project:p.id,title:(`Fix · ${v.label} ${ver.label}${c.t!=null?' @'+fmtT(c.t):''}`).slice(0,90),assignee:null,stage:0,status:'todo',due:Date.now()+3*864e5,prio:'high',brief:`${who?who.name:'Review'}: ${c.text}`,created:Date.now(),by:meId,tpl:'footage',spec:{codec:'',res:'',fps:'',audio:'',wm:'—',delivery:'',link:''},req:null,review:{vid:v.id,cid:c.id}};
+  S.tasks.push(t);c.task=t.id;patchCm(c);save();toast('Task created from this comment','ok')},
+ rvOk:()=>verdict(true,''),
+ rvChgOpen:()=>{RVS.chg=true;paintAppr();const i=document.getElementById('rvCn');if(i)i.focus()},
+ rvChgX:()=>{RVS.chg=false;paintAppr()},
+ rvChgSend:()=>{const i=document.getElementById('rvCn');const note=i?i.value.trim():'';if(!note){toast('Write what should change','bad');return}verdict(false,note)},
+ rvNv:mode=>{const{p}=cur();if(!rvCP(p))return;RVS.nv=mode;paint()},
+ rvNvX:()=>{RVS.nv=null;paint()},
+ rvNvSave:()=>{const{p,v}=cur();if(!rvCP(p)||!v)return;const lab=(document.getElementById('rvNn').value||'').trim();const url=(document.getElementById('rvNu').value||'').trim();const kind=document.getElementById('rvNk').value||'video';
+  if(!/^https?:\/\//i.test(url)){toast('Paste the share link (it starts with https://)','bad');return}
+  const arr=(v.vers&&v.vers.length)?v.vers:[{id:'v1',label:'v1',url:v.url,ts:v.ts,kind:'video'}];
+  if(RVS.nv==='edit'){const x=arr.find(z=>z.id===RVS.ver);if(!x)return;x.label=lab||x.label;x.url=url;x.kind=kind;delete RVS.fail[x.id];if(x===arr[arr.length-1])v.url=url;v.vers=arr;RVS.nv=null;save();paint();toast('Version updated','ok');return}
+  const nv={id:uid('vr'),label:lab||('v'+(arr.length+1)),url,kind,ts:Date.now(),by:meId};arr.push(nv);v.vers=arr;v.url=url;RVS.ver=nv.id;RVS.cmp=null;RVS.nv=null;RVS.dur=0;RVS.sel=null;
+  const to=(v.show!==false?(v.to||[]):[]).filter(i=>i!==meId&&U(i));if(to.length)notify(to,`New version ready: ${v.label} ${nv.label} — ${p.name}`,{v:'project',p:p.id});save();paint();toast('Version added','ok')}});
+Object.assign(CHG,{rvCmp:(a,el)=>{RVS.cmp=el.value||null;paint()}});
+
+/* the Previews cards get an "Open review" button; the client's home button opens the review too */
+const _pvrv=previewsHTML;previewsHTML=function(p){let h=_pvrv(p);(p.previews||[]).forEach(v=>{const needle=`<a class="btn sm pri" href="${esc(v.url)}" target="_blank" rel="noopener">${ic('film',14)}Open on ${esc(v.via)}</a>`;
+  if(h.includes(needle)){const n=vers(v).length;h=h.replace(needle,`<a class="btn sm pri" data-act="rvOpen" data-arg="${p.id}|${v.id}">${ic('film',14)}Open review${n>1?' · '+n+' versions':''}</a><a class="btn sm" href="${esc(v.url)}" target="_blank" rel="noopener">Source</a>`)}});return h};
+const _cpc=clientProjCard;clientProjCard=function(p){let h=_cpc(p);const pv=(p.previews||[]).filter(v=>v.show!==false&&(!v.to||v.to.includes(meId)))[0];if(pv){const needle=`<a class="btn" href="${esc(pv.url)}" target="_blank" rel="noopener">${ic('film',16)}Latest preview</a>`;if(h.includes(needle))h=h.replace(needle,`<a class="btn" data-act="rvOpen" data-arg="${p.id}|${pv.id}">${ic('film',16)}Review latest preview</a>`)}return h};
+
+const st=document.createElement('style');st.id='rv-style';st.textContent=`
+#rvw{position:fixed;inset:0;z-index:150;font-family:var(--body,inherit)}
+#rvw .rv-bg{position:absolute;inset:0;background:#040d09;color:var(--text,#e9efe9);display:flex;flex-direction:column}
+#rvw .rv-top{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line2,#244);flex-wrap:wrap}
+#rvw .rv-vers{display:flex;gap:6px;flex-wrap:wrap}#rvw .rv-vers .chip{cursor:pointer}
+#rvw .rv-sel{background:var(--panel,#0b1a13);color:inherit;border:1px solid var(--line2,#244);border-radius:10px;padding:6px 8px}
+#rvw .rv-main{flex:1;min-height:0;display:flex}
+#rvw .rv-stage{flex:1;min-width:0;display:flex;flex-direction:column;padding:12px 14px;gap:10px}
+#rvw .rv-area{flex:1;min-height:0;display:flex;justify-content:center;align-items:center;gap:10px}
+#rvw .rv-wrap{position:relative;background:#000;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+#rvw .rv-wrap video,#rvw .rv-wrap img{width:100%;height:100%;object-fit:contain;display:block}
+#rvw .rv-wrap canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;touch-action:none}
+#rvw .rv-wrap canvas.on{pointer-events:auto;cursor:crosshair}
+#rvw .rv-lab{position:absolute;left:8px;top:8px;background:rgba(0,0,0,.6);padding:2px 8px;border-radius:8px;font-size:11px}
+#rvw .rv-aud{position:absolute;inset:0;display:grid;place-items:center;font-size:72px;opacity:.35;pointer-events:none}
+#rvw .rv-na{width:min(520px,100%)!important;height:auto!important;padding:34px 22px;text-align:center}
+#rvw .rv-ctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#rvw .rv-bar{position:relative;flex:1;min-width:140px;height:14px;border-radius:7px;background:rgba(255,255,255,.12);cursor:pointer;touch-action:none}
+#rvw .rv-fill{position:absolute;left:0;top:0;bottom:0;border-radius:7px;background:var(--gold,#d6a03d);pointer-events:none}
+#rvw #rvMk i{position:absolute;top:-4px;width:8px;height:22px;margin-left:-4px;border-radius:3px;background:#4dd2ff;cursor:pointer}
+#rvw #rvMk i.r{background:#6b7f74;opacity:.6}#rvw #rvMk i.s{background:#fff}
+#rvw .rv-dot{width:20px;height:20px;border-radius:50%;border:2px solid transparent;cursor:pointer;display:inline-block;margin-right:4px}#rvw .rv-dot.on{border-color:#fff}
+#rvw .rv-side{width:min(380px,40vw);border-left:1px solid var(--line2,#244);display:flex;flex-direction:column;min-height:0;background:rgba(255,255,255,.02)}
+#rvw .rv-ap{padding:12px 14px;border-bottom:1px solid var(--line2,#244)}
+#rvw .rv-ch{display:flex;align-items:center;padding:10px 14px 4px}
+#rvw .rv-list{flex:1;min-height:0;overflow:auto;padding:6px 10px}
+#rvw .rv-c{padding:10px;border:1px solid var(--line2,#244);border-radius:12px;margin:8px 0}#rvw .rv-c.sel{border-color:var(--gold,#d6a03d)}#rvw .rv-c.res{opacity:.55}
+#rvw .rv-tm{background:rgba(77,210,255,.15);color:#7fe0ff;border-radius:8px;padding:1px 7px;font-size:12px;cursor:pointer}
+#rvw .rv-tx{margin:6px 0;white-space:pre-wrap;cursor:pointer}#rvw .rv-rep{font-size:13px;margin:4px 0 4px 14px;color:var(--muted,#9ab)}
+#rvw .rv-ac{display:flex;gap:12px;font-size:12px;margin-top:6px}#rvw .rv-ac a{cursor:pointer;color:var(--gold2,#f0c46a)}
+#rvw .rv-rp{display:flex;gap:6px;margin-top:8px}#rvw .rv-rp input{flex:1}
+#rvw .rv-comp{padding:12px 14px;border-top:1px solid var(--line2,#244)}#rvw .rv-comp textarea{width:100%}
+#rvw .rv-dlg{position:absolute;inset:0;background:rgba(1,6,4,.75);display:grid;place-items:center;padding:16px}
+#rvw .rv-dbox{width:min(440px,100%);background:var(--panel,#0b1a13);border:1px solid var(--line2,#244);border-radius:16px;padding:20px}
+#rvw .rv-dbox label{display:block;font-size:12px;color:var(--muted,#9ab);margin-top:10px}#rvw .rv-dbox input,#rvw .rv-dbox select{width:100%;margin-top:4px}
+@media (max-width:860px){#rvw .rv-main{flex-direction:column;overflow:auto}#rvw .rv-side{width:100%;border-left:0;border-top:1px solid var(--line2,#244)}#rvw .rv-area{min-height:240px;flex:none}#rvw .rv-list{max-height:320px;flex:none}}`;
+document.head.appendChild(st);
+})();
 })();
 
 </script>
