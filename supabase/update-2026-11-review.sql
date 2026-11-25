@@ -23,6 +23,7 @@ create table if not exists public.review_comments (
   data jsonb not null,
   created_at timestamptz default now());
 create index if not exists review_comments_pv on public.review_comments (project_id, preview_id);
+grant select, insert, update, delete on public.review_comments to authenticated;
 alter table public.review_comments enable row level security;
 drop policy if exists hub_select on public.review_comments;
 drop policy if exists hub_insert on public.review_comments;
