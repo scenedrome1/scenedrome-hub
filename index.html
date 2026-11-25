@@ -5547,6 +5547,25 @@ Object.assign(ACT,{
  readAllClose:()=>{ACT.readAll();closeModal()}
 });
 
+/* ===== @mention everywhere: pick a registered person while typing, they get notified wherever you save ===== */
+const mnClean=x=>String(x||'').replace(/[^\p{L}\p{N}_]/gu,'');
+const mnHandle=u=>{const f=mnClean(first(u));const dup=S.users.some(x=>x.id!==u.id&&mnClean(first(x)).toLowerCase()===f.toLowerCase());return dup?f+mnClean(String(u.name||'').split(/\s+/).slice(1).join('')):f};
+const mnFind=h=>{h=String(h).toLowerCase();return S.users.find(u=>mnHandle(u).toLowerCase()===h)||S.users.find(u=>mnClean(first(u)).toLowerCase()===h)};
+const mnIds=text=>{const ids=new Set();for(const m of String(text||'').matchAll(/@([\p{L}][\p{L}\p{N}_]*)/gu)){const u=mnFind(m[1]);if(u&&!u.suspended)ids.add(u.id)}return[...ids]};
+mentionHTML=function(t){return esc(t).replace(/@([\p{L}][\p{L}\p{N}_]*)/gu,(m,n)=>mnFind(n)?`<span class="mention">@${n}</span>`:m)};
+let MN=null;
+const mnBox=()=>{let b=document.getElementById('mnbox');if(!b){b=document.createElement('div');b.id='mnbox';b.style.cssText='position:fixed;z-index:99999;min-width:230px;max-width:320px;max-height:250px;overflow:auto;background:#0d1f19;border:1px solid rgba(255,255,255,.16);border-radius:12px;box-shadow:0 14px 44px rgba(0,0,0,.55);padding:4px;display:none';b.addEventListener('mousedown',e=>{e.preventDefault();const r=e.target.closest('[data-i]');if(r&&MN)mnPick(MN.items[+r.dataset.i])});document.body.appendChild(b)}return b};
+const mnClose=()=>{MN=null;const b=document.getElementById('mnbox');if(b)b.style.display='none'};
+const mnDraw=()=>{if(!MN)return;const b=mnBox();b.innerHTML=MN.items.map((u,i)=>`<div data-i="${i}" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;${i===MN.i?'background:rgba(255,255,255,.1)':''}">${av(u,24)}<span style="flex:1;min-width:0"><span style="font-size:13px">${esc(u.name)}</span> <span style="font-size:11px;opacity:.6">${esc(u.title||'')}</span></span></div>`).join('');const r=MN.el.getBoundingClientRect();b.style.display='block';b.style.left=Math.max(8,Math.min(r.left,innerWidth-330))+'px';if(r.bottom>innerHeight-270){b.style.top='';b.style.bottom=(innerHeight-r.top+6)+'px'}else{b.style.bottom='';b.style.top=(r.bottom+6)+'px'}};
+const mnPick=u=>{if(!MN)return;const el=MN.el,h='@'+mnHandle(u)+' ';el.value=el.value.slice(0,MN.start)+h+el.value.slice(MN.pos);const c=MN.start+h.length;mnClose();try{el.setSelectionRange(c,c)}catch(e){}el.focus();el.dispatchEvent(new Event('input',{bubbles:true}))};
+const mnOk=el=>el&&!el.readOnly&&el.dataset.nomention===undefined&&(el instanceof HTMLTextAreaElement||(el instanceof HTMLInputElement&&(el.type==='text'||!el.getAttribute('type'))));
+document.addEventListener('input',e=>{const el=e.target;if(!mnOk(el)||!me()){return}const pos=el.selectionStart;const m=el.value.slice(0,pos).match(/(^|\s)@([\p{L}\p{N}_]*)$/u);if(!m){mnClose();return}const q=m[2].toLowerCase();const items=S.users.filter(u=>u.id!==meId&&!u.suspended&&(!q||String(u.name||'').toLowerCase().split(/\s+/).some(w=>w.startsWith(q))||mnHandle(u).toLowerCase().startsWith(q))).slice(0,6);if(!items.length){mnClose();return}MN={el,start:pos-m[2].length-1,pos,items,i:0};mnDraw()},true);
+document.addEventListener('keydown',e=>{if(!MN)return;const k=e.key;if(k==='ArrowDown'||k==='ArrowUp'){e.preventDefault();e.stopImmediatePropagation();MN.i=(MN.i+(k==='ArrowDown'?1:MN.items.length-1))%MN.items.length;mnDraw()}else if(k==='Enter'||k==='Tab'){e.preventDefault();e.stopImmediatePropagation();mnPick(MN.items[MN.i])}else if(k==='Escape'){e.preventDefault();e.stopImmediatePropagation();mnClose()}},true);
+document.addEventListener('focusout',e=>{if(MN&&e.target===MN.el)setTimeout(mnClose,150)},true);
+document.addEventListener('scroll',()=>{if(MN)mnClose()},true);
+document.addEventListener('submit',e=>{const f=e.target;if(!f||!f.querySelectorAll||!me())return;const parts=[];f.querySelectorAll('textarea,input[type=text],input:not([type])').forEach(x=>{if(x.dataset.nomention===undefined&&x.value)parts.push(x.value)});const joined=parts.join(' ');const ids=mnIds(joined).filter(i=>i!==meId);if(!ids.length)return;
+ const ctx={v:V.v,p:V.p,tab:V.tab,ch:V.ch};const pr=V.p&&V.v==='project'?P(V.p):null;const snip=(parts.find(t=>/@\p{L}/u.test(t))||joined).replace(/\s+/g,' ').slice(0,60);const who=me().name;
+ setTimeout(()=>{const now=Date.now();const to=ids.filter(i=>{const u=U(i);if(!u)return false;if(pr&&!(isMgmt(u)||onProject(pr,u)))return false;return !S.notifs.some(n=>n.to===i&&/mentioned you/.test(n.text||'')&&now-n.ts<6000)});if(!to.length)return;notify(to,`${who} mentioned you${pr?' in '+pr.name:''}: “${snip}”`,pr?{v:'project',p:pr.id,tab:ctx.tab,ch:ctx.ch}:{v:ctx.v||'home',p:ctx.p});save()},400)},true);
 })();
 
 </script>
