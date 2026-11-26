@@ -1076,7 +1076,48 @@ const jobTitles=u=>{const k=(u.job&&u.job!=='none'&&JOBS[u.job])?u.job:jobsOf(u)
 const DASH_RANK={owner:4,lead:3,producer:2,artist:1,partner:0,client:0};
 
 /* ================= render ================= */
-function render(){const root=document.getElementById('app');if(LIVE&&!booted&&meId){root.innerHTML=`<div style="min-height:100vh;display:grid;place-items:center"><div class="col" style="align-items:center"><img src="${esc(B().logo)}" alt="" style="max-width:260px"><div class="eyebrow">Loading your ${esc(B().hubName)}…</div></div></div>`;return}const u=me();if(!u||(LIVE&&!booted)){root.innerHTML=loginHTML();return}root.innerHTML=shellHTML();const sc=document.querySelector('.chat-scroll');if(sc)sc.scrollTop=sc.scrollHeight;renderPending()}
+/* flash-free render: patch #app in place instead of replacing it, so images, video, iframes, scroll position, focus and CSS entry animations survive every tap and live update */
+const MORPH_REPLACE='[id^="rv"],[class*="rv-"],[data-nomorph]';
+let SHELL_UP=false;
+function morphAttrs(a,b){
+ for(const at of Array.from(a.attributes))if(!b.hasAttribute(at.name))a.removeAttribute(at.name);
+ for(const at of Array.from(b.attributes))if(a.getAttribute(at.name)!==at.value)a.setAttribute(at.name,at.value)}
+function morphKids(a,b){
+ const bk=Array.from(b.childNodes);let cur=0;
+ for(const nb of bk){
+  const na=a.childNodes[cur];
+  if(nb.nodeType===1){
+   let hit=null,n=na;
+   for(let w=0;n&&w<16;w++,n=n.nextSibling){if(n.nodeType===1&&n.tagName===nb.tagName&&n.id===nb.id&&n.getAttribute('class')===nb.getAttribute('class')){hit=n;break}}
+   if(!hit&&na&&na.nodeType===1&&na.tagName===nb.tagName&&na.id===nb.id)hit=na;
+   if(hit){while(a.childNodes[cur]!==hit)a.removeChild(a.childNodes[cur]);morphNode(a,hit,nb)}
+   else a.insertBefore(document.importNode(nb,true),na||null)}
+  else if(na&&na.nodeType===nb.nodeType)morphNode(a,na,nb);
+  else a.insertBefore(document.importNode(nb,true),na||null);
+  cur++}
+ while(a.childNodes.length>cur)a.removeChild(a.lastChild)}
+function morphNode(p,a,b){
+ if(a.nodeType!==b.nodeType||(a.nodeType===1&&a.tagName!==b.tagName)){p.replaceChild(document.importNode(b,true),a);return}
+ if(a.nodeType!==1){if(a.nodeValue!==b.nodeValue)a.nodeValue=b.nodeValue;return}
+ const swap=()=>p.replaceChild(document.importNode(b,true),a);
+ if(a.matches(MORPH_REPLACE)||b.matches(MORPH_REPLACE)){if(a.outerHTML!==b.outerHTML)swap();return}
+ const t=a.tagName;
+ if(t==='IFRAME'||t==='CANVAS'){if(a.cloneNode(false).outerHTML!==b.cloneNode(false).outerHTML)swap();return}
+ if(t==='VIDEO'||t==='AUDIO'){if(a.cloneNode(true).outerHTML!==b.cloneNode(true).outerHTML)swap();return}
+ const lk=(t==='INPUT'||t==='TEXTAREA')&&a.dataset.lk==='1',ro=lk&&a.hasAttribute('readonly'),cl=lk&&a.classList.contains('lk'),ti=lk?a.getAttribute('title'):null;
+ morphAttrs(a,b);
+ if(lk){a.dataset.lk='1';if(ro)a.setAttribute('readonly','');if(cl)a.classList.add('lk');if(ti!==null&&!a.hasAttribute('title'))a.setAttribute('title',ti)}
+ const foc=a===document.activeElement;
+ if(t==='INPUT'){const ty=(a.type||'').toLowerCase();
+  if(ty==='checkbox'||ty==='radio')a.checked=b.hasAttribute('checked');
+  else if(ty!=='file'&&!foc){const nv=b.getAttribute('value')||'';if(a.value!==nv)a.value=nv}}
+ else if(t==='TEXTAREA'){if(!foc&&a.value!==b.value)a.value=b.value}
+ else if(t==='SELECT'){morphKids(a,b);if(!foc){const bi=b.selectedIndex;if(bi>=0&&a.selectedIndex!==bi)a.selectedIndex=bi}}
+ else morphKids(a,b)}
+function morphInto(root,html){
+ if(!SHELL_UP){root.innerHTML=html;SHELL_UP=true;return}
+ const t=document.createElement('template');t.innerHTML=html;morphKids(root,t.content)}
+function render(){const root=document.getElementById('app');if(LIVE&&!booted&&meId){SHELL_UP=false;root.innerHTML=`<div style="min-height:100vh;display:grid;place-items:center"><div class="col" style="align-items:center"><img src="${esc(B().logo)}" alt="" style="max-width:260px"><div class="eyebrow">Loading your ${esc(B().hubName)}…</div></div></div>`;return}const u=me();if(!u||(LIVE&&!booted)){SHELL_UP=false;root.innerHTML=loginHTML();return}morphInto(root,shellHTML());const sc=document.querySelector('.chat-scroll');if(sc)sc.scrollTop=sc.scrollHeight;renderPending()}
 function go(v,p,tab,ch){V.v=v;V.p=p||null;V.tab=tab||'overview';V.ch=ch||null;pending=[];render();window.scrollTo({top:0,behavior:'smooth'})}
 function loginHTML(){const chips=S.users.map(u=>`<a class="demo-chip" data-act="demoLogin" data-arg="${u.id}">${av(u,22)}${esc(first(u))}<span class="faint">· ${esc(u.company||jobOf(u).t)}</span></a>`).join('');
 const hl=String(B().headline||'').split('\n');const hlH=hl.map((l,i)=>i===hl.length-1&&hl.length>1?`<em>${esc(l)}</em>`:esc(l)).join('<br>');
