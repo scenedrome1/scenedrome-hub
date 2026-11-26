@@ -1179,7 +1179,7 @@ return`<div class="row" style="margin-bottom:6px"><div class="muted">${act.lengt
 VIEWS.project=()=>{const p=P(V.p);const u=me();if(!p||!visibleProjects().includes(p))return'<div class="card empty">This project isn’t shared with you.</div>';
 const ep=TYPES[p.type].episodic&&p.episodes;const tabs=crewOnly(p,u)?crewTabs(p,u):u.role==='client'?['overview',...(ep&&p.reportShared?['report']:[]),'thread','files']:u.role==='partner'?[...(ep?['briefs']:[]),'overview','tasks','thread','files']:['overview','breakdown',...(ep?['report','briefs']:[]),'tasks','thread','files','drives'];if(canMoney(p))tabs.splice(tabs.indexOf('tasks')+1,0,'money');if(!tabs.includes(V.tab))V.tab=tabs[0];
 const names={overview:'Overview',breakdown:TYPES[p.type].episodic?EPL(p)+' & '+TYPES[p.type].unit.toLowerCase()+'s':'Flow',tasks:u.role==='partner'?'Handoffs':'Tasks',thread:u.role==='partner'?'Collab chat':'Thread',files:'Files & links',drives:'Drives',money:'Deal',report:EPL(p)+' Report',briefs:u.role==='partner'?'Your briefs':'VFX & sound briefs'};const cl=U(p.client),pr=U(p.producer);
-return`<div class="card phead">${p.poster?`<img class="pposter" src="${p.poster}" alt="">`:''}${isStaff()&&canManage(p)?`<label class="pposter-up" title="${p.poster?'Change':'Add'} poster / logo">${ic('img',16)}<input type="file" hidden accept="image/*" data-change="posterUp" data-arg="${p.id}"></label>`:''}${ring(projProg(p),66)}<div class="grow"><div class="eyebrow">${[TYPES[p.type].label,p.genre,p.format].filter((x,i,a)=>x&&a.indexOf(x)===i).map(esc).join(' · ')}</div><h1 style="margin:4px 0">${esc(p.name)}</h1><div class="faint tiny">${esc(cl?cl.company:'Internal')} · Producer ${esc(pr?pr.name:'—')} · ${p.status==='done'?'Delivered':pDue(p)[0].replace('Due','Final due')}</div></div><span class="chip ${p.status==='done'?'ok':'gold'}">${esc(projStage(p))}</span>${isStaff()&&canManage(p)&&(p.client||(p.clientCrew||[]).length)?`<a class="iconbtn" data-act="cpModal" data-arg="${p.id}" title="What the client sees" aria-label="Client access">⋯</a>`:''}</div>
+return`<div class="card phead">${p.poster?`<img class="pposter" src="${p.poster}" alt="">`:''}${isStaff()&&canManage(p)?`<label class="pposter-up" title="${p.poster?'Change':'Add'} poster / logo">${ic('img',16)}<input type="file" hidden accept="image/*" data-change="posterUp" data-arg="${p.id}"></label>`:''}${ring(projProg(p),66)}<div class="grow"><div class="eyebrow">${[TYPES[p.type].label,p.genre,p.format].filter((x,i,a)=>x&&a.indexOf(x)===i).map(esc).join(' · ')}</div><h1 style="margin:4px 0">${esc(p.name)}</h1><div class="faint tiny">${esc(cl?cl.company:'Internal')} · Producer ${esc(pr?pr.name:'—')} · ${p.status==='done'?'Delivered':pDue(p)[0].replace('Due','Final due')}</div></div><span class="chip ${p.status==='done'?'ok':'gold'}">${esc(projStage(p))}</span></div>
 <div class="tabs">${tabs.map(t=>`<a class="${V.tab===t?'on':''}" data-act="tab" data-arg="${t}">${names[t]}</a>`).join('')}</div>${TABS[V.tab](p)}`};
 const TABS={};
 TABS.overview=p=>{const u=me();const ppl=[[p.producer,'Producer'],...p.team.map(i=>[i,(PROJ_ROLES[pRole(p,i)]?PROJ_ROLES[pRole(p,i)]+' · ':'')+((U(i)||{}).title||'')])].filter(x=>U(x[0]));const rem=p.quote-p.paid;const showMoney=(u.role==='client'&&p.client===u.id)||finRowsFor().some(r=>r.link===p.id);const row=S.fin.rows.find(r=>r.link===p.id);
@@ -6500,6 +6500,7 @@ function openMenu(card,x,y){ensureMenu();const det=card.classList.contains('phea
    +'<a data-k="edit">'+svg('edit')+'Project Details</a>'
    +'<a data-k="settings">'+svg('gear')+'Project settings</a>'
    +'<a data-k="report">'+svg('rep')+(ep?'Episodes report':'Status report')+'</a>'
+   +(()=>{try{const p=P(id);return p&&(p.client||(p.clientCrew||[]).length)&&isStaff()&&canManage(p)?'<a data-k="cpm">'+svg('open')+'What the client sees</a>':''}catch(e){return ''}})()
    +'<div class="sep"></div>'
    +'<a data-k="dup">'+svg('dup')+'Duplicate project</a>';
   menu.style.display='block';const mob=innerWidth<=700;scrim.style.display=mob?'block':'none';
@@ -6508,6 +6509,7 @@ function closeMenu(){if(menu){menu.style.display='none';scrim.style.display='non
 function runItem(k,id){
   if(k==='open')fire('openProject',id);
   else if(k==='edit')fire('projEdit',id);
+  else if(k==='cpm')fire('cpModal',id);
   else if(k==='report')openTab(id,'report');
   else if(k==='settings')fire('projSettings',id);
   else if(k==='dup'){if(window.hubKit&&window.hubKit.dup)fire('projDup',id);else toast('Duplicate turns on when this update is published')}}
