@@ -1089,7 +1089,7 @@ function navItems(){const u=me();const N=[];const g=(h)=>N.push(['__',h]);
 if(u.role==='client'){N.push(['home','Home','home'],['projects','My projects','film'],['messages','Messages','chat'],['rewards','Offers & rewards','gift'])}
 else if(u.role==='partner'){N.push(['home','Collab hub','home'],['projects','Our collabs','film'],['messages','Chats','chat'])}
 else{N.push(['home','Dashboard','home'],['projects','Projects','film'],['messages','Messages','chat']);
-const mg=[];if(isFinMember()||can('fin.cashflow')||can('fin.projectEntry')||can('fin.overview')||can('fin.receivables')||can('fin.budgetsOwn')||can('fin.budgetsAll')||can('fin.salaries')||can('fin.expenses'))mg.push(['finance','Finance','wallet']);if(teamOK())mg.push(['team','Team','users']);if(isOwner()||seesClients())mg.push(['clients','Clients','brief']);if(can('partners.view'))mg.push(['partners','Partner studios','hand']);if(isOwner())mg.push(['services','Services','sparkle']);
+const mg=[];if(isFinMember()||can('fin.cashflow')||can('fin.projectEntry')||can('fin.overview')||can('fin.receivables')||can('fin.budgetsOwn')||can('fin.budgetsAll')||can('fin.salaries')||can('fin.expenses'))mg.push(['finance','Finance','wallet']);if(teamOK())mg.push(['team','Team','users']);if(isOwner()||seesClients())mg.push(['clients','Clients','brief']);if(can('partners.view'))mg.push(['partners','Partner studios','hand']);if(isOwner()||gmU()||isMgmt())mg.push(['services','Services','sparkle']);
 const ops=[];if(can('storage.view'))ops.push(['storage','Storage & devices','drive']);if(can('mkt.view'))ops.push(['marketing','Marketing','mega']);ops.push(['handbook','Studio handbook','book']);
 if(mg.length){g('Management');N.push(...mg)}g('Studio');N.push(...ops);if(can('admin.users')||can('people.add')||isOwner()){g('Admin');if(can('admin.users')||can('people.add'))N.push(['admin','Users & access','shield']);if(isOwner()||can('settings.manage'))N.push(['settings','Settings','gear'])}}
 g('You');N.push(['profile','My profile','user']);return N}
@@ -6449,7 +6449,8 @@ const sxSvcCard=([k,l,i])=>{const custom=sxCustom().some(x=>x.key===k);const st=
  <div style="margin-top:12px"><div class="row wrap" style="gap:8px;align-items:center;margin-bottom:12px"><label class="tiny faint">Name <input value="${esc(l)}" maxlength="40" ${sxLocked(k)?'disabled':''} data-change="sxName" data-arg="${esc(k)}" style="min-width:200px"></label><label class="tiny faint">Service is <select data-change="sxStatus" data-arg="${esc(k)}" ${sxLocked(k)?'disabled':''}><option ${sxStatus(k)==='Current'?'selected':''}>Current</option><option ${sxStatus(k)==='New'?'selected':''}>New</option></select></label><a class="btn sm ${sxLocked(k)?'pri':'ghost'}" data-act="sxLock" data-arg="${esc(k)}">${sxLocked(k)?'🔒 Locked — unlock':'Lock this plan'}</a>${custom?`<label class="tiny faint">Icon <select data-change="sxIcon" data-arg="${esc(k)}">${SX_ICONS.map(([v,lb])=>`<option value="${v}" ${v===i?'selected':''}>${lb}</option>`).join('')}</select></label><a class="btn sm ghost" data-act="sxSvcDel" data-arg="${esc(k)}">Delete service</a>`:''}</div>
  <div class="eyebrow" style="margin-bottom:6px">Timeline</div>${st.map((x,j)=>sxStepRow(k,x,j,st.length)).join('')}<a class="btn sm ghost" data-act="sxStepAdd" data-arg="${esc(k)}" style="margin-top:4px">+ Step</a>
  <div class="eyebrow" style="margin:14px 0 6px">Linked to the app</div><div class="row wrap" style="gap:8px">${ln.map((t,j)=>`<span class="chip info">${esc(t)} <a data-act="sxLinkDel" data-arg="${esc(k)}|${j}" aria-label="Unlink">×</a></span>`).join('')||'<span class="tiny faint">Nothing linked yet</span>'}<a class="btn sm ghost" data-act="sxLinkAdd" data-arg="${esc(k)}">+ Link</a></div></div></details>`};
-VIEWS.services=()=>{if(!svcCan())return deny();sxSync();
+const svcSee=()=>!!me()&&(isOwner()||gmU()||isMgmt());
+VIEWS.services=()=>{if(!svcSee())return deny();sxSync();
  const cats=BRAND.services||[];
  const catH=cats.map(c=>`<div class="card"><div class="row" style="align-items:center"><span class="chip ${c.tag==='Current'?'info':'gold'}">${esc(c.tag||'New')}</span><span class="grow"></span><a data-act="sxCatEdit" data-arg="${esc(c.id)}">Edit</a> · <a data-act="sxCatDel" data-arg="${esc(c.id)}">Delete</a></div><b style="display:block;margin-top:8px;font-weight:500">${esc(c.title)}</b><p class="muted" style="margin:6px 0 0">${esc(c.text||'')}</p></div>`).join('');
  const log=(BRAND.svcLog||[]).slice(0,8).map(x=>`<div class="tiny faint">${new Date(x.at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})} · ${esc(x.by)} — ${esc(x.t)}</div>`).join('');
@@ -6458,6 +6459,10 @@ VIEWS.services=()=>{if(!svcCan())return deny();sxSync();
  <div class="sec-title" style="margin-top:18px"><h2>Offers &amp; new services</h2><a class="btn sm pri" data-act="sxCatNew">+ Add</a></div>
  <div class="grid g3">${catH||'<div class="tiny faint">No offers or services yet</div>'}</div>
  <div class="sec-title" style="margin-top:18px"><h2>Recent changes</h2></div><div class="card">${log||'<div class="tiny faint">No changes yet</div>'}</div>`};
+{const _vSvc=VIEWS.services;VIEWS.services=()=>{const h=_vSvc();if(typeof h!=='string'||svcCan())return h;const t=document.createElement('template');t.innerHTML=h;
+ t.content.querySelectorAll('[data-act^=sx]').forEach(e=>e.remove());t.content.querySelectorAll('input,select,textarea').forEach(e=>{e.disabled=true});
+ const hd=t.content.querySelector('.hello .muted');if(hd)hd.insertAdjacentHTML('afterend','<div class="chip" style="margin-top:8px">🔒 View only — the owner edits services</div>');
+ t.content.querySelectorAll('.sec-title a.btn').forEach(e=>e.remove());return t.innerHTML}}
 
 
 /* ===== Sign-up with an invite code, approval by management, and a welcome page ===== */
