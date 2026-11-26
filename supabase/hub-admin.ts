@@ -37,6 +37,24 @@ Deno.serve(async (req) => {
       if (e2) { await admin.auth.admin.deleteUser(data.user.id); return json({ error: e2.code === "23505" ? "That username is taken" : e2.message }, 400); }
       return json({ id: data.user.id });
     }
+    if (b.action === "invite") {
+      if (!add) return json({ error: "You can’t invite people" }, 403);
+      const al = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; const r = crypto.getRandomValues(new Uint8Array(8));
+      const code = "SD-" + [...r.slice(0, 4)].map((x) => al[x % al.length]).join("") + "-" + [...r.slice(4)].map((x) => al[x % al.length]).join("");
+      const expires = new Date(Date.now() + 7 * 864e5).toISOString();
+      const { error } = await admin.from("invites").insert({ code, note: String(b.note ?? "").slice(0, 80) || null, created_by: user.id, expires_at: expires });
+      return error ? json({ error: error.message }, 400) : json({ code, expires_at: expires });
+    }
+    if (b.action === "invites") {
+      if (!add) return json({ error: "Not allowed" }, 403);
+      const { data } = await admin.from("invites").select("code, note, created_at, expires_at, used_at, used_by, revoked_at").order("created_at", { ascending: false }).limit(40);
+      return json({ invites: data ?? [] });
+    }
+    if (b.action === "invite_revoke") {
+      if (!add) return json({ error: "Not allowed" }, 403);
+      await admin.from("invites").update({ revoked_at: new Date().toISOString() }).eq("code", String(b.code)).is("used_at", null);
+      return json({ ok: true });
+    }
     if (!target) return json({ error: "Unknown person" }, 400);
     if (target.job === "founder" && !self) return json({ error: "The studio account can only be changed by itself" }, 403);
     const canTouch = targetOwner ? (main || self) : manage;
