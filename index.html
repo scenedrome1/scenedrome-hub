@@ -1840,6 +1840,10 @@ const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigat
 const pushSupported=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
 const ub64=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),c=>c.charCodeAt(0))};
 function goLink(l){if(!me())return;l=l||{};if(l.v==='project')go('project',l.p,l.tab,l.ch);else go(l.v||'home',l.p)}
+/* keep the installed app current: when it comes back to the foreground, reload if a newer Hub was published (never while typing) */
+(function(){if(!/^https?:$/.test(location.protocol))return;let ver=null;const sig=async()=>{try{const r=await fetch('index.html?v='+Date.now(),{cache:'no-store'});const t=await r.text();return t.length+':'+t.slice(-200)}catch(e){return null}};
+ sig().then(s=>{ver=s});let last=0;const chk=async()=>{if(document.visibilityState!=='visible'||Date.now()-last<20000)return;last=Date.now();const s=await sig();if(!s||!ver){if(s)ver=s;return}if(s!==ver){const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;if(document.getElementById('rvw')||document.querySelector('.modal-bg'))return;location.reload()}};
+ document.addEventListener('visibilitychange',chk);window.addEventListener('focus',chk);window.addEventListener('pageshow',chk)})();
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){navigator.serviceWorker.register('sw.js').then(r=>{APP.reg=r;pushRefresh()}).catch(e=>{console.warn('[hub] sw',e);APP.state='unsupported'});navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='go')goLink(e.data.link)})}else APP.state='unsupported';
 addEventListener('beforeinstallprompt',e=>{e.preventDefault();APP.prompt=e;if(me())softRender()});
 addEventListener('appinstalled',()=>{APP.prompt=null;toast('SCENEDROME Hub is on your home screen 📱','ok');if(me())softRender()});
