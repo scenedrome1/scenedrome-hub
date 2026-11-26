@@ -6040,6 +6040,7 @@ ACT.pvDel=async function(a){const[pid,vid]=String(a).split('|');const p=P(pid);c
  const ids=(v.vers||[]).map(x=>x.fid).filter(Boolean);try{for(const id of ids)await call({action:'file_delete',id})}catch(e){toast(String((e&&e.message)||e),'bad');return}const s=S_(pid);s.files=s.files.filter(f=>!ids.includes(f.id));return _pvD.apply(this,arguments)};
 /* previews section: upload straight from the computer */
 const _pvml=previewsHTML;previewsHTML=function(p){const u=me();const L=lib();let own=null;
+ if(!L&&u&&u.role==='client'&&p.previews&&p.previews.length){const s=S_(p.id);if(!s.ready&&!s.loading)setTimeout(()=>mlLoad(p.id),0);const orig=p.previews;p.previews=orig.map(v=>v.gid&&!(v.to||[]).includes(meId)&&listedOn(p,v)?Object.assign({},v,{to:[...(v.to||[]),meId]}):v);let hh;try{hh=_pvml(p)}finally{p.previews=orig}return hh}
  if(L&&!mgr(p)){own=p.previews;const s=S_(p.id);p.previews=(p.previews||[]).filter(v=>!(v.vers||[]).some(x=>x.fid)||(v.to||[]).includes(meId)||(v.vers||[]).some(x=>s.files.some(f=>f.id===x.fid)))}
  if(L&&mgr(p)&&!own){own=p.previews;p.previews=(p.previews||[]).filter(v=>!((v.lib||(v.via==='Review'&&v.gid))&&!(v.to||[]).length&&!v.url))}
  let h;try{h=_pvml(p)}finally{if(own)p.previews=own}
@@ -6190,6 +6191,13 @@ const _cpc70=clientProjCard;clientProjCard=function(p){const u=me();const pm=u&&
  const pv=(p.previews||[]).find(v=>v.show!==false&&Array.isArray(v.to)&&v.to.includes(meId));const rem=p.quote-p.paid;
  return`<div class="card"><div class="row wrap" style="gap:18px"><div class="grow"><div class="eyebrow">${esc(TYPES[p.type].label)}${p.genre?' · '+esc(p.genre):''}${p.format?' · '+esc(p.format):''}</div><h2 style="margin:5px 0">${esc(p.name)}</h2></div><div class="row wrap">${pv?`<a class="btn" data-act="rvOpen" data-arg="${p.id}|${pv.id}">${ic('film',16)}Open review</a>`:''}${pm.thread?`<a class="btn pri" data-act="openThread" data-arg="${p.id}|client">${ic('chat',16)}Message the team</a>`:''}</div></div>${dealOn(p,u)?`<div style="margin-top:16px"><div class="eyebrow" style="margin-bottom:6px">Quotation</div><div class="row"><b class="num">${money(p.paid)}</b><span class="faint">paid of ${money(p.quote)}</span></div><div style="margin:8px 0">${bar(p.quote?p.paid/p.quote*100:0,'green')}</div><div class="tiny ${rem>0?'':'faint'}">${rem>0?money(rem)+' remaining':'Fully paid — thank you!'}</div></div>`:''}</div>`};
 ['openThread'].forEach(k=>{const o=ACT[k];if(o)ACT[k]=(a,el,e)=>{const p=P(String(a).split('|')[0]);const u=me();if(u&&u.role==='client'&&p&&!cpAllow(p,'thread',u))return;return o(a,el,e)}});
+/* clients never message the team unless a project specifically allows it */
+const dmOkFor=oid=>{const u=me();if(!u||u.role!=='client')return true;return S.projects.some(p=>{const pm=cpOf(p,u);return pm&&pm.thread&&(p.producer===oid||(p.team||[]).includes(oid))})};
+const _dmP=dmPeople;dmPeople=function(){const l=_dmP();const u=me();return u&&u.role==='client'?l.filter(x=>dmOkFor(x.id)):l};
+{const _s=FORM.send;FORM.send=(fd,a)=>{const pid=String(a).split('|')[0];const u=me();const p=P(pid);if(u&&u.role==='client'&&p&&!cpAllow(p,'thread',u)){toast('Messaging the team isn’t switched on for you on this project','bad');return}return _s(fd,a)}}
+{const _d=FORM.dm;FORM.dm=(fd,oid)=>{if(!dmOkFor(oid)){toast('Messaging the team isn’t switched on for you','bad');return}return _d(fd,oid)}}
+/* a client sees the reviews they are ticked on, and the reviews inside folders they are listed on */
+const listedOn=(p,v)=>{const s=S_(p.id);if(!s.ready||!v.gid)return false;const f=s.files.find(x=>x.group_id===v.gid);if(!f)return false;let c=f.folder_id,n=0;while(c&&n++<30){const fo=s.folders.find(x=>x.id===c);if(!fo)return false;const us=(fo.access||{}).users||[];if(us.length)return us.includes(meId);c=fo.parent}return false};
 const _avp=addVerToPreviews;addVerToPreviews=function(p,f){const n=_avp(p,f);if(n)try{ACT.rvRefresh(p.id,f.group_id)}catch(e){}return n};
 const st=document.createElement('style');st.id='ml-style';st.textContent=`
 .mllib{margin:0 0 18px;border-top:4px solid #1fb5a0!important}.mlcr{display:flex;gap:6px;align-items:center;margin:10px 0;font-size:13px;color:var(--muted);flex-wrap:wrap}.mlcr a{cursor:pointer;color:var(--gold2,#f0c46a);font-weight:600}
