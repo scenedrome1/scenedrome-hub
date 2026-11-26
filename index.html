@@ -2164,7 +2164,7 @@ const _vHome2=VIEWS.home;VIEWS.home=()=>{const u=me();if(u.role==='client'&&u.ho
 const _vProject=VIEWS.project;VIEWS.project=()=>{const u=me();if(u.role==='client'&&u.hold)return holdHTML();return _vProject()};
 const holdHTML=()=>`<div class="card" style="text-align:center;padding:46px 20px"><img src="${esc(B().logo)}" alt="" style="max-width:220px;margin-bottom:18px"><h2>We’re polishing your space</h2><div class="muted" style="max-width:460px;margin:8px auto 0">Your ${esc(B().studio)} team is updating a few things for you. Everything will be back shortly — message your producer any time.</div></div>`;
 /* client home: offers, check-ins, voice */
-const _homeClient=homeClient;homeClient=function(){const u=me();const asks=(u.asks||[]).filter(a=>!a.answer);const offers=(u.offers||[]).filter(o=>!o.closed&&(!o.until||o.until>Date.now()));const svc=(B().services||[]);
+const _homeClient=homeClient;homeClient=function(){const u=me();const asks=(u.asks||[]).filter(a=>!a.answer);const offers=(u.offers||[]).filter(o=>!o.closed&&(!o.until||o.until>Date.now()));const svc=(B().services||[]).filter(s=>!(u.svcOff||[]).includes(s.id));
  const top=`${asks.map(a=>`<div class="card" style="border-color:var(--gold);margin-bottom:12px"><div class="eyebrow" style="color:var(--gold2)">From your studio</div><h3 style="margin:6px 0">${esc(a.q)}</h3><form data-form="askReply" data-arg="${a.id}" class="formgrid mini"><label class="full">Your answer<textarea name="answer" rows="2" required placeholder="A new season, a campaign, an idea…"></textarea></label><label>Roughly when<select name="when"><option>Not sure yet</option><option>This month</option><option>Next 3 months</option><option>Later this year</option></select></label><div class="row" style="align-items:flex-end"><button class="btn pri right" type="submit">Send</button></div></form></div>`).join('')}
  ${offers.length?`<div class="grid g3" style="margin-bottom:12px">${offers.map(o=>`<div class="offer"><div class="eyebrow">Just for ${esc(u.company||'you')}</div><h3 style="margin:6px 0">${esc(o.title)}</h3><div class="tiny muted">${esc(o.text||'')}</div>${o.until?`<div class="tiny faint" style="margin-top:6px">Until ${dstr(o.until)}</div>`:''}<a class="btn sm pri" style="margin-top:12px" data-act="offerYes" data-arg="${o.id}">${o.taken?'✓ We’ll be in touch':'I’m interested'}</a></div>`).join('')}</div>`:''}`;
  return top+_homeClient()+`<div class="sec-title"><h2>Your voice shapes the studio</h2></div><div class="grid g2"><div class="card"><h3>Tell us anything</h3><form data-form="voice" class="col" style="gap:10px"><label>What is it?<select name="kind"><option value="suggestion">A suggestion</option><option value="comment">A comment</option><option value="wish">A service I’d love to see</option></select></label><label>Message<textarea name="text" rows="3" required></textarea></label><button class="btn pri" type="submit">${ic('send',14)}Send to the studio</button></form></div>
@@ -2204,6 +2204,15 @@ VIEWS.client=()=>{if(!can('clients.view')&&!isMgmt())return deny();const x=U(V.p
  <div class="card"><h3>Their voice</h3><div class="list">${(x.voice||[]).map(v=>`<div class="item" style="gap:8px"><span class="chip ${v.kind==='rating'?'gold':'info'}" style="font-size:10.5px">${v.kind}</span><div class="grow tiny">${v.stars?'★'.repeat(v.stars)+' ':''}${esc(v.text||'')}${v.project&&P(v.project)?' · '+esc(P(v.project).name):''}<div class="faint">${ago(v.ts)}</div></div>${ed&&v.kind!=='rating'?`<select data-change="voiceSel" data-arg="${x.id}|${v.id}" style="width:auto"><option value="new" ${v.status==='new'?'selected':''}>Received</option><option value="on" ${v.status==='on'?'selected':''}>We’re on it</option><option value="done" ${v.status==='done'?'selected':''}>Done</option></select>`:''}</div>`).join('')||'<div class="tiny faint">Nothing yet — their suggestions, comments and ratings land here.</div>'}</div></div></div></div>
  <div class="sec-title"><h2>Projects</h2></div><div class="grid g3">${ps.map(p=>projCard(p)).join('')||'<div class="card empty">No projects yet</div>'}</div>`};
 CHG.voiceSel=(a,el)=>{const[id,vid]=a.split('|');ACT.voiceSt(`${id}|${vid}|${el.value}`)};
+/* client page: offers and new services as on/off badges for this client only */
+const _vClient66=VIEWS.client;VIEWS.client=()=>{const h=_vClient66();const x=U(V.p);if(!x||x.role!=='client'||!canClients())return h;
+ const offers=x.offers||[],svcs=B().services||[],offOut=x.svcOff||[];
+ const card=`<div class="sec-title"><h2>Offers &amp; new services for them</h2></div><div class="card" style="margin-bottom:14px"><div class="tiny faint" style="margin-bottom:6px">On = shown to this client. Off = hidden from their portal.</div>`+
+  `<div class="eyebrow" style="margin:8px 0 6px">Offers</div><div class="row wrap" style="gap:8px">${offers.length?offers.map(o=>`<a class="chip ${o.closed?'':'gold'}" data-act="offTog" data-arg="${x.id}|${o.id}" style="cursor:pointer;font-size:12px">${o.closed?'○ Off':'● On'} · ${esc(o.title)}</a>`).join(''):'<span class="tiny faint">No offers yet</span>'}</div>`+
+  `<div class="eyebrow" style="margin:12px 0 6px">New services</div><div class="row wrap" style="gap:8px">${svcs.length?svcs.map(s=>{const on=!offOut.includes(s.id);return`<a class="chip ${on?'gold':''}" data-act="svcTogC" data-arg="${x.id}|${s.id}" style="cursor:pointer;font-size:12px">${on?'● On':'○ Off'} · ${esc(s.title)}</a>`}).join(''):'<span class="tiny faint">No new services yet</span>'}</div></div>`;
+ return h.replace('<div class="sec-title"><h2>Projects</h2></div>',card+'<div class="sec-title"><h2>Projects</h2></div>')};
+Object.assign(ACT,{offTog:a=>{const[id,oid]=a.split('|');const x=U(id);if(!x||!canClients())return;const o=(x.offers||[]).find(z=>z.id===oid);if(!o)return;o.closed=!o.closed;save();render()},
+svcTogC:a=>{const[id,sid]=a.split('|');const x=U(id);if(!x||!canClients())return;const cur=x.svcOff||[];x.svcOff=cur.includes(sid)?cur.filter(z=>z!==sid):cur.concat(sid);save();render()}});
 /* client list: rank + open relationship */
 const _vClients=VIEWS.clients;VIEWS.clients=()=>{let h=_vClients();S.users.filter(u=>u.role==='client').forEach(c=>{const R=clientRank(c);h=h.replace(`<b style="font-weight:500">${esc(c.company)}</b>`,`<b style="font-weight:500;cursor:pointer" data-act="clientOpen" data-arg="${c.id}">${esc(c.company)}</b>${c.hold?' <span class="chip warn" style="font-size:10px">On hold</span>':''}`);h=h.replace(new RegExp(`(data-arg="${c.id}">[^]*?)<span class="chip gold">[^<]*</span>`),`$1<span class="chip ${R.rank[1]}">${R.rank[0]}</span>`)});
  const svc=B().services||[];return`<div class="row" style="margin-bottom:12px"><div class="muted grow">Open a client for their relationship page — evaluation, notes, offers, what’s next and their voice.</div>${isOwner()?`<a class="btn sm" data-act="svcNew">✨ Show a new service</a>`:''}</div>${svc.length&&isOwner()?`<div class="row wrap" style="gap:6px;margin-bottom:12px">${svc.map(x=>`<span class="chip gold">${esc(x.title)} <a data-act="svcDel" data-arg="${x.id}" style="cursor:pointer">✕</a></span>`).join('')}</div>`:''}`+h.replace(/<div class="card"><div class="row">(<span class="av|<div class="av|<img)/g,'<div class="card"><div class="row">$1')};
@@ -4867,6 +4876,24 @@ const _ccK=clientsCard61;clientsCard61=function(p){let h=_ccK(p);if(!h)return h;
  h=h.replace(/(<\/span> )Clients( <span class="cnt">)/,'$1Crew$2').replace('No client people on this project yet','No client-side crew yet').replace('Add client person','Add crew person');
  return h.replace(/(<\/h3>)/,'$1'+kcInner(p))};
 const _ovI=TABS.overview;TABS.overview=p=>{let h=_ovI(p);return h.replace(/(<h3 class="crewh"[^>]*>(?:<span class="faint">[^<]*<\/span>)? )Crew( <span class="cnt">)/,'$1Inhouse Team$2')};
+/* crew card order: Crew Members (access as one small text line) > Key crew (collapsed) > team members clients can see (collapsed) */
+const _ccR=clientsCard61;clientsCard61=function(p){let h=_ccR(p);if(!h)return h;
+ const t=document.createElement('template');t.innerHTML=h;const card=t.content.querySelector('.crewc.clic');if(!card)return h;
+ const hd=card.querySelector(':scope>h3.crewh');
+ if(hd)[...hd.childNodes].forEach(n=>{if(n.nodeType===3&&n.textContent.includes('Crew'))n.textContent=n.textContent.replace('Crew','Crew Members')});
+ card.querySelectorAll('.clirow').forEach(r=>{const sub=r.querySelector('.grow>div:last-child');if(!sub)return;
+  const labels=[...sub.querySelectorAll('.chip')].map(c=>c.textContent.trim()).filter(Boolean);if(!labels.length)return;
+  sub.querySelectorAll('.chip').forEach(c=>c.remove());sub.querySelectorAll('div:empty').forEach(d=>d.remove());
+  sub.insertAdjacentHTML('beforeend',`<div class="tiny faint" style="margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Access: ${labels.map(esc).join(' · ')}</div>`)});
+ const kc=card.querySelector('.kcin');const list=card.querySelector(':scope>.list');
+ const vis=[...card.children].find(e=>e.tagName==='DIV'&&e.textContent.includes('Team members clients can see'));
+ const dd=(cls,title,body)=>{const d=document.createElement('details');d.className='ddsec crewdd '+cls;d.innerHTML=`<summary>${title}</summary>`;d.append(...body);return d};
+ if(kc){const body=[...kc.children].filter(x=>!(x.classList.contains('eyebrow')));kc.replaceWith(dd('kc','Key crew',body))}
+ const kcD=card.querySelector('details.kc');
+ if(vis){const body=[...vis.children];const d=dd('vis','Team members clients can see',body);vis.replaceWith(d)}
+ const visD=card.querySelector('details.vis');
+ if(list){if(kcD)list.after(kcD);if(visD)(kcD||list).after(visD)}
+ return t.innerHTML};
 
 /* ---------- episode progress: 70% duration filled, 30% process steps ---------- */
 const _epP=epProg;epProg=function(p,e){if(!e||e.x)return _epP(p,e);const T=TYPES[p.type]||{stages:[]},n=(T.stages||[]).length||1;
@@ -6646,6 +6673,18 @@ window.__ukObs=new MutationObserver(()=>{if(!q)q=requestAnimationFrame(run)});
 window.__ukObs.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','data-k']});
 run();
 })();
+
+/* ===== studio account (main owner): not listed anywhere, but notified of everything and sees every person and chat ===== */
+const studioAcc=u=>!!u&&u.role==='owner'&&u.job==='founder';
+const studioIds=()=>S.users.filter(u=>studioAcc(u)&&!u.removed).map(u=>u.id);
+const _notifyStudio=notify;notify=function(ids,text,link){const n0=S.notifs.length;const r=_notifyStudio(ids,text,link);
+ const fresh=S.notifs.slice(0,Math.max(0,S.notifs.length-n0)).map(n=>n.to);
+ studioIds().forEach(i=>{if(i===meId||fresh.includes(i)||!U(i))return;S.notifs.unshift({id:uid('n'),to:i,text,link,ts:Date.now(),read:false})});return r};
+const _renderStudio=render;render=function(){_renderStudio();try{const me0=me();if(!me0||studioAcc(me0))return;const app=document.getElementById('app');if(!app)return;
+ studioIds().forEach(id=>{
+  app.querySelectorAll(`[data-arg*="${id}"]`).forEach(el=>{const row=el.closest('.item,.clirow,tr,.kcr,.cpacc,.dyrow');if(row)row.remove()});
+  app.querySelectorAll(`option[value="${id}"]`).forEach(o=>o.remove());
+ })}catch(e){console.warn('[hub] studio hide',e)}};
 </script>
 </body>
 </html>
