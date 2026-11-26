@@ -149,6 +149,8 @@ Deno.serve(async (req) => {
       const at = await accessToken();
       await gj(at, "/me/drive/items/" + row.item_id, { method: "DELETE" });
       await adm.from("media_files").delete().eq("id", row.id);
+      const left = await adm.from("media_files").select("id").eq("group_id", row.group_id).limit(1);
+      if (!left.data?.length) await adm.from("media_mirrors").delete().eq("group_id", row.group_id);
       return json({ ok: true });
     }
     if (A === "file_move") {
@@ -158,6 +160,41 @@ Deno.serve(async (req) => {
       const to = b.folder_id ? String(b.folder_id) : null;
       if (to && !(await me.from("media_folders").select("id").eq("id", to).eq("project_id", row.project_id).maybeSingle()).data) return json({ error: "folder not available" }, 403);
       await adm.from("media_files").update({ folder_id: to }).eq("group_id", row.group_id);
+      return json({ ok: true });
+    }
+
+    // ---- versions, mirrors ----
+    const mgrOf = async (pid: string) => { const p = await projOf(pid); return p && isMgr(p) ? p : null; };
+    if (A === "file_as_version") {
+      const src = (await adm.from("media_files").select("*").eq("id", String(b.id || "")).maybeSingle()).data;
+      if (!src) return json({ error: "file not found" }, 404);
+      if (!(await mgrOf(src.project_id))) return json({ error: "only the producer, the General Manager or the owner can do this" }, 403);
+      const tg = String(b.target_group || "");
+      if (!tg || tg === src.group_id) return json({ error: "pick a different clip" }, 400);
+      const { data: tv } = await adm.from("media_files").select("*").eq("group_id", tg).eq("project_id", src.project_id).order("ver", { ascending: false });
+      if (!tv?.length) return json({ error: "target clip not found" }, 404);
+      const { data: sv } = await adm.from("media_files").select("*").eq("group_id", src.group_id).order("ver", { ascending: true });
+      let n = tv[0].ver || 0;
+      for (const r of sv || []) { n += 1; await adm.from("media_files").update({ group_id: tg, folder_id: tv[0].folder_id, ver: n }).eq("id", r.id); }
+      await adm.from("media_mirrors").delete().eq("group_id", src.group_id);
+      return json({ ok: true });
+    }
+    if (A === "file_unstack") {
+      const row = (await adm.from("media_files").select("*").eq("id", String(b.id || "")).maybeSingle()).data;
+      if (!row) return json({ error: "file not found" }, 404);
+      if (!(await mgrOf(row.project_id))) return json({ error: "only the producer, the General Manager or the owner can do this" }, 403);
+      await adm.from("media_files").update({ group_id: row.id, ver: 1 }).eq("id", row.id);
+      return json({ ok: true });
+    }
+    if (A === "file_mirror" || A === "file_unmirror") {
+      const f = (await adm.from("media_files").select("project_id").eq("group_id", String(b.group_id || "")).limit(1)).data?.[0];
+      if (!f) return json({ error: "file not found" }, 404);
+      if (!(await mgrOf(f.project_id))) return json({ error: "only the producer, the General Manager or the owner can do this" }, 403);
+      const fid = String(b.folder_id || "");
+      if (A === "file_unmirror") { await adm.from("media_mirrors").delete().eq("group_id", String(b.group_id)).eq("folder_id", fid); return json({ ok: true }); }
+      if (!(await adm.from("media_folders").select("id").eq("id", fid).eq("project_id", f.project_id).maybeSingle()).data) return json({ error: "folder not available" }, 403);
+      const ins = await adm.from("media_mirrors").upsert({ id: rid("mm_"), project_id: f.project_id, group_id: String(b.group_id), folder_id: fid, by: uid, ts: Date.now() }, { onConflict: "group_id,folder_id" });
+      if (ins.error) return json({ error: ins.error.message }, 500);
       return json({ ok: true });
     }
 
@@ -181,6 +218,11 @@ Deno.serve(async (req) => {
         const patch: Record<string, unknown> = {};
         if (b.name != null) patch.name = safe(b.name);
         if (Array.isArray(b.users)) patch.access = { users: b.users.map(String) };
+        if (b.parent !== undefined) {
+          const np = b.parent ? String(b.parent) : null; let c = np; let k = 0;
+          while (c && k++ < 40) { if (c === f.id) return json({ error: "a folder can’t go inside itself" }, 400); const x = (await adm.from("media_folders").select("parent,project_id").eq("id", c).maybeSingle()).data; if (!x || x.project_id !== f.project_id) return json({ error: "folder not available" }, 403); c = x.parent; }
+          patch.parent = np;
+        }
         await adm.from("media_folders").update(patch).eq("id", f.id);
       } else {
         await adm.from("media_files").update({ folder_id: f.parent }).eq("folder_id", f.id);
