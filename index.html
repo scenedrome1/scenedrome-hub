@@ -5875,7 +5875,6 @@ document.head.appendChild(st);
 if(!LIVE||!sb)return;
 const ML={};const MU={};window.__MU=MU;const MS={linked:null,account:null,asked:false};let UP=null;
 const lib=()=>isStaff()&&(inhouse(me())||isMgmt());
-const kindOf=m=>/^video\//.test(m||'')?'video':/^image\//.test(m||'')?'image':/^audio\//.test(m||'')?'audio':'file';
 const kindIc=k=>k==='video'?'film':k==='image'?'img':'doc';
 const FOLD='<svg class="i" viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
 async function call(body){const{data,error}=await sb.functions.invoke('hub-media',{body});if(error){let m=error.message;try{const j=await error.context.json();m=j.error||m}catch(e){}throw new Error(m)}if(data&&data.error)throw new Error(data.error);return data}
@@ -5886,19 +5885,81 @@ async function mlStatus(){if(MS.asked)return;MS.asked=true;try{const r=await cal
 const groups=s=>{const g={};s.files.forEach(f=>{(g[f.group_id]=g[f.group_id]||[]).push(f)});return Object.values(g).map(a=>a.sort((x,y)=>y.ver-x.ver)).sort((a,b)=>b[0].ts-a[0].ts)};
 const crumbs=(s)=>{const out=[];let c=s.cur;let n=0;while(c&&n++<20){const f=s.folders.find(x=>x.id===c);if(!f)break;out.unshift(f);c=f.parent}return out};
 const fpath=(s,id)=>{const out=[];let c=id;let n=0;while(c&&n++<20){const f=s.folders.find(x=>x.id===c);if(!f)break;out.unshift(f.name);c=f.parent}return out.join(' / ')};
-function libHTML(p){const s=S_(p.id);if(!s.ready&&!s.loading)setTimeout(()=>mlLoad(p.id),0);mlStatus();
- const bc=crumbs(s);const subs=s.folders.filter(f=>(f.parent||null)===(s.cur||null)).sort((a,b)=>a.name.localeCompare(b.name));
- const gs=groups(s).filter(g=>(g[0].folder_id||null)===(s.cur||null));
- const unl=MS.linked===false;
- const head=`<div class="row wrap" style="gap:8px;align-items:center"><h2 style="margin:0">Media library</h2><span class="chip">OneDrive</span><div class="right row" style="gap:8px">${isOwner()?`<a class="btn sm ghost" data-act="mlBackfill" title="Create the OneDrive folder for every project">${ic('plus',14)}Folders for all projects</a>`:''}<a class="btn sm" data-act="mlNewFolder" data-arg="${p.id}">${FOLD.replace('width:22px;height:22px','width:15px;height:15px')}New folder</a><label class="btn sm pri" style="cursor:pointer">${ic('upload',14)}Upload<input type="file" hidden multiple data-change="mlUp" data-arg="${p.id}"></label></div></div>`;
- const trail=`<div class="mlcr"><a data-act="mlOpen" data-arg="${p.id}|">Library</a>${bc.map(f=>`<span>/</span><a data-act="mlOpen" data-arg="${p.id}|${f.id}">${esc(f.name)}</a>`).join('')}</div>`;
- const warn=unl?`<div class="card" style="border-color:var(--warn,#DE9D1A)"><b>OneDrive isn’t linked yet.</b> ${isOwner()?`<a class="btn sm pri" data-act="mlLink" style="margin-left:8px">Link OneDrive</a>`:'Ask the owner to link it from this page.'}</div>`:'';
- const err=s.err?`<div class="card" style="border-color:#e0704f"><b>Couldn’t load the library.</b> <span class="tiny">${esc(s.err)}</span> <span class="tiny">If this says a table doesn’t exist, run the media SQL update first.</span></div>`:'';
- const prog=UP&&UP.pid===p.id?`<div class="card mlprog"><div class="row"><b>Uploading ${esc(UP.name)}</b><span class="tiny faint right" id="mlpct">${UP.pct}%</span></div><div class="mlbar"><u id="mlbar" style="width:${UP.pct}%"></u></div>${UP.of>1?`<div class="tiny faint" style="margin-top:4px">File ${UP.n} of ${UP.of}</div>`:''}</div>`:'';
- const fold=subs.length?`<div class="mlfolders">${subs.map(f=>{const n=s.files.filter(x=>x.folder_id===f.id&&x.ver===1).length+s.folders.filter(x=>x.parent===f.id).length;const lk=((f.access||{}).users||[]).length;return`<div class="mlf" data-act="mlOpen" data-arg="${p.id}|${f.id}">${FOLD}<div class="grow" style="min-width:0"><b>${esc(f.name)}</b><div class="tiny faint">${n} item${n!==1?'s':''}${lk?` · <span title="Only the people you chose can open it">🔒 ${lk} ${lk===1?'person':'people'}</span>`:''}</div></div>${mine(s,p,f)?`<a class="mlg" data-act="mlFolderEdit" data-arg="${p.id}|${f.id}" title="Rename / who can open it">${ic('edit',14)}</a>`:''}</div>`}).join('')}</div>`:'';
- const files=gs.length?`<div class="mlfiles">${gs.map(g=>{const f=g[0];const k=kindOf(f.mime);const by=U(f.by);const inPv=(p.previews||[]).some(v=>v.gid===f.group_id);return`<div class="mlr"><div class="mlic">${ic(kindIc(k),20)}</div><div class="grow" style="min-width:0"><b class="mlnm" title="${esc(f.name)}">${esc(f.name)}</b><div class="tiny faint">${kb(f.size)} · ${by?esc(first(by)):''} · ${ago(f.ts)}${inPv?' · in review':''}</div></div><a class="chip ${g.length>1?'gold':''}" data-act="mlVers" data-arg="${p.id}|${f.group_id}" title="Versions">v${f.ver}${g.length>1?' · '+g.length:''}</a>${k!=='file'?`<a class="btn sm pri" data-act="mlReview" data-arg="${p.id}|${f.group_id}">${ic('film',13)}Review</a>`:''}<label class="btn sm ghost" style="cursor:pointer" title="Upload a new version — the review keeps its comments">${ic('upload',13)}New version<input type="file" hidden data-change="mlNew" data-arg="${p.id}|${f.group_id}"></label><a class="btn sm ghost" data-act="mlGet" data-arg="${f.id}" title="Download">${ic('link',13)}</a><a class="btn sm ghost" data-act="mlMove" data-arg="${p.id}|${f.group_id}" title="Move to a folder">${FOLD.replace('width:22px;height:22px','width:14px;height:14px')}</a>${mine(s,p,f)?`<a class="btn sm ghost" data-act="mlDel" data-arg="${p.id}|${f.group_id}" title="Delete">${ic('trash',13)}</a>`:''}</div>`}).join('')}</div>`:(s.ready&&!subs.length?'<div class="card empty">Nothing here yet — upload a file or make a folder.</div>':'');
- return`<div class="card mllib">${head}${trail}${warn}${err}${prog}${s.ready?fold+files:'<div class="tiny faint" style="padding:14px">Loading…</div>'}</div>`}
+const kindOf=m=>/^video\//.test(m||'')?'video':/^image\//.test(m||'')?'image':/^audio\//.test(m||'')?'audio':/pdf$/.test(m||'')?'pdf':/^text\/|json$|xml$/.test(m||'')?'text':'file';
+const extOf=n=>((String(n).match(/\.([^.]+)$/)||[])[1]||'file').toUpperCase().slice(0,4);
+const FOLD2=(w)=>`<svg viewBox="0 0 24 24" style="width:${w}px;height:${w}px;fill:none;stroke:currentColor;stroke-width:1.6"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`;
+const sizeSum=a=>a.reduce((t,f)=>t+(f.size||0),0);
+function libBody(p,cur,page){const s=S_(p.id);if(!s.ready&&!s.loading)setTimeout(()=>mlLoad(p.id),0);mlStatus();
+ const bc=[];{let c=cur,n=0;while(c&&n++<20){const f=s.folders.find(x=>x.id===c);if(!f)break;bc.unshift(f);c=f.parent}}
+ const subs=s.folders.filter(f=>(f.parent||null)===(cur||null)).sort((a,b)=>a.name.localeCompare(b.name));
+ const gs=groups(s).filter(g=>(g[0].folder_id||null)===(cur||null));
+ const unl=MS.linked===false;const ctx=p.id+'|'+(cur||'');
+ const trail=`<div class="mlcr"><a data-act="mlGo" data-arg="${p.id}|">Library</a>${bc.map(f=>`<span>/</span><a data-act="mlGo" data-arg="${p.id}|${f.id}">${esc(f.name)}</a>`).join('')}</div>`;
+ const head=`<div class="row wrap" style="gap:8px;align-items:center">${page?`<a class="btn sm ghost" data-act="mlBack" data-arg="${p.id}">← ${esc(p.name)}</a>`:'<h2 style="margin:0">Media library</h2><span class="chip">OneDrive</span>'}<div class="right row" style="gap:8px">${!page?`<a class="btn sm ghost" data-act="mlGo" data-arg="${p.id}|" data-page="1">Open full page</a>`:''}${isOwner()?`<a class="btn sm ghost" data-act="mlBackfill" title="Create the OneDrive folder for every project">Folders for all projects</a>`:''}<a class="btn sm" data-act="mlMenu" data-arg="${ctx}|b" title="Upload / new folder">+ Add</a></div></div>`;
+ const warn=unl?`<div class="card" style="border-color:var(--warn,#DE9D1A);margin-top:10px"><b>OneDrive isn’t linked yet.</b> ${isOwner()?`<a class="btn sm pri" data-act="mlLink" style="margin-left:8px">Link OneDrive</a>`:'Ask the owner to link it from this page.'}</div>`:'';
+ const err=s.err?`<div class="card" style="border-color:#e0704f;margin-top:10px"><b>Couldn’t load the library.</b> <span class="tiny">${esc(s.err)}</span></div>`:'';
+ const prog=UP&&UP.pid===p.id?`<div class="card mlprog" style="margin-top:10px"><div class="row"><b>Uploading ${esc(UP.name)}</b><span class="tiny faint right" id="mlpct">${UP.pct}%</span></div><div class="mlbar"><u id="mlbar" style="width:${UP.pct}%"></u></div>${UP.of>1?`<div class="tiny faint" style="margin-top:4px">File ${UP.n} of ${UP.of}</div>`:''}</div>`:'';
+ const cnt=`<div class="tiny faint" style="margin:12px 0 8px">${subs.length} folder${subs.length!==1?'s':''} • ${gs.length} asset${gs.length!==1?'s':''} • ${kb(sizeSum(gs.flat()))}</div>`;
+ const fold=subs.length?`<div class="mlgrid">${subs.map(f=>{const kids=s.files.filter(x=>x.folder_id===f.id&&x.ver===1).length+s.folders.filter(x=>x.parent===f.id).length;const lk=((f.access||{}).users||[]).length;return`<div class="mlfc" data-act="mlGo" data-arg="${p.id}|${f.id}" data-mlctx="${p.id}|${f.id}|f"><div class="mlfc-t"><div class="big">${FOLD2(34)}</div><div class="sm"><i>${FOLD2(18)}</i><i>${FOLD2(18)}</i></div></div><div class="mlfc-b"><div style="min-width:0"><b class="mlnm">${esc(f.name)}</b><div class="tiny faint">${kids} item${kids!==1?'s':''}${lk?` · 🔒 ${lk}`:''}</div></div><a class="mldots" data-act="mlMenu" data-arg="${p.id}|${f.id}|f">⋯</a></div></div>`}).join('')}</div>`:'';
+ const files=gs.length?`<div class="mlgrid a">${gs.map(g=>{const f=g[0];const k=kindOf(f.mime);const by=U(f.by);const inPv=(p.previews||[]).some(v=>v.gid===f.group_id);return`<div class="mlac" data-mlctx="${p.id}|${f.group_id}|a"><div class="mlth" data-act="mlView" data-arg="${p.id}|${f.group_id}" data-fid="${f.id}" data-k="${k}"><span class="mlext">${k==='file'||k==='text'||k==='pdf'?extOf(f.name):''}</span>${g.length>0?`<b class="mlv">V${f.ver}</b>`:''}${inPv?'<b class="mlrv">IN REVIEW</b>':''}</div><div class="mlac-b"><div style="min-width:0"><b class="mlnm" title="${esc(f.name)}">${esc(f.name)}</b><div class="tiny faint">${by?esc(first(by))+' • ':''}${ago(f.ts)} • ${kb(f.size)}</div></div><a class="mldots" data-act="mlMenu" data-arg="${p.id}|${f.group_id}|a">⋯</a></div></div>`}).join('')}</div>`:'';
+ const empty=s.ready&&!subs.length&&!gs.length?'<div class="card empty" style="margin-top:12px">Empty — right-click here, or press “+ Add”, to upload files or create a folder.</div>':'';
+ setTimeout(mlThumbs,60);
+ return`<div class="card mllib" ${page?'style="min-height:60vh"':''} data-mlctx="${ctx}|b">${head}${page?trail:''}${warn}${err}${prog}${s.ready?cnt+fold+files+empty:'<div class="tiny faint" style="padding:14px">Loading…</div>'}</div>`}
+function libHTML(p){return libBody(p,null,false)}
+VIEWS.medialib=()=>{const p=P(V.p);if(!p||!visibleProjects().includes(p)||!lib())return'<div class="card empty">The media library isn’t available to you here.</div>';const s=S_(p.id);if(V.ch&&s.ready&&!s.folders.some(f=>f.id===V.ch)){V.ch=null}return libBody(p,V.ch||null,true)};
 const _tf=TABS.files;TABS.files=function(p){const h=_tf(p);return lib()?libHTML(p)+h:h};
+
+/* thumbnails: short-lived links, loaded a few at a time */
+let THB=false;async function mlThumbs(){if(THB)return;THB=true;try{const els=[...document.querySelectorAll('.mlth[data-fid]:not([data-done])')].filter(e=>e.dataset.k==='video'||e.dataset.k==='image').slice(0,24);for(const e of els){e.dataset.done='1';const id=e.dataset.fid;try{let m=MU[id];if(!m||m.exp<Date.now()+300000){const r=await call({action:'url',file_id:id});m=MU[id]={url:r.url,exp:r.exp}}if(!e.isConnected)continue;e.insertAdjacentHTML('afterbegin',e.dataset.k==='image'?`<img src="${m.url}" loading="lazy">`:`<video src="${m.url}#t=0.6" preload="metadata" muted playsinline></video>`)}catch(x){}}}finally{THB=false}}
+/* the menu: + Add, the ⋯ buttons and right-click all open the same kind of menu */
+let UT=null;const mlmenu=()=>{let m=document.getElementById('mlmenu');if(!m){m=document.createElement('div');m.id='mlmenu';document.body.appendChild(m)}return m};
+const closeMenu=()=>{const m=document.getElementById('mlmenu');if(m)m.remove()};
+function showMenu(items,x,y){closeMenu();const m=mlmenu();m.innerHTML=items.map(i=>i==='-'?'<hr>':`<a data-act="mlM" data-arg="${i[1]}">${i[0]}</a>`).join('');m.style.left='0';m.style.top='0';const w=m.offsetWidth,h=m.offsetHeight;m.style.left=Math.max(8,Math.min(x,innerWidth-w-8))+'px';m.style.top=Math.max(8,Math.min(y,innerHeight-h-8))+'px'}
+function menuItems(pid,id,t){const p=P(pid),s=S_(pid);const upl=(f)=>[['⬆ Upload asset','upa|'+pid+'|'+f],['⬆ Upload folder','upf|'+pid+'|'+f],['📁 New folder','nf|'+pid+'|'+f]];
+ if(t==='b')return upl(id);
+ if(t==='f'){const f=s.folders.find(x=>x.id===id);if(!f)return[];const it=[['Open','go|'+pid+'|'+id],'-',...upl(id)];if(mine(s,p,f))it.push('-',['✎ Rename / who can open it','fe|'+pid+'|'+id],['🗑 Delete folder','fd|'+pid+'|'+id]);return it}
+ const g=s.files.filter(x=>x.group_id===id).sort((a,b)=>b.ver-a.ver);if(!g.length)return[];const f=g[0],k=kindOf(f.mime);const it=[['Open','v|'+pid+'|'+id]];if(k==='video'||k==='image'||k==='audio')it.push(['🎬 Send for review','rv|'+pid+'|'+id]);it.push(['⬆ New version (replace)','nv|'+pid+'|'+id],['⬇ Download','dl|'+pid+'|'+f.id],['Versions','vs|'+pid+'|'+id],['📁 Move to folder','mv|'+pid+'|'+id]);if(mine(s,p,f))it.push('-',['🗑 Delete','del|'+pid+'|'+id]);return it}
+const inp=(id,attrs)=>{let e=document.getElementById(id);if(!e){e=document.createElement('input');e.type='file';e.id=id;e.hidden=true;e.style.display='none';if(attrs)attrs(e);document.body.appendChild(e)}return e};
+function pickFiles(){const e=inp('mlfile',e=>{e.multiple=true;e.addEventListener('change',()=>{const fs=[...e.files];e.value='';if(fs.length&&UT)runUploads(UT.pid,fs,UT.folder,null)})});e.value='';e.click()}
+function pickFolder(){const e=inp('mlfolder',e=>{e.multiple=true;e.setAttribute('webkitdirectory','');e.addEventListener('change',()=>{const fs=[...e.files];e.value='';if(fs.length&&UT)runFolder(UT.pid,fs,UT.folder)})});e.value='';e.click()}
+function pickVer(){const e=inp('mlfilev',e=>{e.addEventListener('change',()=>{const fs=[...e.files];e.value='';if(fs.length&&UT)runUploads(UT.pid,[fs[0]],UT.folderOf||null,UT.gid)})});e.value='';e.click()}
+async function runFolder(pid,files,parent){const s=S_(pid);const map={'':parent||null};const items=[];UP={pid,name:'preparing folders…',pct:0,n:0,of:files.length};render();
+ try{for(const f of files){const parts=(f.webkitRelativePath||f.name).split('/');parts.pop();let path='',par=parent||null;for(const d of parts){const np=path+'/'+d;if(map[np]===undefined){const r=await call({action:'folder_create',project_id:pid,name:d,parent:par,users:[]});s.folders.push(r.folder);map[np]=r.folder.id}par=map[np];path=np}items.push({file:f,folder:par})}}catch(e){UP=null;render();toast(String((e&&e.message)||e),'bad');return}
+ UP=null;await runItems(pid,items,null)}
+Object.assign(ACT,{
+ mlGo:(a)=>{const[pid,fid]=String(a).split('|');closeMenu();go('medialib',pid,'',fid||'')},
+ mlBack:pid=>{const s=S_(pid);if(V.v==='medialib'&&V.ch){const f=s.folders.find(x=>x.id===V.ch);go('medialib',pid,'',f&&f.parent||'')}else go('project',pid,'files')},
+ mlMenu:(a,el,e)=>{const[pid,id,t]=String(a).split('|');const it=menuItems(pid,id,t);if(!it.length)return;const r=el?el.getBoundingClientRect():null;showMenu(it,r?r.left:e.clientX,r?r.bottom+4:e.clientY)},
+ mlM:a=>{const[op,pid,id]=String(a).split('|');closeMenu();const s=S_(pid);
+  if(op==='upa'){UT={pid,folder:id||null};pickFiles()}
+  else if(op==='upf'){UT={pid,folder:id||null};pickFolder()}
+  else if(op==='nf'){s.cur=id||null;ACT.mlNewFolder(pid)}
+  else if(op==='go')ACT.mlGo(pid+'|'+id)
+  else if(op==='fe')ACT.mlFolderEdit(pid+'|'+id)
+  else if(op==='fd')ACT.mlFolderDel(pid+'|'+id)
+  else if(op==='v')ACT.mlView(pid+'|'+id)
+  else if(op==='rv')ACT.mlReview(pid+'|'+id)
+  else if(op==='nv'){const f=s.files.find(x=>x.group_id===id);UT={pid,gid:id,folderOf:f&&f.folder_id};pickVer()}
+  else if(op==='dl')ACT.mlGet(id)
+  else if(op==='vs')ACT.mlVers(pid+'|'+id)
+  else if(op==='mv')ACT.mlMove(pid+'|'+id)
+  else if(op==='del')ACT.mlDel(pid+'|'+id)},
+ mlView:a=>{const[pid,gid]=String(a).split('|');const s=S_(pid);const g=s.files.filter(x=>x.group_id===gid).sort((x,y)=>y.ver-x.ver);if(!g.length)return;
+  modal(esc(g[0].name),`<div id="mlvw"></div>`,true);mlShow(pid,g,g[0].id)}
+});
+async function mlShow(pid,g,fid){const box=document.getElementById('mlvw');if(!box)return;const f=g.find(x=>x.id===fid)||g[0];const k=kindOf(f.mime);
+ const tabs=g.length>1?`<div class="row wrap" style="gap:6px;margin-bottom:10px">${g.map(x=>`<a class="chip ${x.id===f.id?'gold':''}" data-act="mlShowV" data-arg="${pid}|${x.group_id}|${x.id}">v${x.ver}</a>`).join('')}</div>`:'';
+ box.innerHTML=tabs+`<div class="mlview" id="mlvb"><div class="tiny faint" style="padding:30px;text-align:center">Loading…</div></div><div class="row wrap" style="gap:8px;margin-top:10px"><span class="tiny faint">${kb(f.size)} · ${esc((U(f.by)||{}).name||'')} · ${ago(f.ts)}</span><a class="btn sm ghost right" data-act="mlGet" data-arg="${f.id}">⬇ Download</a>${k==='video'||k==='image'||k==='audio'?`<a class="btn sm pri" data-act="mlReview" data-arg="${pid}|${f.group_id}">Send for review</a>`:''}</div>`;
+ const vb=document.getElementById('mlvb');try{let m=MU[f.id];if(!m||m.exp<Date.now()+300000){const r=await call({action:'url',file_id:f.id});m=MU[f.id]={url:r.url,exp:r.exp}}if(!document.getElementById('mlvb'))return;
+  if(k==='video')vb.innerHTML=`<video src="${m.url}" controls autoplay playsinline style="width:100%;max-height:68vh;background:#000;border-radius:10px"></video>`;
+  else if(k==='audio')vb.innerHTML=`<audio src="${m.url}" controls autoplay style="width:100%"></audio>`;
+  else if(k==='image')vb.innerHTML=`<img src="${m.url}" style="max-width:100%;max-height:68vh;display:block;margin:auto;border-radius:10px">`;
+  else if(k==='pdf')vb.innerHTML=`<iframe src="${m.url}" style="width:100%;height:68vh;border:0;border-radius:10px;background:#fff"></iframe>`;
+  else if(k==='text'&&f.size<400000){try{const t=await (await fetch(m.url)).text();vb.innerHTML=`<pre class="mlpre">${esc(t.slice(0,60000))}</pre>`}catch(e){vb.innerHTML=`<div class="card empty">Preview isn’t available for this file — use Download.</div>`}}
+  else vb.innerHTML=`<div class="card empty" style="text-align:center"><div style="font-size:30px;margin-bottom:6px">${extOf(f.name)}</div>${esc(f.name)}<div class="tiny faint">No preview for this file type — use Download.</div></div>`}catch(e){if(vb)vb.innerHTML=`<div class="card empty">${esc(String((e&&e.message)||e))}</div>`}}
+ACT.mlShowV=a=>{const[pid,gid,fid]=String(a).split('|');const g=S_(pid).files.filter(x=>x.group_id===gid).sort((x,y)=>y.ver-x.ver);mlShow(pid,g,fid)};
+document.addEventListener('contextmenu',e=>{const c=e.target.closest&&e.target.closest('[data-mlctx]');if(!c||e.target.closest('input,textarea,video,audio'))return;e.preventDefault();const[pid,id,t]=c.dataset.mlctx.split('|');const it=menuItems(pid,id,t);if(it.length)showMenu(it,e.clientX,e.clientY)},true);
+document.addEventListener('click',e=>{if(e.target.closest('#mlmenu')||e.target.closest('[data-act="mlMenu"]'))return;closeMenu()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenu()});
 
 /* uploads: the browser sends the bytes straight to OneDrive through an upload session the function opens */
 function prog(){const e=document.getElementById('mlpct');const b=document.getElementById('mlbar');if(UP&&e)e.textContent=UP.pct+'%';if(UP&&b)b.style.width=UP.pct+'%'}
@@ -5906,7 +5967,8 @@ async function putFile(pid,file,folder,gid){if(!file.size)throw new Error(file.n
  for(let st=0;st<file.size;st+=CH){const en=Math.min(st+CH,file.size)-1;const r=await fetch(s.uploadUrl,{method:'PUT',headers:{'Content-Range':`bytes ${st}-${en}/${file.size}`},body:file.slice(st,en+1)});UP.pct=Math.round((en+1)/file.size*100);prog();if(r.status===202)continue;if(r.status===200||r.status===201){item=await r.json();break}throw new Error('OneDrive refused the upload ('+r.status+')')}
  if(!item)throw new Error('Upload did not finish');const d=await call({action:'upload_done',project_id:pid,item_id:item.id,folder_id:folder||null,group_id:gid||null,mime:file.type||''});return d.file}
 function addVerToPreviews(p,f){let n=0;(p.previews||[]).filter(v=>v.gid===f.group_id).forEach(v=>{v.vers=v.vers||[];if(v.vers.some(x=>x.fid===f.id))return;v.vers.push({id:'v'+f.ver+'_'+f.id.slice(-4),label:'v'+f.ver,url:'',fid:f.id,kind:kindOf(f.mime),ts:Date.now(),by:meId});n++;const to=(v.show!==false?(v.to||[]):[]).filter(i=>i!==meId&&U(i));if(to.length)notify(to,`New version ready: ${v.label} v${f.ver} — ${p.name}`,{v:'project',p:p.id})});if(n)save();return n}
-async function runUploads(pid,files,folder,gid,after){const p=P(pid);const arr=[...files];let ok=0;for(let i=0;i<arr.length;i++){UP={pid,name:arr[i].name,pct:0,n:i+1,of:arr.length};render();try{const f=await putFile(pid,arr[i],folder,gid);S_(pid).files.unshift(f);ok++;if(gid)addVerToPreviews(p,f);if(after)after(f)}catch(e){toast(String((e&&e.message)||e),'bad')}}UP=null;render();if(ok)toast(ok+(gid?' new version':' file'+(ok>1?'s':''))+' uploaded','ok')}
+async function runItems(pid,items,gid,after){const p=P(pid);let ok=0;for(let i=0;i<items.length;i++){UP={pid,name:items[i].file.name,pct:0,n:i+1,of:items.length};render();try{const f=await putFile(pid,items[i].file,items[i].folder,gid);S_(pid).files.unshift(f);ok++;if(gid)addVerToPreviews(p,f);if(after)after(f)}catch(e){toast(String((e&&e.message)||e),'bad')}}UP=null;render();if(ok)toast(ok+(gid?' new version':' file'+(ok>1?'s':''))+' uploaded','ok')}
+const runUploads=(pid,files,folder,gid,after)=>runItems(pid,[...files].map(f=>({file:f,folder})),gid,after);
 Object.assign(CHG,{
  mlUp:(a,el)=>{const fs=[...el.files];el.value='';if(fs.length)runUploads(a,fs,S_(a).cur,null)},
  mlNew:(a,el)=>{const[pid,gid]=String(a).split('|');const fs=[...el.files];el.value='';if(fs.length)runUploads(pid,[fs[0]],null,gid)},
@@ -5952,6 +6014,14 @@ const st=document.createElement('style');st.id='ml-style';st.textContent=`
 .mlfolders{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin:8px 0 14px}.mlf{display:flex;align-items:center;gap:10px;padding:12px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;cursor:pointer}.mlf:hover{border-color:#1fb5a0}.mlf svg{color:#DE9D1A;flex:none}.mlg{opacity:.6;cursor:pointer}.mlg:hover{opacity:1}
 .mlfiles{display:flex;flex-direction:column;gap:6px}.mlr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;background:var(--panel2);border:1px solid var(--line);border-radius:12px}.mlic{width:34px;height:34px;border-radius:9px;background:var(--line);display:grid;place-items:center;flex:none}.mlnm{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
 .mlbar{height:8px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:8px}.mlbar u{display:block;height:100%;background:linear-gradient(90deg,#1fb5a0,#2ea36f);transition:width .2s}
+.mlgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin:6px 0 16px}.mlgrid.a{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.mlfc,.mlac{background:var(--panel2);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer}.mlfc:hover,.mlac:hover{border-color:#1fb5a0}
+.mlfc-t{display:grid;grid-template-columns:2fr 1fr;gap:6px;padding:10px;height:150px;background:rgba(255,255,255,.02)}.mlfc-t .big{background:var(--line);border-radius:8px;display:grid;place-items:center;opacity:.8}.mlfc-t .sm{display:grid;gap:6px}.mlfc-t .sm i{background:var(--line);border-radius:8px;display:grid;place-items:center;opacity:.6;font-style:normal}
+.mlfc-b,.mlac-b{display:flex;align-items:center;gap:8px;padding:10px 12px;justify-content:space-between}.mlth{position:relative;height:150px;background:#0b0c10;display:grid;place-items:center;overflow:hidden}.mlth img,.mlth video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.mlext{font-weight:800;font-size:22px;letter-spacing:.08em;opacity:.5}.mlv{position:absolute;top:8px;right:8px;font-size:11px;background:rgba(0,0,0,.6);color:#fff;border-radius:6px;padding:2px 6px;z-index:2}.mlrv{position:absolute;bottom:8px;left:8px;font-size:10px;background:#1fb5a0;color:#06201c;border-radius:6px;padding:2px 6px;z-index:2}
+.mldots{font-size:20px;line-height:1;padding:2px 8px;border-radius:8px;cursor:pointer;opacity:.7;flex:none}.mldots:hover{opacity:1;background:var(--line)}
+#mlmenu{position:fixed;z-index:99999;min-width:210px;background:var(--panel,#16181f);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.5);padding:6px}#mlmenu a{display:block;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:14px}#mlmenu a:hover{background:var(--line)}#mlmenu hr{border:0;border-top:1px solid var(--line);margin:5px 0}
+.mlview{min-height:200px}.mlpre{max-height:68vh;overflow:auto;background:#0b0c10;padding:14px;border-radius:10px;font-size:12px;white-space:pre-wrap}
 `;document.head.appendChild(st);
 })();
 })();
