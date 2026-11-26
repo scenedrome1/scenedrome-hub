@@ -5851,7 +5851,7 @@ const _pvrv=previewsHTML;previewsHTML=function(p){let h=_pvrv(p);(p.previews||[]
 const _cpc=clientProjCard;clientProjCard=function(p){let h=_cpc(p);const pv=(p.previews||[]).filter(v=>v.show!==false&&(!v.to||v.to.includes(meId)))[0];if(pv){const needle=`<a class="btn" href="${esc(pv.url)}" target="_blank" rel="noopener">${ic('film',16)}Latest preview</a>`;if(h.includes(needle))h=h.replace(needle,`<a class="btn" data-act="rvOpen" data-arg="${p.id}|${pv.id}">${ic('film',16)}Review latest preview</a>`)}return h};
 
 const st=document.createElement('style');st.id='rv-style';st.textContent=`
-#rvw{position:fixed;inset:0;z-index:1000;font-family:var(--body,inherit)}#toasts{z-index:1100!important}#mnbox{z-index:1050!important}
+#rvw{position:fixed;inset:0;z-index:1000;font-family:var(--body,inherit)}#toasts{z-index:1100!important}#mnbox{z-index:1050!important}.modal-bg{z-index:1060!important}
 #rvw .rv-bg{position:absolute;inset:0;background:#040d09;color:var(--text,#e9efe9);display:flex;flex-direction:column}
 #rvw .rv-top{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line2,#244);flex-wrap:wrap}
 #rvw .rv-vers{display:flex;gap:6px;flex-wrap:wrap}#rvw .rv-vers .chip{cursor:pointer}
