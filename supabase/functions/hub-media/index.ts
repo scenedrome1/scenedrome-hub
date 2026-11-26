@@ -54,7 +54,9 @@ Deno.serve(async (req) => {
       await adm.from("media_projects").upsert({ project_id: pid, item_id: id });
       return id as string;
     }
-    const canEdit = (row: any, p: any) => isOwner || row.by === uid || (p && p.producer === uid);
+    const isGM = (await me.rpc("is_general_manager")).data === true;
+    const isMgr = (p: any) => isOwner || isGM || (p && p.producer === uid);
+    const canEdit = (_row: any, p: any) => isMgr(p);
 
     // ---- owner-only: link the studio OneDrive account ----
     if (["link_start", "link_poll", "test", "graph_get"].includes(A) && !isOwner) return json({ error: "owner only" }, 403);
@@ -143,7 +145,7 @@ Deno.serve(async (req) => {
       const row = (await adm.from("media_files").select("*").eq("id", String(b.id || "")).maybeSingle()).data;
       if (!row) return json({ ok: true });
       const p = await projOf(row.project_id);
-      if (!p || !canEdit(row, p)) return json({ error: "only the uploader, the producer or the owner can delete" }, 403);
+      if (!p || !canEdit(row, p)) return json({ error: "only the producer, the General Manager or the owner can delete" }, 403);
       const at = await accessToken();
       await gj(at, "/me/drive/items/" + row.item_id, { method: "DELETE" });
       await adm.from("media_files").delete().eq("id", row.id);
@@ -152,6 +154,7 @@ Deno.serve(async (req) => {
     if (A === "file_move") {
       const row = (await me.from("media_files").select("id,project_id,group_id").eq("id", String(b.id || "")).maybeSingle()).data;
       if (!row) return json({ error: "file not found" }, 404);
+      if (!isMgr(await projOf(row.project_id))) return json({ error: "only the producer, the General Manager or the owner can move files" }, 403);
       const to = b.folder_id ? String(b.folder_id) : null;
       if (to && !(await me.from("media_folders").select("id").eq("id", to).eq("project_id", row.project_id).maybeSingle()).data) return json({ error: "folder not available" }, 403);
       await adm.from("media_files").update({ folder_id: to }).eq("group_id", row.group_id);
@@ -161,6 +164,7 @@ Deno.serve(async (req) => {
     // ---- virtual folders ----
     if (A === "folder_create") {
       const p = await projOf(b.project_id); if (!p) return json({ error: "no access to this project" }, 403);
+      if (!isMgr(p)) return json({ error: "only the producer, the General Manager or the owner can create folders" }, 403);
       const parent = b.parent ? String(b.parent) : null;
       if (parent && !(await me.from("media_folders").select("id").eq("id", parent).eq("project_id", p.id).maybeSingle()).data) return json({ error: "parent not available" }, 403);
       const row = { id: rid("mfd_"), project_id: p.id, parent, name: safe(b.name), access: { users: Array.isArray(b.users) ? b.users.map(String) : [] }, by: uid, ts: Date.now() };
@@ -172,7 +176,7 @@ Deno.serve(async (req) => {
       const f = (await adm.from("media_folders").select("*").eq("id", String(b.id || "")).maybeSingle()).data;
       if (!f) return json({ ok: true });
       const p = await projOf(f.project_id);
-      if (!p || !canEdit(f, p)) return json({ error: "only the creator, the producer or the owner can change a folder" }, 403);
+      if (!p || !canEdit(f, p)) return json({ error: "only the producer, the General Manager or the owner can change folders" }, 403);
       if (A === "folder_update") {
         const patch: Record<string, unknown> = {};
         if (b.name != null) patch.name = safe(b.name);
