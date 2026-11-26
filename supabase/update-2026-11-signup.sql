@@ -11,3 +11,4 @@ create table if not exists public.invites (
 );
 alter table public.invites enable row level security;
 revoke all on public.invites from anon, authenticated;
+grant all on public.invites to service_role;
