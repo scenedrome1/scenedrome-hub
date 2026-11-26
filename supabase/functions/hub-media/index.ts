@@ -110,17 +110,17 @@ Deno.serve(async (req) => {
       const at = await accessToken(); const folder = await ensureProj(p.id, p.data?.name || p.id, at);
       const it = await gj(at, "/me/drive/items/" + encodeURIComponent(String(b.item_id)) + "?$select=id,name,size,parentReference,file");
       if (!it.j?.id || it.j.parentReference?.id !== folder) return json({ error: "file not found in the project folder" }, 400);
-      let group = String(b.group_id || ""); let ver = 1; let fid: string | null = b.folder_id ? String(b.folder_id) : null;
+      let inheritSt: string | null = null; let group = String(b.group_id || ""); let ver = 1; let fid: string | null = b.folder_id ? String(b.folder_id) : null;
       if (group) {
-        const { data: last } = await adm.from("media_files").select("ver,folder_id").eq("group_id", group).eq("project_id", p.id).order("ver", { ascending: false }).limit(1);
+        const { data: last } = await adm.from("media_files").select("ver,folder_id,status").eq("group_id", group).eq("project_id", p.id).order("ver", { ascending: false }).limit(1);
         if (!last?.length) return json({ error: "unknown file group" }, 400);
-        ver = (last[0].ver || 0) + 1; fid = last[0].folder_id;
+        ver = (last[0].ver || 0) + 1; fid = last[0].folder_id; inheritSt = ["approved", "changes"].includes(last[0].status) ? "review" : (last[0].status || null);
       } else if (fid) {
         const ok = (await me.from("media_folders").select("id").eq("id", fid).eq("project_id", p.id).maybeSingle()).data;
         if (!ok) return json({ error: "folder not available" }, 403);
       }
       const id = rid("mf_"); if (!group) group = id;
-      const row = { id, project_id: p.id, folder_id: fid, group_id: group, ver, name: it.j.name, item_id: it.j.id, mime: String(b.mime || it.j.file?.mimeType || ""), size: it.j.size || 0, by: uid, ts: Date.now() };
+      const row = { id, project_id: p.id, folder_id: fid, group_id: group, ver, name: it.j.name, item_id: it.j.id, mime: String(b.mime || it.j.file?.mimeType || ""), size: it.j.size || 0, status: inheritSt, by: uid, ts: Date.now() };
       const ins = await adm.from("media_files").insert(row);
       if (ins.error) return json({ error: ins.error.message }, 500);
       return json({ file: row });
@@ -163,6 +163,23 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
+    if (A === "file_status") {
+      const gid = String(b.group_id || "");
+      const row = (await adm.from("media_files").select("project_id,status").eq("group_id", gid).order("ver", { ascending: false }).limit(1)).data?.[0];
+      if (!row) return json({ error: "file not found" }, 404);
+      const p = await projOf(row.project_id); if (!p) return json({ error: "no access" }, 403);
+      const mg = isMgr(p);
+      const pv = ((p.data?.previews || []) as any[]).find((v) => v.gid === gid);
+      const recip = !!pv && pv.show !== false && Array.isArray(pv.to) && pv.to.includes(uid) && !inh;
+      const seen = inh && !!(await me.from("media_files").select("id").eq("group_id", gid).limit(1)).data?.length;
+      const can = mg || recip;
+      const opts = mg ? ["", "wip", "review", "changes", "approved"] : ["review", "changes", "approved"];
+      if (b.status === undefined) { if (!(can || seen)) return json({ error: "no access" }, 403); return json({ status: row.status || "", can, opts: can ? opts : [] }); }
+      if (!can) return json({ error: "only the producer, the General Manager, the owner or the client with access can change the status" }, 403);
+      const stv = String(b.status || ""); if (!opts.includes(stv)) return json({ error: "not allowed" }, 400);
+      await adm.from("media_files").update({ status: stv || null }).eq("group_id", gid);
+      return json({ ok: true, status: stv });
+    }
     // ---- versions, mirrors ----
     const mgrOf = async (pid: string) => { const p = await projOf(pid); return p && isMgr(p) ? p : null; };
     if (A === "file_as_version") {
