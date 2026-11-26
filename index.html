@@ -6566,7 +6566,7 @@ const _rQC=render;render=function(){const r=_rQC.apply(this,arguments);try{qcRen
 ACT.cliAddProj=id=>{const x=U(id);if(!x||x.role!=='client'||!canClients())return;const ps=S.projects.filter(p=>p.client!==id).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
  if(!ps.length)return toast('Every project is already linked to this client','bad');
  modal('Add '+esc(x.company||x.name)+' to a project',`<form data-form="cliAddProj" data-arg="${esc(id)}" class="formgrid"><label class="full">Project<select name="project" required><option value="">Choose a project…</option>${ps.map(p=>{const o=p.client&&U(p.client);return`<option value="${esc(p.id)}">${esc(p.name)}${o?' — now with '+esc(o.company||o.name):''}</option>`}).join('')}</select></label><div class="full tiny faint">The client will see this project on their dashboard. A project has one client, so choosing one that already has a client moves it.</div><div class="full row" style="margin-top:12px;justify-content:flex-end"><button class="btn pri" type="submit">Add to project</button></div></form>`)};
-FORM.cliAddProj=(fd,id)=>{const x=U(id);const p=P(String(fd.get('project')||''));if(!x||!p||x.role!=='client'||!canClients())return toast('Pick a project','bad');p.client=id;save();closeModal();render();toast(esc(p.name)+' added to '+(x.company||x.name),'ok')};
+FORM.cliAddProj=(fd,id)=>{const x=U(id);const p=P(String(fd.get('project')||''));if(!x||!p||x.role!=='client'||!canClients())return toast('Pick a project','bad');p.client=id;save();closeModal();render();toast(p.name+' added to '+(x.company||x.name),'ok')};
 
 })();
 
