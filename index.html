@@ -6347,6 +6347,16 @@ const _lkObs=new MutationObserver(ms=>{ms.forEach(m=>m.addedNodes.forEach(n=>{if
 _lkObs.observe(document.body,{childList:true,subtree:true});
 document.querySelectorAll('input,textarea').forEach(lkApply);
 
+
+/* client edit details: offers and new services as on/off badges */
+const _ueOff=ACT.editUser;ACT.editUser=id=>{_ueOff(id);try{const x=U(id);if(!x||x.role!=='client'||!canClients())return;const f=document.querySelector('#modal form[data-form=userEdit]');if(!f||f.querySelector('.cliOffers'))return;
+ const offers=x.offers||[],svcs=B().services||[],off=x.svcOff||[];
+ const html=`<div class="full cliOffers" style="margin-top:6px"><div class="eyebrow" style="margin-bottom:6px">Offers &amp; new services</div>`+
+  `<div class="tiny faint" style="margin-bottom:6px">On = shown to this client. Off = hidden from their portal.</div>`+
+  `<div class="row wrap" style="gap:8px">${offers.length?offers.map(o=>`<a class="chip ${o.closed?'':'gold'}" data-act="offTog" data-arg="${x.id}|${o.id}" style="cursor:pointer;font-size:12px">${o.closed?'○ Off':'● On'} · ${esc(o.title)}</a>`).join(''):'<span class="tiny faint">No offers yet</span>'}</div>`+
+  `<div class="row wrap" style="gap:8px;margin-top:8px">${svcs.length?svcs.map(sv=>{const on=!off.includes(sv.id);return`<a class="chip ${on?'gold':''}" data-act="svcTogC" data-arg="${x.id}|${sv.id}" style="cursor:pointer;font-size:12px">${on?'● On':'○ Off'} · ${esc(sv.title)}</a>`}).join(''):'<span class="tiny faint">No new services yet</span>'}</div></div>`;
+ const save=f.lastElementChild;if(save)save.insertAdjacentHTML('beforebegin',html);else f.insertAdjacentHTML('beforeend',html)}catch(e){console.warn('[hub] client offers',e)}};
+
 })();
 
 </script>
