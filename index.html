@@ -6289,6 +6289,35 @@ const _loginU=FORM.login;FORM.login=fd=>{const raw=String(fd.get('email')||'').t
 const _renderUN=render;render=function(){_renderUN();try{if(!me()||!isOwner()||PREVIEW)return;let ch=false;
  S.users.forEach(u=>{if(!u.username&&!u.removed){u.username=unameSuggest(u.name,u.id);ch=true}});if(ch)setTimeout(save,0)}catch(e){console.warn('[hub] usernames',e)}};
 
+
+/* ===== batched updates: several changes by one person within 5 minutes become one alert ===== */
+const NB_MS=5*60000;
+const _notifyBatch=notify;notify=function(ids,text,link){const n0=S.notifs.length;const r=_notifyBatch(ids,text,link);
+ const added=S.notifs.slice(0,Math.max(0,S.notifs.length-n0));
+ added.forEach(n=>{if(!n.link||!n.link.p||!n.by)return;
+  const prev=S.notifs.find(o=>o!==n&&!o.read&&o.to===n.to&&o.by===n.by&&o.bt&&o.link&&o.link.p===n.link.p&&Date.now()-o.bt<NB_MS);
+  if(!prev){n.bt=Date.now();n.bn=1;n.bItems=[n.text];return}
+  prev.bn=(prev.bn||1)+1;prev.bItems=(prev.bItems||[prev.text]).concat(n.text);
+  const pn=(P(n.link.p)||{}).name||'the project';const who=(U(n.by)||{}).name||'Someone';
+  prev.text=`${who} made ${prev.bn} updates on ${pn}: ${prev.bItems.slice(-3).join(' · ')}`;
+  S.notifs=S.notifs.filter(x=>x!==n)});
+ return r};
+/* scene header: episode and shooting day together */
+const _scRowDay=scRow;scRow=function(p,e,s,ctx,d){let h=_scRowDay(p,e,s,ctx,d);try{const dd=s.day&&pDays(p).find(x=>x.id===s.day);
+ if(dd)h=h.replace(/(<span class="sce">[^<]*<\/span>)/,`$1<span class="sce">${esc(dayN(dd))}</span>`)}catch(x){}return h};
+/* duplicate a scene into another episode (the original stays): for splitting a scene */
+CHG.scDup=(a,el)=>{const[n,sid]=a.split('|');const to=+el.value;if(!to)return;const p=bkPrep();if(!p||!(canEditFlow(p)||canManage(p)))return;
+ const from=epFind(p,n);const dest=p.episodes.find(x=>x.n===to);const sc=from&&from.scenes.find(x=>x.id===sid);if(!sc||!dest)return;
+ const copy=JSON.parse(JSON.stringify(sc));copy.id=uid('s');const vm={};copy.versions=(copy.versions||[]).map(v=>{const nid=uid('v');vm[v.id]=nid;return Object.assign({},v,{id:nid})});
+ copy.sel=vm[sc.sel]||null;copy.shots=(copy.shots||[]).map(h=>Object.assign({},h,{id:uid('h')}));copy.locked=false;
+ dest.scenes=dest.scenes||[];if(dest.scenes.some(x=>(+x.n)===(+copy.n)))copy.n=dest.scenes.reduce((a,x)=>Math.max(a,+x.n||0),0)+1;
+ dest.scenes.push(copy);dest.scenes.sort((x,y)=>(+x.n||0)-(+y.n||0));dest.scenes.forEach(scCalc);
+ V.open['sc'+p.id+dest.n]=true;save();render();toast(`Duplicated to ${epL(to)} — the original stays in ${epL(+n)}`,'ok')};
+const _scRowDup=scRow;scRow=function(p,e,s,ctx,d){let h=_scRowDup(p,e,s,ctx,d);try{const others=(p.episodes||[]).filter(x=>x.n!==e.n);
+ if(!others.length||!h.includes('data-change="scMove"'))return h;
+ const dup=`<label class="scfull grow">Duplicate to another episode (keeps this one)<select data-change="scDup" data-arg="${e.n}|${s.id}"><option value="">Choose the episode…</option>${others.map(x=>`<option value="${x.n}">${epL(x.n)}</option>`).join('')}</select></label>`;
+ h=h.replace(/(<label class="scfull grow">Move this scene[\s\S]*?<\/label>)/,'$1'+dup)}catch(x){}return h};
+
 })();
 
 </script>
