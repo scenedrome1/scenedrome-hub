@@ -1089,7 +1089,7 @@ function navItems(){const u=me();const N=[];const g=(h)=>N.push(['__',h]);
 if(u.role==='client'){N.push(['home','Home','home'],['projects','My projects','film'],['messages','Messages','chat'],['rewards','Offers & rewards','gift'])}
 else if(u.role==='partner'){N.push(['home','Collab hub','home'],['projects','Our collabs','film'],['messages','Chats','chat'])}
 else{N.push(['home','Dashboard','home'],['projects','Projects','film'],['messages','Messages','chat']);
-const mg=[];if(isFinMember()||can('fin.cashflow')||can('fin.projectEntry')||can('fin.overview')||can('fin.receivables')||can('fin.budgetsOwn')||can('fin.budgetsAll')||can('fin.salaries')||can('fin.expenses'))mg.push(['finance','Finance','wallet']);if(teamOK())mg.push(['team','Team','users']);if(isOwner()||seesClients())mg.push(['clients','Clients','brief']);if(can('partners.view'))mg.push(['partners','Partner studios','hand']);if(isOwner()||gmU()||isMgmt())mg.push(['services','Services','sparkle']);
+const mg=[];if(isFinMember()||can('fin.cashflow')||can('fin.projectEntry')||can('fin.overview')||can('fin.receivables')||can('fin.budgetsOwn')||can('fin.budgetsAll')||can('fin.salaries')||can('fin.expenses'))mg.push(['finance','Finance','wallet']);if(teamOK())mg.push(['team','Team','users']);if(isOwner()||seesClients())mg.push(['clients','Clients','brief']);if(can('partners.view'))mg.push(['partners','Partner studios','hand']);if(isOwner())mg.push(['services','Services','sparkle']);
 const ops=[];if(can('storage.view'))ops.push(['storage','Storage & devices','drive']);if(can('mkt.view'))ops.push(['marketing','Marketing','mega']);ops.push(['handbook','Studio handbook','book']);
 if(mg.length){g('Management');N.push(...mg)}g('Studio');N.push(...ops);if(can('admin.users')||can('people.add')||isOwner()){g('Admin');if(can('admin.users')||can('people.add'))N.push(['admin','Users & access','shield']);if(isOwner()||can('settings.manage'))N.push(['settings','Settings','gear'])}}
 g('You');N.push(['profile','My profile','user']);return N}
@@ -6377,7 +6377,7 @@ edit:[['Assembly','All scenes in order'],['Rough cut','Story and pace found'],['
 grading:[['Conform','Locked cut matched to the original footage'],['Primary grade','Balance and exposure'],['Look & secondaries','The look, skin tones, shot matching'],['Client review','Notes collected'],['Final render','Graded files delivered']],
 sound:[['Spot & brief','What each scene needs'],['Dialogue edit','Clean and sync the dialogue'],['Sound design & music','Effects, atmosphere, music'],['Mix','Final balance'],['Delivery','Mix and stems delivered']],
 creative:[['Brief','What the client needs'],['Concepts','Ideas and directions'],['Client review','Feedback and choice'],['Production','The chosen idea made'],['Delivery','Final files delivered']]};
-const svcCan=()=>!!me()&&(isOwner()||gmU()||isMgmt());
+const svcCan=()=>!!me()&&isOwner();
 const sxClean=v=>String(v==null?'':v).replace(/\s+/g,' ').trim().slice(0,40);
 const sxCustom=()=>Array.isArray(BRAND.svcCustom)?BRAND.svcCustom:[];
 const sxMeta=k=>(BRAND.svcMeta||{})[k]||{};
