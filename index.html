@@ -721,8 +721,8 @@ const H=3600e3,D=24*H;
 const nf=new Intl.NumberFormat('en-US');
 const moneyRaw=n=>'EGP '+nf.format(Math.round(n||0));let FIN_SHOW=false;const money=n=>FIN_SHOW?moneyRaw(n):'EGP •••••••';
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const mmss=s=>{s=Math.max(0,Math.round(s||0));const P2=n=>String(n).padStart(2,'0');return P2(Math.floor(s/3600))+':'+P2(Math.floor(s%3600/60))+':'+P2(s%60)};
-const parseMMSS=t=>{t=String(t==null?'':t).trim();if(!t)return 0;if(/^\d+$/.test(t)){const n=t.length;let h=0,m=0,x=0;if(n<=2)x=+t;else if(n<=4){m=+t.slice(0,n-2);x=+t.slice(-2)}else{h=+t.slice(0,n-4);m=+t.slice(-4,-2);x=+t.slice(-2)}return h*3600+m*60+x}const q=t.split(/[:;.]/).map(Number);if(q.some(isNaN))return null;if(q.length===2)return q[0]*60+q[1];if(q.length>=3)return q[0]*3600+q[1]*60+q[2];return null};
+const mmss=s=>{if(window.TC_F){const FPS=25,P2=n=>String(n).padStart(2,'0');let t=Math.max(0,Math.round((+s||0)*FPS));const ff=t%FPS;t=(t-ff)/FPS;return P2(Math.floor(t/3600))+':'+P2(Math.floor(t%3600/60))+':'+P2(t%60)+':'+P2(ff)}s=Math.max(0,Math.round(s||0));const P2=n=>String(n).padStart(2,'0');return P2(Math.floor(s/3600))+':'+P2(Math.floor(s%3600/60))+':'+P2(s%60)};
+const parseMMSS=t=>{t=String(t==null?'':t).trim();if(!t)return 0;if(/^\d+$/.test(t)){const n=t.length;let h=0,m=0,x=0;if(n<=2)x=+t;else if(n<=4){m=+t.slice(0,n-2);x=+t.slice(-2)}else{h=+t.slice(0,n-4);m=+t.slice(-4,-2);x=+t.slice(-2)}return h*3600+m*60+x}const q=t.split(/[:;.]/).map(Number);if(q.some(isNaN))return null;if(q.length===2)return q[0]*60+q[1];if(q.length===4)return q[0]*3600+q[1]*60+q[2]+q[3]/25;if(q.length>=3)return q[0]*3600+q[1]*60+q[2];return null};
 const kb=b=>b>=1099511627776?(b/1099511627776).toFixed(2)+' TB':b>=1073741824?(b/1073741824).toFixed(1)+' GB':b>=1048576?(b/1048576).toFixed(1)+' MB':Math.max(1,Math.round(b/1024))+' KB';
 const gb=g=>g>=1000?(g/1000).toFixed(g%1000?1:0)+' TB':Math.round(g)+' GB';
 const uid=p=>p+Date.now().toString(36).slice(-4)+Math.random().toString(36).slice(2,6);
@@ -4961,9 +4961,9 @@ ACT.epStm=a=>{const[pid,n]=a.split('|');const k='stm'+pid+'-'+n;const was=V.open
 const _tepD=ACT.toggleEp;ACT.toggleEp=(n,el,e)=>{const k=V.p+'-'+n;const opening=!V.open[k];_tepD(n,el,e);if(opening){V.open['sc'+V.p+n]=true;render()}};
 
 /* ---------- round 4: "+" notes (bullets, tap to edit) and "+" locations ---------- */
-const NBK={day:a=>{const p=P(V.p);const d=p&&pDays(p).find(x=>x.id===a);if(!d)return null;if(!Array.isArray(d.notes))d.notes=d.note?String(d.note).split(/\n+/).map(x=>x.trim()).filter(Boolean):[];return{arr:d.notes,ok:canEditFlow(p),done:()=>{d.note=d.notes.join('\n')}}}};
+const NBK={day:a=>{const p=P(V.p);const d=p&&pDays(p).find(x=>x.id===a);if(!d)return null;if(!Array.isArray(d.notes))d.notes=d.note?String(d.note).split(/\n+/).map(x=>x.trim()).filter(Boolean):[];return{arr:d.notes,ok:!!p&&(canEditFlow(p)||onProject(p)),done:()=>{d.note=d.notes.join('\n')}}}};
 function nbGet(id){const[k,...r]=String(id).split('~');const f=NBK[k];return f?f(r.join('~')):null}
-function notesBox(id,ce,ph){const g=nbGet(id);if(!g)return'';const ed=ce&&g.ok;const cur=V.nb&&V.nb.id===id?V.nb.i:null;
+function notesBox(id,ce,ph){const g=nbGet(id);if(!g)return'';const ed=!!g.ok;const cur=V.nb&&V.nb.id===id?V.nb.i:null;
  const li=g.arr.map((t,i)=>cur===i?`<li><input class="nbin" data-nolock="1" value="${esc(t)}" data-change="nbSet" data-arg="${esc(id)}~${i}" data-nbkey="1"></li>`:`<li><span class="ntxt" ${ed?`data-act="nbEdit" data-arg="${esc(id)}|${i}" title="Tap to edit"`:''}>${esc(t)}</span></li>`).join('');
  const add=ed?(cur===-1?`<li><input class="nbin" data-nolock="1" placeholder="${esc(ph||'Add a note')}" data-change="nbSet" data-arg="${esc(id)}~-1" data-nbkey="1"></li>`:''):'';
  return`<div class="nbox"><ul class="nlist">${li}${add}</ul>${!g.arr.length&&cur!==-1?`<span class="faint tiny">${ed?'':'—'}</span>`:''}${ed&&cur!==-1?`<a class="sqplus" data-act="nbAdd" data-arg="${esc(id)}" title="Add a note">+</a>`:''}</div>`}
@@ -6317,6 +6317,35 @@ const _scRowDup=scRow;scRow=function(p,e,s,ctx,d){let h=_scRowDup(p,e,s,ctx,d);t
  if(!others.length||!h.includes('data-change="scMove"'))return h;
  const dup=`<label class="scfull grow">Duplicate to another episode (keeps this one)<select data-change="scDup" data-arg="${e.n}|${s.id}"><option value="">Choose the episode…</option>${others.map(x=>`<option value="${x.n}">${epL(x.n)}</option>`).join('')}</select></label>`;
  h=h.replace(/(<label class="scfull grow">Move this scene[\s\S]*?<\/label>)/,'$1'+dup)}catch(x){}return h};
+
+
+/* ===== scene moves keep the episode name they came from ===== */
+const _scMoveO=CHG.scMove;CHG.scMove=(a,el)=>{try{const[n,sid]=a.split('|');const p=bkPrep();const from=p&&epFind(p,n);const sc=from&&from.scenes.find(x=>x.id===sid);if(sc&&sc.origEp==null&&+el.value)sc.origEp=from.n}catch(x){}return _scMoveO(a,el)};
+/* scene row: origin episode in the header; VFX / Sound checkboxes side by side, and only on episodes (not on days) */
+const _scRowO=scRow;scRow=function(p,e,s,ctx,d){let h=_scRowO(p,e,s,ctx,d);try{
+ if(s.origEp!=null&&+s.origEp!==+e.n)h=h.replace(/(<span class="sce">)[^<]*(<\/span>)/,`$1${esc(epL(s.origEp))}$2`);
+ if(ctx==='day')h=h.replace(/<label class="scflag">[\s\S]*?<\/label>/g,'');
+ else h=h.replace(/((?:<label class="scflag">[\s\S]*?<\/label>\s*)+)/,m=>`<span class="scflags">${m.trim()}</span>`);
+}catch(x){}return h};
+/* timecode switch: a check box on the breakdown, per project */
+CHG.tcOn=(a,el)=>{const p=P(a);if(!p||!canEditFlow(p))return;p.tcf=el.checked;save();render();toast(el.checked?'Timecode with frames (hh:mm:ss:ff)':'Time in hh:mm:ss','ok')};
+const _tbTC=TABS.breakdown;TABS.breakdown=p=>{const h=_tbTC(p);if(!canEditFlow(p))return h;
+ return `<div class="tcbar"><label class="cbx"><input type="checkbox" data-change="tcOn" data-arg="${p.id}" ${p.tcf?'checked':''}> Timecode with frames (hh:mm:ss:ff) <span class="faint tiny">— 25 fps; typing hhmmss, mmss or ss still works</span></label></div>`+h};
+/* the frames switch is applied to every time shown on a project page */
+const _renderTC=render;render=function(){window.TC_F=!!(V.v==='project'&&P(V.p)&&P(V.p).tcf);_renderTC()};
+/* click-to-edit: every text box is locked until it is clicked or tabbed into; locked again when you leave it */
+const LK_TYPES=['text','email','tel','url','number'];
+function lkApply(el){if(!el||el.dataset.lk!=null)return;const tag=el.tagName;if(tag==='INPUT'&&!LK_TYPES.includes((el.type||'text').toLowerCase()))return;
+ if(tag!=='INPUT'&&tag!=='TEXTAREA')return;if(el.closest('[data-form=login],[data-form=unlock],[data-form=pwd],[data-nolock]')||el.hasAttribute('data-nolock'))return;
+ if(el.closest('form[data-form]')&&el.closest('form[data-form]').dataset.form==='login')return;
+ el.dataset.lk='1';el.setAttribute('readonly','');el.classList.add('lk');if(!el.title)el.title='Click to edit'}
+const _lkStyle=document.createElement('style');_lkStyle.textContent='.lk[readonly]{cursor:pointer;opacity:.92}.lk[readonly]:hover{border-color:var(--gold2,#f0c46a)}.scflags{display:inline-flex;gap:12px;align-items:center;flex-wrap:nowrap;white-space:nowrap}.tcbar{margin:0 0 10px}';document.head.appendChild(_lkStyle);
+document.addEventListener('focusin',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.lk==='1'){t.removeAttribute('readonly');t.classList.remove('lk')}});
+document.addEventListener('focusout',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.lk==='1'){t.setAttribute('readonly','');t.classList.add('lk')}},true);
+document.addEventListener('pointerdown',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.lk==='1'&&t.hasAttribute('readonly')){t.removeAttribute('readonly');t.classList.remove('lk')}},true);
+const _lkObs=new MutationObserver(ms=>{ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType!==1)return;if(n.matches&&n.matches('input,textarea'))lkApply(n);n.querySelectorAll&&n.querySelectorAll('input,textarea').forEach(lkApply)}))});
+_lkObs.observe(document.body,{childList:true,subtree:true});
+document.querySelectorAll('input,textarea').forEach(lkApply);
 
 })();
 
