@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
       if (!ok) {
         const p = await projOf(row.project_id);
         const pv = (p?.data?.previews || []) as any[];
-        ok = !!p && pv.some((v) => v.show !== false && (v.to ? v.to.includes(uid) : p.client === uid) && (v.vers || []).some((x: any) => x.fid === row.id));
+        ok = !!p && pv.some((v) => v.show !== false && (Array.isArray(v.to) && v.to.includes(uid)) && (v.vers || []).some((x: any) => x.fid === row.id));
       }
       if (!ok) return json({ error: "no access" }, 403);
       const at = await accessToken();
