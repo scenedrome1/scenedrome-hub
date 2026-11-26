@@ -6573,6 +6573,13 @@ ACT.cliAddProj=id=>{const x=U(id);if(!x||x.role!=='client'||!canClients())return
  modal('Add '+esc(x.company||x.name)+' to a project',`<form data-form="cliAddProj" data-arg="${esc(id)}" class="formgrid"><label class="full">Project<select name="project" required><option value="">Choose a project…</option>${ps.map(p=>{const o=p.client&&U(p.client);return`<option value="${esc(p.id)}">${esc(p.name)}${o?' — now with '+esc(o.company||o.name):''}</option>`}).join('')}</select></label><div class="full tiny faint">The client will see this project on their dashboard. A project has one client, so choosing one that already has a client moves it.</div><div class="full row" style="margin-top:12px;justify-content:flex-end"><button class="btn pri" type="submit">Add to project</button></div></form>`)};
 FORM.cliAddProj=(fd,id)=>{const x=U(id);const p=P(String(fd.get('project')||''));if(!x||!p||x.role!=='client'||!canClients())return toast('Pick a project','bad');p.client=id;save();closeModal();render();toast(p.name+' added to '+(x.company||x.name),'ok')};
 
+
+/* a client's profile, opened by management: the client controls (ratings, notes, offers, projects) come first, then the usual profile */
+{const _vProfCl=VIEWS.profile;VIEWS.profile=()=>{const h=_vProfCl();const x=V.p&&U(V.p);const u=me();
+ if(typeof h!=='string'||!x||!u||x.id===u.id||x.role!=='client'||!(can('clients.view')||isMgmt()))return h;
+ let c='';try{c=VIEWS.client()}catch(e){console.warn('[hub] client panel',e)}
+ return c+'<div class="sec-title" style="margin-top:18px"><h2>Profile</h2></div>'+h}}
+
 })();
 
 </script>
