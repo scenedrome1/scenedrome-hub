@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
     if (A === "url") {
       const row = (await adm.from("media_files").select("*").eq("id", String(b.file_id || "")).maybeSingle()).data;
       if (!row) return json({ error: "file not found" }, 404);
-      let ok = inh && !!(await me.from("media_files").select("id").eq("id", row.id).maybeSingle()).data;
+      let ok = !!(await me.from("media_files").select("id").eq("id", row.id).maybeSingle()).data;
       if (!ok) {
         const p = await projOf(row.project_id);
         const pv = (p?.data?.previews || []) as any[];
@@ -163,6 +163,15 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
+    if (A === "file_rename") {
+      const row = (await me.from("media_files").select("id,project_id,group_id").eq("id", String(b.id || "")).maybeSingle()).data;
+      if (!row) return json({ error: "file not found" }, 404);
+      if (!isMgr(await projOf(row.project_id))) return json({ error: "only the producer, the General Manager or the owner can rename" }, 403);
+      const nm = safe(b.name); if (!nm) return json({ error: "name needed" }, 400);
+      await adm.from("media_files").update({ name: nm }).eq("group_id", row.group_id);
+      return json({ ok: true, name: nm });
+    }
+
     if (A === "file_status") {
       const gid = String(b.group_id || "");
       const row = (await adm.from("media_files").select("project_id,status").eq("group_id", gid).order("ver", { ascending: false }).limit(1)).data?.[0];
@@ -171,8 +180,8 @@ Deno.serve(async (req) => {
       const mg = isMgr(p);
       const pv = ((p.data?.previews || []) as any[]).find((v) => v.gid === gid);
       const recip = !!pv && pv.show !== false && Array.isArray(pv.to) && pv.to.includes(uid) && !inh;
-      const seen = inh && !!(await me.from("media_files").select("id").eq("group_id", gid).limit(1)).data?.length;
-      const can = mg || recip;
+      const seen = !!(await me.from("media_files").select("id").eq("group_id", gid).limit(1)).data?.length;
+      const can = mg || recip || (!inh && seen);
       const opts = mg ? ["", "wip", "review", "changes", "approved"] : ["review", "changes", "approved"];
       if (b.status === undefined) { if (!(can || seen)) return json({ error: "no access" }, 403); return json({ status: row.status || "", can, opts: can ? opts : [] }); }
       if (!can) return json({ error: "only the producer, the General Manager, the owner or the client with access can change the status" }, 403);
