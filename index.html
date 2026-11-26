@@ -1012,9 +1012,9 @@ const isExt=u=>['client','partner'].includes((u||me()).role);
 const isStaff=u=>!isExt(u||me());
 function can(k,u){u=u||me();if(!u)return false;if(u.role==='owner')return u.job==='founder'||!(u.access&&u.access[k]===false);if(isExt(u))return false;return !!(u.access&&u.access[k])}
 function onProject(p,u){u=u||me();return p.producer===u.id||p.team.includes(u.id)||(p.partners||[]).includes(u.id)||p.client===u.id}
-function visibleProjects(u){u=u||me();return S.projects.filter(p=>{if(u.role==='owner')return true;if(u.role==='client')return p.client===u.id;if(u.role==='partner')return(p.partners||[]).includes(u.id);return can('proj.all',u)||onProject(p,u)})}
+function visibleProjects(u){u=u||me();return S.projects.filter(p=>{if(u.role==='owner')return true;if(typeof isGM==='function'&&isGM(u))return true;if(u.role==='client')return p.client===u.id;if(u.role==='partner')return(p.partners||[]).includes(u.id);return can('proj.all',u)||onProject(p,u)})}
 const leadsProject=(p,u)=>{u=u||me();return u.role==='owner'||p.producer===u.id||(can('proj.all',u)&&can('proj.tasks',u))};
-function canDo(k,p){const u=me();if(u.role==='owner')return true;if(!can(k))return false;if(!p)return true;return can('proj.all')||onProject(p,u)}
+function canDo(k,p){const u=me();if(u.role==='owner'||(typeof isGM==='function'&&isGM(u)&&k==='proj.all'))return true;if(!can(k))return false;if(!p)return true;return can('proj.all')||onProject(p,u)}
 function canMoney(p,u){u=u||me();if(u.role==='owner')return true;if(!can('fin.projectEntry',u))return false;return p.producer===u.id||can('proj.all',u)}
 function channelsFor(p,u){u=u||me();if(u.role==='client')return['client'];if(u.role==='partner')return['team'];return canDo('proj.clientThread',p)?['team','client']:['team']}
 function members(p,ch){const ids=new Set([p.producer]);if(ch==='team'){p.team.forEach(i=>ids.add(i));(p.partners||[]).forEach(i=>ids.add(i))}else{ids.add(p.client);S.users.filter(u=>can('proj.clientThread',u)&&onProject(p,u)).forEach(u=>ids.add(u.id))}S.users.filter(u=>u.role==='owner').forEach(u=>ids.add(u.id));return[...ids].filter(i=>U(i)&&!U(i).suspended)}
