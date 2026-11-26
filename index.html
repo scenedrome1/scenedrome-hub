@@ -1082,7 +1082,7 @@ function loginHTML(){const chips=S.users.map(u=>`<a class="demo-chip" data-act="
 const hl=String(B().headline||'').split('\n');const hlH=hl.map((l,i)=>i===hl.length-1&&hl.length>1?`<em>${esc(l)}</em>`:esc(l)).join('<br>');
 return`<div class="login"><div class="login-art"><img class="logo" src="${esc(B().logo)}" alt="${esc(B().studio)}"><div><div class="eyebrow" style="margin-bottom:14px">${esc(B().studio.split(' ')[0])} ${esc(B().hubName)} · ${esc(B().domain)}</div><div class="big">${hlH}</div><p>${esc(B().tagline)}</p></div><div class="eyebrow">${esc(B().footer)}</div></div>
 <div class="login-side"><form class="login-card" data-form="login"><div><h1>${esc(B().welcome)}</h1><p class="muted" style="margin:6px 0 0">${esc(B().signinHelp)}</p></div>${bootMsg?`<div class="chip bad" style="white-space:normal;padding:8px 12px">${esc(bootMsg)}</div>`:''}
-<label>Email<input name="email" type="email" autocomplete="username" placeholder="name@company.com" required></label><label>Password<input name="password" type="password" autocomplete="current-password" placeholder="••••••••" required></label>
+<label>Email or username<input name="email" type="text" autocomplete="username" placeholder="name@company.com or username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" placeholder="••••••••" required></label>
 <button class="btn pri wide" type="submit">Sign in</button><p class="tiny faint" style="margin:0">Forgot your password? The studio owner resets it from Users & access.</p>
 ${LIVE?'':`<div class="demo-box"><div class="eyebrow">Draft · tap a demo account</div><div class="tiny faint">Demo password for every account: scene123</div><div class="demo-chips">${chips}</div><div class="row" style="margin-top:12px"><a class="btn sm ghost" data-act="resetDemo">Reset demo data</a></div></div>`}</form></div></div>`}
 function navItems(){const u=me();const N=[];const g=(h)=>N.push(['__',h]);
@@ -6685,6 +6685,34 @@ const _renderStudio=render;render=function(){_renderStudio();try{const me0=me();
   app.querySelectorAll(`[data-arg*="${id}"]`).forEach(el=>{const row=el.closest('.item,.clirow,tr,.kcr,.cpacc,.dyrow');if(row)row.remove()});
   app.querySelectorAll(`option[value="${id}"]`).forEach(o=>o.remove());
  })}catch(e){console.warn('[hub] studio hide',e)}};
+
+/* ===== usernames: starts from the first name (ahmed, ahmed2 …), unique, editable by management; can sign in with it ===== */
+const unameClean=s=>String(s||'').trim().toLowerCase().replace(/[^\p{L}\p{N}._]/gu,'');
+const unameTaken=(v,selfId)=>S.users.some(u=>u.id!==selfId&&!u.removed&&String(u.username||'').toLowerCase()===String(v).toLowerCase());
+const unameSuggest=(name,selfId)=>{const base=unameClean(String(name||'').trim().split(/\s+/)[0])||'user';let v=base,n=2;while(unameTaken(v,selfId)){v=base+(n++)}return v};
+const _nuU=ACT.newUser;ACT.newUser=()=>{_nuU();const f=document.querySelector('#modal form[data-form=user]');if(!f||f.querySelector('[name=username]'))return;
+ const nm=f.querySelector('[name=name]');const lab=nm&&nm.closest('label');if(!lab)return;
+ lab.insertAdjacentHTML('afterend','<label>Username <span class="faint tiny">— used to sign in</span><input name="username" placeholder="e.g. ahmed"></label>');
+ const un=f.querySelector('[name=username]');un.value=unameSuggest('');un.dataset.dirty='';
+ un.addEventListener('input',()=>{un.dataset.dirty='1'});
+ nm.addEventListener('input',()=>{if(un.dataset.dirty!=='1')un.value=unameSuggest(nm.value)})};
+const _fuU=FORM.user;FORM.user=fd=>{const want=unameClean(fd.get('username'))||unameSuggest(fd.get('name'));
+ if(want.length<3){toast('Username needs at least 3 letters or numbers','bad');return}
+ if(unameTaken(want)){toast('That username is taken — pick another','bad');return}
+ const m=mkUser;mkUser=o=>{const r=m(o);r.username=want;return r};try{return _fuU(fd)}finally{mkUser=m}};
+const _ueU=ACT.editUser;ACT.editUser=id=>{_ueU(id);const f=document.querySelector('#modal form[data-form=userEdit]');if(!f||f.querySelector('[name=username]'))return;
+ const em=f.querySelector('[name=email]');const lab=em&&em.closest('label');const x=U(id);if(!lab||!x)return;
+ lab.insertAdjacentHTML('afterend',`<label>Username <span class="faint tiny">— used to sign in</span><input name="username" value="${esc(x.username||'')}" placeholder="e.g. ahmed"></label>`)};
+const _ueF=FORM.userEdit;FORM.userEdit=(fd,id)=>{const x=U(id);const want=unameClean(fd.get('username'));
+ if(x&&fd.has('username')&&want){if(want.length<3){toast('Username needs at least 3 letters or numbers','bad');return}if(unameTaken(want,id)){toast('That username is taken — pick another','bad');return}x.username=want}
+ return _ueF(fd,id)};
+const _loginU=FORM.login;FORM.login=fd=>{const raw=String(fd.get('email')||'').trim();if(raw.includes('@'))return _loginU(fd);
+ const pw=fd.get('password');const go=em=>{const f=new FormData();f.set('email',em||raw);f.set('password',pw);return _loginU(f)};
+ if(!LIVE){const u=S.users.find(x=>String(x.username||'').toLowerCase()===raw.toLowerCase());return go(u?u.email:raw)}
+ sb.rpc('login_email',{uname:raw}).then(({data})=>go(data||raw)).catch(()=>go(raw))};
+/* existing people get a username once (first name, numbered if taken); the owner's session saves it */
+const _renderUN=render;render=function(){_renderUN();try{if(!me()||!isOwner()||PREVIEW)return;let ch=false;
+ S.users.forEach(u=>{if(!u.username&&!u.removed){u.username=unameSuggest(u.name,u.id);ch=true}});if(ch)setTimeout(save,0)}catch(e){console.warn('[hub] usernames',e)}};
 </script>
 </body>
 </html>

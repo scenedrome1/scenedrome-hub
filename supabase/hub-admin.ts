@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       const { data, error } = await admin.auth.admin.createUser({ email: b.email, password: b.password, email_confirm: true });
       if (error) return json({ error: error.message }, 400);
       const { error: e2 } = await admin.from("profiles").insert({ id: data.user.id, email: b.email, role: b.role, job: b.job, access: b.access ?? {}, suspended: false, data: b.data ?? {} });
-      if (e2) { await admin.auth.admin.deleteUser(data.user.id); return json({ error: e2.message }, 400); }
+      if (e2) { await admin.auth.admin.deleteUser(data.user.id); return json({ error: e2.code === "23505" ? "That username is taken" : e2.message }, 400); }
       return json({ id: data.user.id });
     }
     if (!target) return json({ error: "Unknown person" }, 400);
