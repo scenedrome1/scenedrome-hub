@@ -6668,8 +6668,8 @@ ACT.sndTog=()=>{const on=!SNDON();try{localStorage.setItem('sd-snd',on?'1':'0')}
 .pcard2 .pf .ukdots.cf{position:static;opacity:1;width:30px;height:30px;margin-left:auto;background:transparent;border:0;color:var(--muted);font-size:22px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 @media (max-width:760px){
  .row.wrap:has(>.ptabs){flex-wrap:wrap!important;align-items:center}
- .row.wrap:has(>.ptabs)>.btn.pri{order:0}
- .row.wrap:has(>.ptabs)>.ukfbtn{order:1;margin-left:auto}
+ .row.wrap:has(>.ptabs)>.ukfbtn{order:1;margin-left:auto;flex:none}
+ .row.wrap:has(>.ptabs)>.btn.pri{order:2;flex:none;margin-left:0}
  .row.wrap:has(>.ptabs)>.ptabs{order:2;flex:0 0 100%!important;width:100%!important}
 }`;document.head.appendChild(st)})();
 
@@ -6705,6 +6705,13 @@ ACT.sndTog=()=>{const on=!SNDON();try{localStorage.setItem('sd-snd',on?'1':'0')}
 }
 @media (display-mode: standalone){html body .top{padding-top:calc(var(--sat) + 12px)!important}}
 `;document.head.appendChild(st)})();
+
+/* phones always use the approved design: a saved appearance preset cannot switch cards to squares or other looks */
+(()=>{const H=document.documentElement;const DEF={btn:'1',badge:'1',menu:'1',subnav:'1',card:'1',filter:'1',scene:'1'};
+ const pin=()=>{if(innerWidth>860)return;for(const k in DEF)if(H.getAttribute('data-ui-'+k)!==DEF[k])H.setAttribute('data-ui-'+k,DEF[k])};
+ const orig=window.hubUIApply;window.hubUIApply=()=>{if(innerWidth<=860){pin();return}if(orig)orig()};
+ pin();addEventListener('resize',pin);
+ new MutationObserver(pin).observe(H,{attributes:true,attributeFilter:Object.keys(DEF).map(k=>'data-ui-'+k)});})();
 })();
 
 </script>
