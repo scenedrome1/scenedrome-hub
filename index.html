@@ -6639,7 +6639,7 @@ Object.assign(ACT,{npTogB:k=>{const u=me();if(!u)return;u.np=Object.assign({},u.
 /* project money: every quotation item, payment received, cost and payment made can be edited or deleted */
 {const entCan=e=>{const p=P(e.project);return !!me()&&(isOwner()||(isStaff()&&!!p&&canManage(p))||(e.by===meId&&e.status!=='recorded'))};
  const _erE=entryRows;entryRows=function(list,showProject){return list.map(e=>{let h=_erE([e],showProject).replace(/<a class="faint" style="cursor:pointer" data-act="entryDel"[\s\S]*?<\/a>/,'');
-  if(!entCan(e))return h;const i=h.lastIndexOf('</div>');return h.slice(0,i)+`<a class="faint" style="cursor:pointer" data-act="entEdit" data-arg="${e.id}" title="Edit" aria-label="Edit">${ic('edit',14)}</a><a class="faint" style="cursor:pointer" data-act="entDel" data-arg="${e.id}" title="Delete" aria-label="Delete">${ic('trash',14)}</a>`+h.slice(i)}).join('')};
+  if(!entCan(e))return h;h=h.replace('<div class="item">','<div class="item entrow">');const i=h.lastIndexOf('</div>');return h.slice(0,i)+`<a class="faint" style="cursor:pointer" data-act="entEdit" data-arg="${e.id}" title="Edit" aria-label="Edit">${ic('edit',14)}</a><a class="faint" style="cursor:pointer" data-act="entDel" data-arg="${e.id}" title="Delete" aria-label="Delete">${ic('trash',14)}</a>`+h.slice(i)}).join('')};
  const KN={quote:'quotation item',payin:'client payment',cost:'cost',payout:'payment made'};
  Object.assign(ACT,{entEdit:id=>{const e=S.entries.find(x=>x.id===id);if(!e||!entCan(e))return;const p=P(e.project)||{name:''};const v=x=>esc(e[x]==null?'':e[x]);const k=e.kind;
   const f={item:`<label class="full">${k==='quote'?'Item':'Who / what'}<input name="item" required value="${v('item')}"></label>`,line:`<label class="full">${k==='payin'?'Against quotation item':'Against cost'}<input name="line" value="${v('line')}"></label>`,role:`<label>Type<input name="role" value="${v('role')}"></label>`,date:`<label>${k==='payin'?'Date received':'Date paid'}<input type="date" name="date" value="${v('date')}"></label>`,due:`<label>Due date<input type="date" name="due" value="${v('due')}"></label>`,method:`<label>Method<input name="method" value="${v('method')}"></label>`,ref:`<label>Reference / invoice no.<input name="ref" value="${v('ref')}"></label>`};
@@ -6657,6 +6657,8 @@ Object.assign(ACT,{npTogB:k=>{const u=me();if(!u)return;u.np=Object.assign({},u.
 /* notification sound: one small switch in the bell panel, remembered on this device */
 function SNDON(){try{return localStorage.getItem('sd-snd')!=='0'}catch(e){return true}}
 ACT.sndTog=()=>{const on=!SNDON();try{localStorage.setItem('sd-snd',on?'1':'0')}catch(e){}if(on)chime55();document.querySelectorAll('[data-act=sndTog]').forEach(e=>{e.classList.toggle('on',on);e.title='Notification sound '+(on?'on':'off');e.setAttribute('aria-checked',on)})};
+
+(()=>{const st=document.createElement('style');st.textContent='.item.entrow{flex-wrap:wrap;row-gap:6px}.item.entrow>.grow{flex:1 1 170px;min-width:170px;overflow-wrap:anywhere}.item.entrow>.num{margin-left:auto}';document.head.appendChild(st)})();
 })();
 
 </script>
