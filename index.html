@@ -6670,7 +6670,11 @@ ACT.sndTog=()=>{const on=!SNDON();try{localStorage.setItem('sd-snd',on?'1':'0')}
  .row.wrap:has(>.ptabs){flex-wrap:wrap!important;align-items:center}
  .row.wrap:has(>.ptabs)>.ukfbtn{order:1;margin-left:auto;flex:none}
  .row.wrap:has(>.ptabs)>.btn.pri{order:2;flex:none;margin-left:0}
- .row.wrap:has(>.ptabs)>.ptabs{order:2;flex:0 0 100%!important;width:100%!important}
+ .row.wrap:has(>.ptabs)>.ptabs{order:5;flex:0 0 100%!important;width:100%!important}
+ .row.wrap:has(>.ptabs)>.ptabs{border:0!important;background:none!important;display:flex!important;gap:8px!important;overflow-x:auto;scrollbar-width:none}
+ .row.wrap:has(>.ptabs)>.ptabs::-webkit-scrollbar{display:none}
+ .row.wrap:has(>.ptabs)>.ptabs>a{flex:none!important;border:1px solid var(--line2)!important;border-radius:99px!important;padding:9px 16px!important;background:var(--panel)!important;color:var(--muted)!important;margin:0!important;white-space:nowrap}
+ .row.wrap:has(>.ptabs)>.ptabs>a.on{background:#f4f4ef!important;color:#111!important;border-color:transparent!important;font-weight:600}
 }`;document.head.appendChild(st)})();
 
 /* project cards: bigger bold name, production company in the small line, delivery status small on the right */
