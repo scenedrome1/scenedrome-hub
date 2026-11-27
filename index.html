@@ -1146,7 +1146,7 @@ return`<div class="shell"><aside class="side ${MORE_OPEN?'more':''}"><div class=
 ${LIVE?'':'<div class="draftnote">Draft · demo data lives in this browser only.</div>'}<div class="side-foot" data-act="go" data-arg="profile">${av(u,34)}<div class="grow"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500">${esc(u.name)}</b><span class="tiny faint">${esc(u.title||u.company||'')}</span></div></div></aside>
 <main><header class="top"><div><div class="crumb">${crumbHTML()}</div><h2>${homeT}</h2></div>
 <div class="row" style="gap:8px">${LIVE?'':`<label class="viewas"><span class="lbl eyebrow">Draft · view as</span><select data-change="switchUser">${S.users.filter(x=>!x.suspended).map(x=>`<option value="${x.id}" ${x.id===u.id?'selected':''}>${esc(x.name)} — ${esc(x.company||x.title)}</option>`).join('')}</select></label>`}
-<div class="bellwrap"><a class="iconbtn" data-act="bell" title="Notifications" aria-label="Notifications">${ic('bell')}${un?`<span class="badge">${un}</span>`:''}</a><div class="bellpanel" id="bellpanel"><div class="row" style="padding:12px 14px"><b style="font-weight:500">Notifications</b><a class="btn sm ghost right" data-act="readAll">Mark all read</a>${(()=>{const m=me();if(!m)return'';const any=NP_CATS.some(([k])=>npOn(m,k));return`<a class="btn sm ${any?'pri':''}" data-act="npAll" title="Turn all notifications ${any?'off':'on'}">${any?'On':'Off'}</a></div><div class="row wrap" style="padding:0 14px 10px;gap:6px">${NP_CATS.map(([k,l])=>`<a class="btn sm ${npOn(m,k)?'pri':'ghost'}" data-act="npTogB" data-arg="${k}" title="${esc(l)}" style="font-size:11px">${esc(l.split(/[ ,]/)[0])} ${npOn(m,k)?'On':'Off'}</a>`).join('')}${isOwner()?`<a class="btn sm ghost" data-act="npRoles" style="font-size:11px">Roles…</a>`:''}</div>`})()}
+<div class="bellwrap"><a class="iconbtn" data-act="bell" title="Notifications" aria-label="Notifications">${ic('bell')}${un?`<span class="badge">${un}</span>`:''}</a><div class="bellpanel" id="bellpanel"><div class="row" style="padding:12px 14px"><b style="font-weight:500">Notifications</b><a class="btn sm ghost right" data-act="readAll">Mark all read</a><span class="switch ${SNDON()?'on':''}" data-act="sndTog" title="Notification sound ${SNDON()?'on':'off'}" aria-label="Notification sound" role="switch" aria-checked="${SNDON()}" style="margin-left:8px"></span></div>
 ${bellListHTML(u)}</div></div>${acctHTML()}</div></header><section class="content">${body}</section></main></div>`}
 
 /* ================= views ================= */
@@ -4026,7 +4026,7 @@ ACT.pushTipOff=()=>{try{localStorage.setItem('sd-push-tip',String(Date.now()))}c
 const _sh55=shellHTML;shellHTML=function(){let h=_sh55();if(!LIVE||APP.state==='on'||(APP.state==='unsupported'&&!isIOS))return h;
  return h.replace(/(<div class="bellpanel" id="bellpanel">[\s\S]*?Mark all read<\/a><\/div>)/,`$1<div class="row belltip"><span class="grow tiny">🔔 Get these on this device, even when the Hub is closed</span><a class="btn sm pri" data-act="${isIOS&&!isStandalone()?'appHelp':APP.state==='denied'?'appHelp':'pushOn'}">${APP.state==='denied'?'How to allow':'Turn on'}</a></div>`)};
 /* a soft chime when something new lands while the Hub is open */
-let CH55=null;function chime55(){try{CH55=CH55||new(window.AudioContext||window.webkitAudioContext)();const c=CH55,t=c.currentTime;[880,1320].forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t+i*.12);g.gain.linearRampToValueAtTime(.07,t+i*.12+.02);g.gain.exponentialRampToValueAtTime(.0001,t+i*.12+.5);o.connect(g).connect(c.destination);o.start(t+i*.12);o.stop(t+i*.12+.55)})}catch(e){}}
+let CH55=null;function chime55(){try{if(!SNDON())return;CH55=CH55||new(window.AudioContext||window.webkitAudioContext)();const c=CH55,t=c.currentTime;[880,1320].forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t+i*.12);g.gain.linearRampToValueAtTime(.07,t+i*.12+.02);g.gain.exponentialRampToValueAtTime(.0001,t+i*.12+.5);o.connect(g).connect(c.destination);o.start(t+i*.12);o.stop(t+i*.12+.55)})}catch(e){}}
 const _ts55=toast;toast=function(m){if(typeof m==='string'&&m.startsWith('🔔 '))chime55();return _ts55.apply(this,arguments)};
 
 /* ================= look v3: graded-film colours, every tone in Branding, summaries on the Overview ================= */
@@ -6653,6 +6653,10 @@ Object.assign(ACT,{npTogB:k=>{const u=me();if(!u)return;u.np=Object.assign({},u.
   if(n.cur==='USD'&&!n.rate){toast('Add the USD rate for a USD amount','bad');return}
   if(e.status==='returned'){n.status='submitted';delete n.ret}Object.assign(e,n);e.edited=Date.now();save();closeModal();render();toast('Saved','ok')}}
 
+
+/* notification sound: one small switch in the bell panel, remembered on this device */
+function SNDON(){try{return localStorage.getItem('sd-snd')!=='0'}catch(e){return true}}
+ACT.sndTog=()=>{const on=!SNDON();try{localStorage.setItem('sd-snd',on?'1':'0')}catch(e){}if(on)chime55();document.querySelectorAll('[data-act=sndTog]').forEach(e=>{e.classList.toggle('on',on);e.title='Notification sound '+(on?'on':'off');e.setAttribute('aria-checked',on)})};
 })();
 
 </script>
