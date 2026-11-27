@@ -6391,7 +6391,7 @@ const _tbTC=TABS.breakdown;TABS.breakdown=p=>{const h=_tbTC(p);if(!canEditFlow(p
 const _renderTC=render;render=function(){window.TC_F=!!(V.v==='project'&&P(V.p)&&P(V.p).tcf);_renderTC()};
 /* click-to-edit: every text box is locked until it is clicked or tabbed into; locked again when you leave it */
 const LK_TYPES=['text','email','tel','url','number'];
-function lkApply(el){if(!el||el.dataset.lk!=null)return;const tag=el.tagName;if(tag==='INPUT'&&!LK_TYPES.includes((el.type||'text').toLowerCase()))return;
+function lkApply(el){if(!el||el.dataset.lk!=null)return;if(el.closest('#modal'))return;const tag=el.tagName;if(tag==='INPUT'&&!LK_TYPES.includes((el.type||'text').toLowerCase()))return;
  if(tag!=='INPUT'&&tag!=='TEXTAREA')return;if(el.closest('[data-form=login],[data-form=unlock],[data-form=pwd],[data-form=send],[data-form=dm],.composer,[data-nolock]')||el.hasAttribute('data-nolock'))return;
  if(el.closest('form[data-form]')&&el.closest('form[data-form]').dataset.form==='login')return;
  el.dataset.lk='1';el.setAttribute('readonly','');el.classList.add('lk');if(!el.title)el.title='Click to edit'}
@@ -6680,6 +6680,12 @@ ACT.sndTog=()=>{const on=!SNDON();try{localStorage.setItem('sd-snd',on?'1':'0')}
 .pcard2 .pbtop .pco{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pcard2 .pbtop .chip.pst{flex:none;align-self:center;margin:0!important;font-size:10px!important;padding:2px 7px!important}
 `;document.head.appendChild(st)})();
+
+/* phone keyboards: a click-to-edit box is made editable on touch/press, before focus, so the keyboard opens on the first tap; dialogs never lock their boxes */
+(()=>{const free=e=>{const t=e.target;if(t&&t.dataset&&t.dataset.lk==='1'&&t.hasAttribute('readonly')){t.removeAttribute('readonly');t.classList.remove('lk')}};
+ ['touchstart','mousedown'].forEach(ev=>document.addEventListener(ev,free,{capture:true,passive:true}));
+ document.querySelectorAll('#modal [data-lk="1"]').forEach(t=>{t.removeAttribute('readonly');t.classList.remove('lk')});
+ new MutationObserver(()=>document.querySelectorAll('#modal [data-lk="1"][readonly]').forEach(t=>{t.removeAttribute('readonly');t.classList.remove('lk')})).observe(document.body,{subtree:true,childList:true})})();
 })();
 
 </script>
