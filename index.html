@@ -6686,6 +6686,26 @@ ACT.sndTog=()=>{const on=!SNDON();try{localStorage.setItem('sd-snd',on?'1':'0')}
  ['touchstart','mousedown'].forEach(ev=>document.addEventListener(ev,free,{capture:true,passive:true}));
  document.querySelectorAll('#modal [data-lk="1"]').forEach(t=>{t.removeAttribute('readonly');t.classList.remove('lk')});
  new MutationObserver(()=>document.querySelectorAll('#modal [data-lk="1"][readonly]').forEach(t=>{t.removeAttribute('readonly');t.classList.remove('lk')})).observe(document.body,{subtree:true,childList:true})})();
+
+/* iPhone / notch and Dynamic Island: keep headers, pages, menus and sheets clear of the hidden top area and the home bar */
+(()=>{const st=document.createElement('style');st.textContent=`
+:root{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px)}
+@media (max-width:860px){
+ html body .top{padding-top:calc(var(--sat) + 12px)!important;padding-left:calc(14px + var(--sal))!important;padding-right:calc(14px + var(--sar))!important}
+ html body .content{padding-left:calc(14px + var(--sal))!important;padding-right:calc(14px + var(--sar))!important;padding-bottom:calc(110px + var(--sab))!important}
+ html body .login{padding-top:calc(var(--sat) + 16px)!important;padding-bottom:calc(var(--sab) + 16px)!important}
+ html body .modal-bg{padding-top:calc(var(--sat) + 10px)!important;padding-bottom:calc(var(--sab) + 10px)!important}
+ html body .modal{max-height:calc(100dvh - var(--sat) - var(--sab) - 24px)!important}
+ html body .bellpanel,html body #dotspanel,html body .acctpanel,html body .acctpanel.dots,html body .acctpanel.dots.open{top:calc(var(--sat) + 60px)!important;max-height:calc(100dvh - var(--sat) - var(--sab) - 80px)!important}
+ html body #ukmenu{left:10px!important;right:10px!important;top:auto!important;bottom:calc(var(--sab) + 84px)!important;width:auto!important;min-width:0!important;max-height:60dvh;overflow:auto;border-radius:16px!important}
+ html body #ukfpop{left:10px!important;right:10px!important;top:calc(var(--sat) + 70px)!important;width:auto!important;max-width:none!important}
+ html body #toasts{top:calc(var(--sat) + 8px);bottom:auto!important}
+ html body .side{padding-bottom:var(--sab)}
+ html body #qchat{bottom:calc(var(--sab) + 86px)!important;right:calc(14px + var(--sar))!important}
+ html body .phead{padding-top:calc(var(--sat) * 0 + 4px)}
+}
+@media (display-mode: standalone){html body .top{padding-top:calc(var(--sat) + 12px)!important}}
+`;document.head.appendChild(st)})();
 })();
 
 </script>
