@@ -920,7 +920,10 @@ const ico=document.getElementById('brandIcon');if(ico&&b.mark)ico.href=b.mark;co
 const CFG=window.HUB_CONFIG||null;
 const LIVE=!!(CFG&&CFG.url&&CFG.anon&&window.supabase&&window.supabase.createClient);
 const BOOT_HASH=location.hash;
-const sb=LIVE?window.supabase.createClient(CFG.url,CFG.anon,{auth:{persistSession:true,autoRefreshToken:true}}):null;
+/* sign-in memory: the phone / installed app stays signed in until the person signs out; a desktop browser forgets the sign-in when the browser is closed */
+const APPDEV=(()=>{try{const ua=navigator.userAgent||'';return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true||/Android|iPhone|iPad|iPod/i.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1)}catch(e){return false}})();
+const AUTHSTORE={getItem:k=>{try{if(APPDEV)return localStorage.getItem(k);try{localStorage.removeItem(k)}catch(e){}return sessionStorage.getItem(k)}catch(e){return null}},setItem:(k,v)=>{try{if(APPDEV)localStorage.setItem(k,v);else{sessionStorage.setItem(k,v);try{localStorage.removeItem(k)}catch(e){}}}catch(e){}},removeItem:k=>{try{localStorage.removeItem(k)}catch(e){}try{sessionStorage.removeItem(k)}catch(e){}}};
+const sb=LIVE?window.supabase.createClient(CFG.url,CFG.anon,{auth:{persistSession:true,autoRefreshToken:true,storage:AUTHSTORE}}):null;
 let booted=!LIVE,bootMsg='';
 function emptyState(){return{v:3,users:[],projects:[],tasks:[],msgs:[],dms:[],notifs:[],leaves:[],files:[],devices:[],mkt:[],expenses:[],entries:[],evals:[],fin:{source:'none',pulledAt:null,rows:[],salaries:[],totals:null}}}
 const omit=(o,ks)=>{const r={};Object.keys(o).forEach(k=>{if(!ks.includes(k))r[k]=o[k]});return r};
